@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "cowbird-core",
+    "cowbird-mailtm",
 ]
 
 [[package]]
@@ -234,6 +235,17 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-mailtm"
+version = "0.1.0"
+source = { editable = "packages/providers/mailtm" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
 name = "curl-cffi"
