@@ -64,3 +64,29 @@ def test_mutating_a_snapshot_does_not_affect_the_live_store():
     snap["p"].latencies.append(999.0)
     assert store.status("p") is Status.OK
     assert store.p50("p") == 1.0
+
+
+def test_quarantine_survives_a_later_unrelated_failure_and_success():
+    store = HealthStore()
+    store.record_failure("p", SchemaDrift("p", expected="a", got="b"))
+    assert store.status("p") is Status.QUARANTINED
+    store.record_failure("p", ProviderDown("blip"))
+    assert store.status("p") is Status.QUARANTINED
+    store.record_success("p", "list", 0.2)
+    assert store.status("p") is Status.QUARANTINED
+    assert "blip" in store.snapshot()["p"].last_failure
+
+
+def test_cloudflare_challenge_while_quarantined_still_sets_residential_flag():
+    store = HealthStore()
+    store.record_failure("p", SchemaDrift("p", expected="a", got="b"))
+    store.record_failure("p", CloudflareChallenge("challenged"))
+    assert store.status("p") is Status.QUARANTINED
+    assert store.snapshot()["p"].needs_residential_ip is True
+
+
+def test_last_failure_updates_while_quarantined():
+    store = HealthStore()
+    store.record_failure("p", SchemaDrift("p", expected="a", got="b"))
+    store.record_failure("p", ProviderDown("second failure"))
+    assert "second failure" in store.snapshot()["p"].last_failure

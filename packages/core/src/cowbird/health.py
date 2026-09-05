@@ -78,6 +78,11 @@ class HealthStore:
         entry.last_failure = repr(exc)
         if isinstance(exc, CloudflareChallenge):
             entry.needs_residential_ip = True
+        # Quarantine means an adapter is wrong. A later, unrelated failure is
+        # not a verdict on the adapter, so it must not downgrade or overwrite
+        # QUARANTINED — only a human clears it.
+        if entry.status is Status.QUARANTINED:
+            return
         entry.status = Status.QUARANTINED if isinstance(exc, SchemaDrift) else Status.DOWN
 
     def status(self, provider: str) -> Status:
