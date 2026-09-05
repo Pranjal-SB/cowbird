@@ -156,3 +156,42 @@ def test_last_checked_survives_the_round_trip(tmp_path):
     restored = HealthStore.load(path).snapshot()["p"].last_checked
     assert isinstance(restored, datetime)
     assert restored.tzinfo is not None
+
+
+def test_malformed_latencies_string_loads_to_empty_window(tmp_path):
+    # String latencies like "[1,2,3]" iterate char-by-char, poisoning p50().
+    # Must load to empty window and p50() returns None.
+    path = tmp_path / "health.json"
+    path.write_text(
+        json.dumps({"p": {"status": "ok", "latencies": "[1,2,3]"}})
+    )
+    store = HealthStore.load(path)
+    assert store.p50("p") is None
+    assert list(store.snapshot()["p"].latencies) == []
+
+
+def test_latencies_with_mixed_valid_and_junk_keeps_only_numbers(tmp_path):
+    # [1.0, "x", None, 2.0, True] should keep only 1.0 and 2.0. Bools
+    # are rejected even though isinstance(True, int) is True.
+    path = tmp_path / "health.json"
+    path.write_text(
+        json.dumps(
+            {
+                "p": {
+                    "status": "ok",
+                    "latencies": [1.0, "x", None, 2.0, True],
+                }
+            }
+        )
+    )
+    store = HealthStore.load(path)
+    assert list(store.snapshot()["p"].latencies) == [1.0, 2.0]
+    assert store.p50("p") == 1.5
+
+
+def test_invalid_status_degrades_entire_load_to_empty_store(tmp_path):
+    # An invalid status value should return empty store, not raise.
+    path = tmp_path / "health.json"
+    path.write_text(json.dumps({"p": {"status": "invalid"}}))
+    store = HealthStore.load(path)
+    assert store.snapshot() == {}
