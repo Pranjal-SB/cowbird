@@ -94,6 +94,15 @@ class Pool:
                     raise
                 last = exc
                 continue
+            if self._domain_blocked(address, req):
+                continue
             self.health.record_success(provider.name, "generate", time.monotonic() - started)
             return provider, address
         raise NoProviderAvailable(tried=tried, last=last)
+
+    @staticmethod
+    def _domain_blocked(address: Address, req: Request) -> bool:
+        if not req.domain_not_in:
+            return False
+        domain = address.value.rsplit("@", 1)[-1].lower()
+        return domain in {d.lower() for d in req.domain_not_in}

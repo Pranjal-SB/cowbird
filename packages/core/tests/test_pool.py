@@ -11,7 +11,7 @@ from cowbird.registry import Registry
 from cowbird.testing import CAPS, FakeProvider
 
 
-def provider_class(name, caps=CAPS, fails=None):
+def provider_class(name, caps=CAPS, fails=None, returns=None):
     class P(FakeProvider):
         pass
 
@@ -21,6 +21,12 @@ def provider_class(name, caps=CAPS, fails=None):
 
         async def generate(self, opts=None):
             raise fails
+
+        P.generate = generate
+    elif returns is not None:
+
+        async def generate(self, opts=None, _address=returns):
+            return _address
 
         P.generate = generate
     return P
@@ -120,3 +126,49 @@ async def test_acquire_raises_when_everything_failed_and_says_what_it_tried():
     with pytest.raises(NoProviderAvailable) as excinfo:
         await pool.acquire(Request())
     assert excinfo.value.tried == ["a"]
+
+
+def _mixed_provider(name="mixed"):
+    return provider_class(
+        name,
+        replace(CAPS, domains=("clean.test", "spam.test")),
+        returns=Address(value="a@spam.test", provider=name),
+    )
+
+
+def test_candidates_stays_permissive_for_a_provider_with_a_mixed_domain_set():
+    pool = build(_mixed_provider(), provider_class("clean"))
+    names = {p.name for p in pool.candidates(Request(domain_not_in=("spam.test",)))}
+    assert "mixed" in names
+
+
+async def test_acquire_skips_a_blocked_address_and_returns_the_clean_one():
+    pool = build(_mixed_provider(), provider_class("clean"))
+    provider, address = await pool.acquire(Request(domain_not_in=("spam.test",)))
+    assert provider.name == "clean"
+    assert address.value.endswith("@fake.test")
+
+
+async def test_acquire_raises_when_only_a_blocked_address_is_available():
+    pool = build(_mixed_provider())
+    with pytest.raises(NoProviderAvailable) as excinfo:
+        await pool.acquire(Request(domain_not_in=("spam.test",)))
+    assert excinfo.value.tried == ["mixed"]
+
+
+async def test_rejecting_a_blocked_domain_does_not_mark_the_provider_unhealthy():
+    health = HealthStore()
+    pool = build(_mixed_provider(), provider_class("clean"), health=health)
+    await pool.acquire(Request(domain_not_in=("spam.test",)))
+    assert health.status("mixed") is Status.OK
+
+
+async def test_blocked_domain_match_is_case_insensitive():
+    provider = provider_class(
+        "shouty",
+        replace(CAPS, domains=("clean.test", "Spam.Test")),
+        returns=Address(value="User@Spam.Test", provider="shouty"),
+    )
+    pool = build(provider, provider_class("clean"))
+    result_provider, _ = await pool.acquire(Request(domain_not_in=("spam.test",)))
+    assert result_provider.name == "clean"
