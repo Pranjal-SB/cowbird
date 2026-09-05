@@ -2,13 +2,25 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
+import os
 import sys
+from pathlib import Path
 
 from cowbird.errors import CowbirdError
+from cowbird.health import HealthStore
 from cowbird.inbox import Inbox, aclose_default_pool, default_pool
 from cowbird.models import Address, Kind
 from cowbird.pool import Request
+
+
+def health_path() -> Path:
+    """Where the CLI caches measured provider health between runs."""
+    override = os.environ.get("COWBIRD_HEALTH_PATH")
+    if override:
+        return Path(override)
+    return Path.home() / ".cowbird" / "health.json"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -97,6 +109,12 @@ async def _providers(args: argparse.Namespace) -> int:
 
 
 async def _run(args: argparse.Namespace) -> int:
+    # Seed the live store the registry already holds a reference to, rather
+    # than replacing it, so measurements taken during this command land
+    # somewhere the next run's `providers`/routing can actually see.
+    pool = default_pool()
+    for name, entry in HealthStore.load(health_path()).snapshot().items():
+        pool.health._entries[name] = entry
     handler = {"new": _new, "wait": _wait, "providers": _providers}[args.command]
     try:
         return await handler(args)
@@ -107,6 +125,9 @@ async def _run(args: argparse.Namespace) -> int:
         print(f"timeout: {exc}", file=sys.stderr)
         return 2
     finally:
+        # A read-only or full disk must not fail the user's command.
+        with contextlib.suppress(OSError):
+            default_pool().health.save(health_path())
         # Closes curl_cffi sessions held by the shared pool/registry. Done
         # once here rather than per-command so every exit path (success,
         # CowbirdError, TimeoutError) tears the pool down the same way.

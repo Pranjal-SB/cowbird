@@ -4,6 +4,7 @@ from dataclasses import replace
 import pytest
 from cowbird.models import Message, MessageRow
 from cowbird.testing import CAPS, FakeProvider
+from cowbird_cli import health_path, main
 
 
 async def _noop() -> None:
@@ -204,3 +205,44 @@ def test_wait_without_state_is_fine_when_provider_does_not_need_it(multi_pool, c
     code = main(["wait", "a@fake.test", "--provider", "fakedel"])
     assert code == 0
     assert capsys.readouterr().err == ""
+
+
+def test_health_path_honours_the_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "custom.json"))
+    assert health_path() == tmp_path / "custom.json"
+
+
+def test_health_path_defaults_under_home(monkeypatch):
+    monkeypatch.delenv("COWBIRD_HEALTH_PATH", raising=False)
+    assert health_path().name == "health.json"
+    assert ".cowbird" in str(health_path())
+
+
+def test_new_persists_measured_health(fake_pool, monkeypatch, tmp_path, capsys):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    assert main(["new"]) == 0
+    saved = json.loads(path.read_text())
+    assert "fake" in saved
+    assert saved["fake"]["status"] == "ok"
+    assert saved["fake"]["latencies"]
+
+
+def test_providers_reports_persisted_latency(fake_pool, monkeypatch, tmp_path, capsys):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    path.write_text(json.dumps({
+        "fake": {"status": "slow", "latencies": [9.0, 9.0], "last_checked": None,
+                 "last_failure": None, "needs_residential_ip": False}
+    }))
+    assert main(["providers"]) == 0
+    out = capsys.readouterr().out
+    assert "slow" in out
+    assert "9.0" in out
+
+
+def test_a_corrupt_health_file_does_not_break_the_cli(fake_pool, monkeypatch, tmp_path):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    path.write_text("{{{ broken")
+    assert main(["providers"]) == 0
