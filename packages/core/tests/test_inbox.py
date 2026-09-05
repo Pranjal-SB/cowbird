@@ -105,14 +105,12 @@ async def test_otp_raises_with_stream_ended_message_when_watch_yields_nothing():
 
 
 async def test_open_inboxes_cleans_up_on_acquisition_failure():
-    deleted_ids: list[str] = []
+    aclose_calls: list[Address] = []
+    original_aclose = Inbox.aclose
 
-    class Deleting(Recording):
-        name = "del"
-        caps = replace(CAPS, delete=True)
-
-        async def delete(self, address, id):
-            deleted_ids.append(id)
+    async def track_aclose(self):
+        aclose_calls.append(self.address)
+        await original_aclose(self)
 
     class Failing(Recording):
         name = "fail"
@@ -122,19 +120,25 @@ async def test_open_inboxes_cleans_up_on_acquisition_failure():
 
     # Pool with two providers: one that succeeds, one that fails.
     reg = Registry(transport_factory=lambda name: None, discover=False)
-    reg.register(Deleting)
+    reg.register(Recording)
     reg.register(Failing)
     pool = Pool(reg, HealthStore())
 
-    # Try to acquire 2 inboxes: first from Deleting, second from Failing.
-    # The first should be acquired and cleaned up.
-    with pytest.raises(ValueError, match="acquisition failed"):
-        async with open_inboxes(2, pool=pool):
-            pass
+    # Patch Inbox.aclose to track calls.
+    Inbox.aclose = track_aclose
+    try:
+        # Try to acquire 2 inboxes: first from Recording, second from Failing.
+        # The first should be acquired and cleaned up.
+        with pytest.raises(ValueError, match="acquisition failed"):
+            async with open_inboxes(2, pool=pool):
+                pass
 
-    # The Deleting provider should have been acquired once and then
-    # cleaned up when the Failing provider's acquisition raised.
-    assert len(deleted_ids) == 0  # No messages issued, but provider was acquired
+        # Verify the exception propagated and aclose was called on the
+        # successfully-acquired inbox (first one from Recording provider).
+        assert len(aclose_calls) == 1
+        assert aclose_calls[0].value == "a@fake.test"
+    finally:
+        Inbox.aclose = original_aclose
 
 
 async def test_aclose_default_pool_resets_the_global():
