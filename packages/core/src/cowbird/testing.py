@@ -6,10 +6,12 @@ different package, and anyone writing a provider wants it too.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
 
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.provider import GenerateOptions, Provider
+from cowbird.transport import Transport
 
 CAPS = Capabilities(
     kind=frozenset({Kind.OWN_DOMAIN}),
@@ -33,8 +35,12 @@ class FakeProvider(Provider):
     name = "fake"
     caps = CAPS
 
-    def __init__(self, http: object = None, pages: object = ()) -> None:
-        super().__init__(http)
+    def __init__(
+        self, http: Transport | None = None, pages: Sequence[list[MessageRow]] = ()
+    ) -> None:
+        # The fake never performs I/O, so unlike a real provider it can run
+        # without a transport.
+        super().__init__(http)  # type: ignore[arg-type]
         self.pages = list(pages)
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:

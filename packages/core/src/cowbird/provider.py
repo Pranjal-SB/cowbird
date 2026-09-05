@@ -29,7 +29,7 @@ class Provider(ABC):
     name: ClassVar[str]
     caps: ClassVar[Capabilities]
 
-    def __init__(self, http: Transport | None = None) -> None:
+    def __init__(self, http: Transport) -> None:
         self.http = http
 
     @abstractmethod
@@ -51,6 +51,11 @@ class Provider(ABC):
         This default polls. Providers with push (DropMail's WebSocket) override
         it, and callers cannot tell which one they got — which is why this is on
         the protocol rather than in the pool.
+
+        An override MUST be an async generator: it must `yield` messages, not
+        `return` an iterator. A coroutine that returns an iterator still
+        type-checks against this signature but fails at the call site with
+        `'async for' requires an object with __aiter__`.
         """
         interval = self.caps.poll_interval if poll is None else poll
         seen: set[str] = set()
