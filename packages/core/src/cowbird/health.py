@@ -122,8 +122,22 @@ class HealthStore:
         store = cls()
         for name, raw in data.items():
             entry = store._entry(name)
-            entry.status = Status(raw["status"])
-            entry.latencies.extend(raw.get("latencies", []))
+            try:
+                entry.status = Status(raw["status"])
+            except (KeyError, ValueError):
+                # Invalid status degrades entire load to empty store.
+                return cls()
+            # Validate latencies: must be list of numbers. A malformed value
+            # like latencies: "[1,2,3]" (string) would iterate as chars,
+            # poisoning p50() and breaking routing. Reject non-numbers and bools
+            # (isinstance(True, int) is True in Python).
+            raw_latencies = raw.get("latencies", [])
+            if isinstance(raw_latencies, list):
+                entry.latencies.extend(
+                    v
+                    for v in raw_latencies
+                    if isinstance(v, int | float) and not isinstance(v, bool)
+                )
             checked = raw.get("last_checked")
             entry.last_checked = datetime.fromisoformat(checked) if checked else None
             entry.last_failure = raw.get("last_failure")
@@ -136,8 +150,12 @@ class HealthStore:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(path.name + ".tmp")
-        tmp.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
-        os.replace(tmp, path)
+        try:
+            tmp.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
+            os.replace(tmp, path)
+        except Exception:
+            tmp.unlink(missing_ok=True)
+            raise
 
     @classmethod
     def load(cls, path: str | Path) -> HealthStore:
