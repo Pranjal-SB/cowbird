@@ -112,6 +112,21 @@ class Transport:
         resp = await self._request(method, url, **kw)
         return resp.text
 
+    async def send(self, method: str, url: str, **kw: Any) -> Any:
+        """Like json()/text(), but hands back the raw response instead of a
+        parsed body, so an adapter can branch on `resp.status_code`.
+
+        Goes through the same `_request` path as json()/text() — impersonation,
+        the concurrency gate, retries, and challenge detection all still apply.
+        Use this only when an adapter must distinguish response codes itself
+        (e.g. a provider-specific 404 that means "empty inbox" vs. a 401 that
+        means "bad credentials", or telling a successful empty-body 204 apart
+        from a failed request). The caller is responsible for interpreting any
+        4xx status; json()/text() remain the normal path for everything else.
+        """
+        headers = {"Accept": "application/json", **kw.pop("headers", {})}
+        return await self._request(method, url, headers=headers, **kw)
+
     async def aclose(self) -> None:
         if self._session is not None:
             await self._session.close()

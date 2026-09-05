@@ -17,7 +17,7 @@ import json
 import secrets
 from datetime import datetime, timedelta
 
-from cowbird.errors import NotSupported, SchemaDrift
+from cowbird.errors import NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -126,6 +126,20 @@ class MailTm(Provider):
     async def delete(self, address: Address, id: str) -> None:
         # A successful delete is HTTP 204 with an empty body (confirmed live).
         # self.http.json() would try json.loads("") and raise SchemaDrift on
-        # the success path, so use text() here — the caller wants None back
-        # either way.
-        await self.http.text("DELETE", f"{API}/messages/{id}", headers=self._auth(address))
+        # the success path, so use send() to see the status instead.
+        resp = await self.http.send(
+            "DELETE", f"{API}/messages/{id}", headers=self._auth(address)
+        )
+        if resp.status_code < 300:
+            return
+        if resp.status_code == 404:
+            # Deleting an already-deleted (or never-existed) message is not a
+            # caller error: the caller wanted the message gone, and it is
+            # gone. Deleting twice must not raise. Deliberate idempotency,
+            # not a missed case.
+            return
+        # 401/403 means wrong or expired credentials, not a locked/missing
+        # message; any other 4xx is unexpected. Both are ProviderDown
+        # (reroutable) rather than surfaced to the caller as though the
+        # message itself were the problem.
+        raise ProviderDown(f"mailtm: delete failed, HTTP {resp.status_code}")

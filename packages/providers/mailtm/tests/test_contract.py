@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import NotSupported, SchemaDrift
+from cowbird.errors import NotSupported, ProviderDown, SchemaDrift
 from cowbird.provider import GenerateOptions
 from cowbird_mailtm import MailTm
 
@@ -82,3 +82,56 @@ async def test_a_requested_domain_the_provider_does_not_serve_is_refused():
     http = FakeTransport(dict(DEFAULT_ROUTES))
     with pytest.raises(NotSupported):
         await MailTm(http).generate(GenerateOptions(domain="not-a-real-domain.test"))
+
+
+def _address_with_token():
+    from cowbird.models import Address
+
+    return Address(value="a@b.test", provider="mailtm", state=json.dumps(
+        {"address": "a@b.test", "password": "x", "token": "t"}
+    ))
+
+
+class FakeStatusResponse:
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+
+class FakeSendTransport:
+    """A minimal fake exposing only send(), for delete()'s status-branching."""
+
+    provider = "mailtm"
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+    async def send(self, method, url, **kw):
+        return FakeStatusResponse(self.status_code)
+
+
+async def test_delete_on_204_returns_none():
+    result = await MailTm(FakeSendTransport(204)).delete(_address_with_token(), "m1")
+    assert result is None
+
+
+async def test_delete_on_404_is_treated_as_already_gone():
+    # Idempotency, not an oversight: the caller wanted the message gone, and
+    # it's gone. Deleting twice must not raise.
+    result = await MailTm(FakeSendTransport(404)).delete(_address_with_token(), "m1")
+    assert result is None
+
+
+async def test_delete_on_403_raises_provider_down():
+    with pytest.raises(ProviderDown):
+        await MailTm(FakeSendTransport(403)).delete(_address_with_token(), "m1")
+
+
+async def test_delete_on_500_raises_provider_down_via_retry_path():
+    class FailingTransport:
+        provider = "mailtm"
+
+        async def send(self, method, url, **kw):
+            raise ProviderDown("mailtm: HTTP 500")
+
+    with pytest.raises(ProviderDown):
+        await MailTm(FailingTransport()).delete(_address_with_token(), "m1")
