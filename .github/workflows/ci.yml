@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  # Weekly canary. The mocked suite proves this repo works; only the scheduled
+  # run hits real providers, which is what catches them changing endpoints.
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-packages --all-extras
+      - run: uv run ruff check .
+      - run: uv run pytest -m "not live" --cov --cov-report=term-missing
+
+  canary:
+    # Never on a PR: a third party being down is not a regression here, and a
+    # push should not hammer them.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-packages --all-extras
+      - run: uv run pytest -m live -v
