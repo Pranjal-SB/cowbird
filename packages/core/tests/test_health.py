@@ -54,3 +54,13 @@ def test_slow_is_still_routable_because_slow_beats_nothing():
     assert Status.SLOW in ROUTABLE
     assert Status.DOWN not in ROUTABLE
     assert Status.QUARANTINED not in ROUTABLE
+
+
+def test_mutating_a_snapshot_does_not_affect_the_live_store():
+    store = HealthStore()
+    store.record_success("p", "list", 1.0)
+    snap = store.snapshot()
+    snap["p"].status = Status.DOWN
+    snap["p"].latencies.append(999.0)
+    assert store.status("p") is Status.OK
+    assert store.p50("p") == 1.0

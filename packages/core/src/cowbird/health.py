@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import statistics
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 
@@ -11,6 +11,14 @@ from cowbird.errors import CloudflareChallenge, SchemaDrift
 # How far past its own trailing baseline a provider may drift before it is
 # ranked last. Per-provider, not absolute: emailnator's 39-second first-body
 # read is normal for emailnator and pathological for mail.tm.
+#
+# SLOW means "slower than this provider's own recent baseline", not slow in
+# any absolute sense. It is deliberately self-clearing: if a provider settles
+# into a new, sustained pace, the trailing median rises with it and status
+# returns to OK once the new pace stops looking like a regression. Absolute
+# slowness is the pool's job via p50 ranking, not this store's job via
+# status. Replacing this with an absolute threshold would be a regression —
+# it would permanently mark down a provider whose normal pace is just slow.
 SLOW_FACTOR = 3.0
 _WINDOW = 20
 
@@ -57,6 +65,9 @@ class HealthStore:
         baseline = statistics.median(entry.latencies) if len(entry.latencies) >= 5 else None
         entry.latencies.append(seconds)
         entry.last_failure = None
+        # A success through the current egress is proof the residential-IP
+        # hint no longer applies.
+        entry.needs_residential_ip = False
         entry.status = (
             Status.SLOW if baseline and seconds > baseline * SLOW_FACTOR else Status.OK
         )
@@ -77,4 +88,9 @@ class HealthStore:
         return statistics.median(latencies) if latencies else None
 
     def snapshot(self) -> dict[str, ProviderHealth]:
-        return dict(self._entries)
+        # Copy each entry (and its mutable latencies deque) so callers can't
+        # rewrite live health state through the value they were handed.
+        return {
+            provider: replace(entry, latencies=deque(entry.latencies, maxlen=_WINDOW))
+            for provider, entry in self._entries.items()
+        }
