@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from html import unescape
 from html.parser import HTMLParser
 
 _DROP_TAGS = {"script", "style", "head", "title"}
@@ -25,8 +24,8 @@ class _TextExtractor(HTMLParser):
             self._suppress += 1
         if tag == "a":
             for name, value in attrs:
-                if name == "href" and value and value.startswith(_SAFE_SCHEMES):
-                    self.links.append(unescape(value))
+                if name == "href" and value and value.lower().startswith(_SAFE_SCHEMES):
+                    self.links.append(value)
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _DROP_TAGS and self._suppress:
