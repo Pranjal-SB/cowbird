@@ -1,3 +1,16 @@
+"""mail.tm provider.
+
+mail.tm content-negotiates: with a browser Accept header (what curl_cffi's
+impersonation sends by default) it serves XML. curl's default Accept (`*/*`)
+gets a JSON-LD envelope with `hydra:member`. Neither is what this adapter
+receives, because `Transport.json()` pins `Accept: application/json` for
+every provider. Under that header, mail.tm's list endpoints (`/domains`,
+`/messages`) return a **plain JSON array**, not an envelope — there is no
+`hydra:member` anywhere in what this adapter ever sees. Fixtures here were
+recorded through a real `Transport`, not curl, for exactly this reason: a
+fixture recorded by a different client than the runtime uses is fiction.
+"""
+
 from __future__ import annotations
 
 import json
@@ -25,12 +38,14 @@ def _unpack(state: str | None) -> dict[str, str]:
     return json.loads(state)
 
 
-def _members(payload: object, where: str) -> list:
-    """mail.tm speaks JSON-LD. A missing hydra:member means the shape moved."""
-    if not isinstance(payload, dict) or "hydra:member" not in payload:
-        keys = list(payload) if isinstance(payload, dict) else type(payload).__name__
-        raise SchemaDrift("mailtm", expected=f"hydra:member in {where}", got=keys)
-    return payload["hydra:member"]
+def _list(payload: object, where: str) -> list:
+    """With Accept: application/json (what Transport.json() always sends),
+    mail.tm's list endpoints return a plain array — no hydra:member envelope.
+    A non-list response means the shape moved."""
+    if not isinstance(payload, list):
+        got = type(payload).__name__
+        raise SchemaDrift("mailtm", expected=f"a JSON array from {where}", got=got)
+    return payload
 
 
 def _at(row: dict) -> datetime | None:
@@ -57,7 +72,7 @@ class MailTm(Provider):
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
         opts = opts or GenerateOptions()
         domains_payload = await self.http.json("GET", f"{API}/domains")
-        domains = [d["domain"] for d in _members(domains_payload, "domains")]
+        domains = [d["domain"] for d in _list(domains_payload, "domains")]
         if opts.domain and opts.domain not in domains:
             # A caller asking for a domain this backend does not serve is a caller
             # error, not upstream drift. Raising SchemaDrift here would quarantine
@@ -90,7 +105,7 @@ class MailTm(Provider):
                 subject=row.get("subject", ""),
                 received_at=_at(row),
             )
-            for row in _members(payload, "messages")
+            for row in _list(payload, "messages")
         ]
 
     async def get(self, address: Address, id: str) -> Message:
@@ -109,4 +124,8 @@ class MailTm(Provider):
         )
 
     async def delete(self, address: Address, id: str) -> None:
-        await self.http.json("DELETE", f"{API}/messages/{id}", headers=self._auth(address))
+        # A successful delete is HTTP 204 with an empty body (confirmed live).
+        # self.http.json() would try json.loads("") and raise SchemaDrift on
+        # the success path, so use text() here — the caller wants None back
+        # either way.
+        await self.http.text("DELETE", f"{API}/messages/{id}", headers=self._auth(address))

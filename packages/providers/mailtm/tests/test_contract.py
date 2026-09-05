@@ -67,8 +67,11 @@ async def test_generate_creates_an_account_then_exchanges_it_for_a_token():
     assert packed["token"] and packed["address"] == address.value and packed["password"]
 
 
-async def test_missing_hydra_member_raises_schema_drift():
-    http = FakeTransport({**DEFAULT_ROUTES, "/domains": {"items": []}})
+async def test_non_list_domains_response_raises_schema_drift():
+    # mail.tm's list endpoints return a plain JSON array under the
+    # Accept: application/json header Transport.json() always sends. Anything
+    # else (e.g. an envelope dict) means the shape moved.
+    http = FakeTransport({**DEFAULT_ROUTES, "/domains": {"hydra:member": []}})
     with pytest.raises(SchemaDrift):
         await MailTm(http).generate(GenerateOptions())
 

@@ -93,7 +93,14 @@ class Transport:
         return any(marker in body for marker in _CHALLENGE_MARKERS)
 
     async def json(self, method: str, url: str, **kw: Any) -> Any:
-        resp = await self._request(method, url, **kw)
+        # Browser impersonation makes every request look like a browser, and a
+        # browser's default Accept header content-negotiates: some APIs will
+        # hand back HTML or XML instead of JSON to a client that looks like a
+        # browser. Pinning Accept: application/json makes every backend's
+        # response shape deterministic regardless of impersonation. An
+        # explicit caller-supplied Accept still wins (merged in second).
+        headers = {"Accept": "application/json", **kw.pop("headers", {})}
+        resp = await self._request(method, url, headers=headers, **kw)
         try:
             return jsonlib.loads(resp.text)
         except ValueError as exc:
