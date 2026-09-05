@@ -26,6 +26,13 @@ def default_pool() -> Pool:
     return _DEFAULT_POOL
 
 
+async def aclose_default_pool() -> None:
+    global _DEFAULT_POOL
+    if _DEFAULT_POOL is not None:
+        await _DEFAULT_POOL.registry.aclose()
+        _DEFAULT_POOL = None
+
+
 class Inbox:
     """One address, bound to the provider that issued it.
 
@@ -53,17 +60,21 @@ class Inbox:
             self._issued.append(message.id)
             yield message
 
-    async def _first(self, extract, timeout: float, poll: float):
+    async def _first(self, extract, timeout: float, poll: float) -> str:
         async def loop():
             async for message in self.watch(poll=poll):
                 found = extract(message)
                 if found:
                     return found
-            return None
+            raise TimeoutError(
+                f"mail stream for {self.address.value} ended before a match"
+            )
 
         try:
             return await asyncio.wait_for(loop(), timeout=timeout)
-        except TimeoutError:
+        except TimeoutError as e:
+            if "ended before a match" in str(e):
+                raise
             raise TimeoutError(
                 f"no matching mail for {self.address.value} within {timeout}s"
             ) from None
@@ -113,13 +124,30 @@ async def open_inboxes(n: int, pool: Pool | None = None, **kw) -> AsyncIterator[
     # concurrency budget, and it means one backend dying costs you 1/n of the
     # batch instead of all of it. Wraps around when n exceeds the candidates.
     names = [p.name for p in pool.candidates(req)] or [None]
-    acquired = await asyncio.gather(
+    results = await asyncio.gather(
         *(
             pool.acquire(replace(req, provider=names[i % len(names)]))
             for i in range(n)
-        )
+        ),
+        return_exceptions=True,
     )
-    boxes = [Inbox(p, a) for p, a in acquired]
+
+    # Partition successful acquisitions from exceptions.
+    boxes: list[Inbox] = []
+    exc: Exception | None = None
+    for result in results:
+        if isinstance(result, Exception):
+            if exc is None:
+                exc = result
+        else:
+            p, a = result
+            boxes.append(Inbox(p, a))
+
+    # Clean up any successfully-acquired inboxes before re-raising.
+    if exc is not None:
+        await asyncio.gather(*(b.aclose() for b in boxes), return_exceptions=True)
+        raise exc
+
     try:
         yield boxes
     finally:

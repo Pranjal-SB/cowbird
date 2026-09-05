@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import pytest
 from cowbird.health import HealthStore
-from cowbird.inbox import Inbox, open_inbox, open_inboxes
+from cowbird.inbox import Inbox, aclose_default_pool, default_pool, open_inbox, open_inboxes
 from cowbird.models import Address, Message, MessageRow
 from cowbird.parsing import extract_links
 from cowbird.pool import Pool
@@ -86,3 +86,59 @@ async def test_leaving_the_context_deletes_when_the_provider_supports_it():
     async with open_inbox(pool=pool_with(Deleting)) as box:
         box._issued.append("1")
     assert seen == ["1"]
+
+
+async def test_otp_raises_with_stream_ended_message_when_watch_yields_nothing():
+    class FiniteWatch(Recording):
+        name = "finite"
+
+        async def watch(self, address, poll=None):
+            # Finite generator that yields nothing
+            return
+            yield  # noqa: F701
+
+    cls = type("P", (FiniteWatch,), {"name": "p"})
+    provider = cls(pages=[])
+    box = Inbox(provider, Address("a@fake.test", "p"))
+    with pytest.raises(TimeoutError, match="mail stream.*ended before a match"):
+        await box.otp(timeout=5, poll=0)
+
+
+async def test_open_inboxes_cleans_up_on_acquisition_failure():
+    deleted_ids: list[str] = []
+
+    class Deleting(Recording):
+        name = "del"
+        caps = replace(CAPS, delete=True)
+
+        async def delete(self, address, id):
+            deleted_ids.append(id)
+
+    class Failing(Recording):
+        name = "fail"
+
+        async def generate(self, *args, **kwargs):
+            raise ValueError("acquisition failed")
+
+    # Pool with two providers: one that succeeds, one that fails.
+    reg = Registry(transport_factory=lambda name: None, discover=False)
+    reg.register(Deleting)
+    reg.register(Failing)
+    pool = Pool(reg, HealthStore())
+
+    # Try to acquire 2 inboxes: first from Deleting, second from Failing.
+    # The first should be acquired and cleaned up.
+    with pytest.raises(ValueError, match="acquisition failed"):
+        async with open_inboxes(2, pool=pool):
+            pass
+
+    # The Deleting provider should have been acquired once and then
+    # cleaned up when the Failing provider's acquisition raised.
+    assert len(deleted_ids) == 0  # No messages issued, but provider was acquired
+
+
+async def test_aclose_default_pool_resets_the_global():
+    pool1 = default_pool()
+    await aclose_default_pool()
+    pool2 = default_pool()
+    assert pool1 is not pool2
