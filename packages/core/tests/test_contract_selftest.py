@@ -96,6 +96,35 @@ async def test_monotonic_list_rejects_entirely_different_ids():
         await contract.test_listing_is_monotonic(NonMonotonicListProvider())
 
 
+async def test_needs_state_provider_that_issues_no_state_fails():
+    """A provider claiming needs_state=True must actually return a state."""
+    from dataclasses import replace
+
+    class LiarProvider(FakeProvider):
+        caps = replace(FakeProvider.caps, needs_state=True)
+
+        async def generate(self, opts=None):
+            return Address(value="a@fake.test", provider=self.name)  # state=None
+
+    contract = ProviderContract()
+    with pytest.raises(AssertionError):
+        await contract.test_needs_state_providers_actually_issue_state(LiarProvider())
+
+
+async def test_needs_state_provider_that_issues_state_passes():
+    from dataclasses import replace
+
+    class HonestProvider(FakeProvider):
+        caps = replace(FakeProvider.caps, needs_state=True)
+
+        async def generate(self, opts=None):
+            return Address(value="a@fake.test", provider=self.name, state="creds")
+
+    contract = ProviderContract()
+    # Should pass, not raise
+    await contract.test_needs_state_providers_actually_issue_state(HonestProvider())
+
+
 def test_domain_count_less_than_declared_domains_fails():
     """domain_count < len(domains) should fail capability check."""
     from cowbird.models import Capabilities, Kind

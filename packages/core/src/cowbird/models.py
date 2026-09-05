@@ -25,6 +25,11 @@ class Capabilities:
     custom_local: bool
     self_hosted: bool
     needs_residential_ip: bool
+    # True when generate() issues credentials or a session that later calls
+    # (list/get/watch/delete) require. A caller resuming an address out of
+    # process — a separate `cowbird wait` after `cowbird new` — must carry
+    # `Address.state` with it or those calls cannot authenticate.
+    needs_state: bool = False
     # mail.tm publishes 8 QPS per IP. `inboxes(20)` would fire twenty concurrent
     # generates, collect twenty 429s, and empty the pool of the one provider
     # that was working. A backend's tolerance belongs to the backend.

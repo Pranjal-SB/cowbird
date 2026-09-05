@@ -62,6 +62,20 @@ class ProviderContract:
         assert "@" in address.value
         assert address.provider == provider.name
 
+    async def test_needs_state_providers_actually_issue_state(
+        self, provider: Provider
+    ) -> None:
+        # A provider claiming needs_state=True must give the caller something
+        # to carry to a separate process; otherwise the flag is a lie and
+        # `cowbird wait --state` has nothing to receive.
+        if not provider.caps.needs_state:
+            return
+        address = await provider.generate(GenerateOptions())
+        assert address.state is not None, (
+            f"{provider.name} declares needs_state=True but generate() "
+            "returned no state"
+        )
+
     async def test_generated_domain_is_one_the_provider_claims(
         self, provider: Provider
     ) -> None:
