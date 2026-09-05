@@ -1,3 +1,6 @@
+import json
+from datetime import datetime
+
 from cowbird.errors import CloudflareChallenge, ProviderDown, SchemaDrift
 from cowbird.health import ROUTABLE, HealthStore, Status
 
@@ -90,3 +93,66 @@ def test_last_failure_updates_while_quarantined():
     store.record_failure("p", SchemaDrift("p", expected="a", got="b"))
     store.record_failure("p", ProviderDown("second failure"))
     assert "second failure" in store.snapshot()["p"].last_failure
+
+
+def test_round_trip_preserves_status_latencies_and_flags(tmp_path):
+    store = HealthStore()
+    for _ in range(6):
+        store.record_success("fast", "list", 0.2)
+    store.record_failure("broken", SchemaDrift("broken", expected="a", got="b"))
+    store.record_failure("blocked", CloudflareChallenge("challenged"))
+
+    path = tmp_path / "health.json"
+    store.save(path)
+    back = HealthStore.load(path)
+
+    assert back.status("fast") is Status.OK
+    assert back.p50("fast") == 0.2
+    assert back.status("broken") is Status.QUARANTINED
+    assert back.status("blocked") is Status.DOWN
+    assert back.snapshot()["blocked"].needs_residential_ip is True
+
+
+def test_quarantine_survives_a_restart(tmp_path):
+    # The whole point of persistence: a human must clear a quarantine, and a
+    # process restart is not a human.
+    store = HealthStore()
+    store.record_failure("p", SchemaDrift("p", expected="a", got="b"))
+    path = tmp_path / "health.json"
+    store.save(path)
+
+    back = HealthStore.load(path)
+    back.record_success("p", "list", 0.1)
+    assert back.status("p") is Status.QUARANTINED
+
+
+def test_load_of_a_missing_file_is_an_empty_store(tmp_path):
+    store = HealthStore.load(tmp_path / "nope.json")
+    assert store.snapshot() == {}
+
+
+def test_load_of_a_corrupt_file_does_not_raise(tmp_path):
+    # A mangled cache file must never stop the CLI from working.
+    path = tmp_path / "health.json"
+    path.write_text("{not json at all")
+    store = HealthStore.load(path)
+    assert store.snapshot() == {}
+
+
+def test_save_is_atomic_leaving_no_partial_file(tmp_path):
+    path = tmp_path / "health.json"
+    store = HealthStore()
+    store.record_success("p", "list", 1.0)
+    store.save(path)
+    assert json.loads(path.read_text())["p"]["status"] == "ok"
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_last_checked_survives_the_round_trip(tmp_path):
+    store = HealthStore()
+    store.record_success("p", "list", 1.0)
+    path = tmp_path / "health.json"
+    store.save(path)
+    restored = HealthStore.load(path).snapshot()["p"].last_checked
+    assert isinstance(restored, datetime)
+    assert restored.tzinfo is not None

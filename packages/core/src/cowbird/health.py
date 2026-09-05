@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
+import os
 import statistics
 from collections import deque
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
 
 from cowbird.errors import CloudflareChallenge, SchemaDrift
 
@@ -99,3 +102,49 @@ class HealthStore:
             provider: replace(entry, latencies=deque(entry.latencies, maxlen=_WINDOW))
             for provider, entry in self._entries.items()
         }
+
+    def to_dict(self) -> dict[str, dict]:
+        return {
+            name: {
+                "status": str(entry.status),
+                "latencies": list(entry.latencies),
+                "last_checked": (
+                    entry.last_checked.isoformat() if entry.last_checked else None
+                ),
+                "last_failure": entry.last_failure,
+                "needs_residential_ip": entry.needs_residential_ip,
+            }
+            for name, entry in self._entries.items()
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, dict]) -> HealthStore:
+        store = cls()
+        for name, raw in data.items():
+            entry = store._entry(name)
+            entry.status = Status(raw["status"])
+            entry.latencies.extend(raw.get("latencies", []))
+            checked = raw.get("last_checked")
+            entry.last_checked = datetime.fromisoformat(checked) if checked else None
+            entry.last_failure = raw.get("last_failure")
+            entry.needs_residential_ip = bool(raw.get("needs_residential_ip", False))
+        return store
+
+    def save(self, path: str | Path) -> None:
+        """Write atomically. A half-written health file read by the next run
+        would be worse than no file at all."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
+        os.replace(tmp, path)
+
+    @classmethod
+    def load(cls, path: str | Path) -> HealthStore:
+        """Never raises. A missing or corrupt cache degrades to an empty store —
+        losing health history is an inconvenience, refusing to start is not."""
+        path = Path(path)
+        try:
+            return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError, KeyError):
+            return cls()
