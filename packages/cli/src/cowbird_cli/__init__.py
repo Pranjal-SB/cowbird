@@ -64,6 +64,20 @@ async def _new(args: argparse.Namespace) -> int:
 
 async def _wait(args: argparse.Namespace) -> int:
     provider = default_pool().registry.get(args.provider)
+    if provider.caps.delete and not args.state:
+        # No capability field says "needs the state issued by generate()"
+        # directly. `delete` is the least-bad proxy available: a provider
+        # that supports deleting mail is doing authenticated mutation
+        # against the backend, which in every provider so far (mail.tm)
+        # means it also needs a per-account session it can only get back
+        # via the state `new --json` printed. Catching this here gives a
+        # clear message instead of an adapter-specific one three calls deep.
+        print(
+            f"error: {args.provider} requires the --state value printed by "
+            "`cowbird new --json`",
+            file=sys.stderr,
+        )
+        return 1
     box = Inbox(provider, Address(args.address, args.provider, state=args.state))
     if args.otp:
         print(await box.otp(timeout=args.timeout))

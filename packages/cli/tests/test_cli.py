@@ -1,25 +1,72 @@
 import json
+from dataclasses import replace
 
 import pytest
+from cowbird.models import Message, MessageRow
+from cowbird.testing import CAPS, FakeProvider
+
+
+async def _noop() -> None:
+    return None
+
+
+class CodeProvider(FakeProvider):
+    """Like FakeProvider, but get() returns a body carrying an OTP so the
+    otp()/watch() path has something real to extract."""
+
+    name = "fakeotp"
+
+    async def get(self, address, id):
+        return Message(
+            id=id,
+            sender="s@x.test",
+            subject="your code",
+            received_at=None,
+            html="",
+            text="use 294819 to sign in",
+        )
+
+
+class DeleteProvider(FakeProvider):
+    """caps.delete=True, mirroring mail.tm: a provider whose mutation support
+    implies it also needs the state issued by generate()."""
+
+    name = "fakedel"
+    caps = replace(CAPS, delete=True)
+
+
+def _registry(*classes):
+    from cowbird.registry import Registry
+
+    reg = Registry(transport_factory=lambda name: None, discover=False)
+    for cls in classes:
+        reg.register(cls)
+    return reg
 
 
 @pytest.fixture
 def fake_pool(monkeypatch):
     from cowbird.health import HealthStore
     from cowbird.pool import Pool
-    from cowbird.registry import Registry
-    from cowbird.testing import FakeProvider
 
-    reg = Registry(transport_factory=lambda name: None, discover=False)
-    reg.register(FakeProvider)
-    pool = Pool(reg, HealthStore())
+    pool = Pool(_registry(FakeProvider), HealthStore())
     monkeypatch.setattr("cowbird_cli.default_pool", lambda: pool)
     monkeypatch.setattr("cowbird_cli.aclose_default_pool", _noop)
     return pool
 
 
-async def _noop() -> None:
-    return None
+@pytest.fixture
+def multi_pool(monkeypatch):
+    """Several providers registered so --provider pinning and caps-based
+    behaviour are actually exercised, not trivially satisfied by the only
+    provider in the registry."""
+    from cowbird.health import HealthStore
+    from cowbird.pool import Pool
+
+    pool = Pool(_registry(FakeProvider, CodeProvider, DeleteProvider), HealthStore())
+    monkeypatch.setattr("cowbird_cli.default_pool", lambda: pool)
+    monkeypatch.setattr("cowbird_cli.aclose_default_pool", _noop)
+    return pool
 
 
 def test_new_prints_address_provider_and_ttl(fake_pool, capsys):
@@ -51,6 +98,22 @@ def test_new_json_emits_a_parseable_object(fake_pool, capsys):
     assert "state" in payload
 
 
+def test_new_provider_pin_is_honoured(multi_pool, capsys):
+    from cowbird_cli import main
+
+    assert main(["new", "--provider", "fakeotp"]) == 0
+    out = capsys.readouterr().out
+    assert "fakeotp" in out
+
+
+def test_new_gmail_with_no_matching_provider_fails_cleanly(multi_pool, capsys):
+    from cowbird_cli import main
+
+    assert main(["new", "--gmail"]) == 1
+    err = capsys.readouterr().err
+    assert "error:" in err
+
+
 def test_providers_lists_the_health_matrix(fake_pool, capsys):
     from cowbird_cli import main
 
@@ -64,3 +127,57 @@ def test_unknown_command_exits_nonzero(capsys):
 
     with pytest.raises(SystemExit):
         main(["frobnicate"])
+
+
+def test_wait_otp_prints_only_the_bare_code(multi_pool, capsys):
+    from cowbird_cli import main
+
+    multi_pool.registry.get("fakeotp").pages = [
+        [MessageRow(id="1", sender="s@x.test", subject="c", received_at=None)]
+    ]
+    assert main(["wait", "a@fake.test", "--provider", "fakeotp", "--otp"]) == 0
+    assert capsys.readouterr().out == "294819\n"
+
+
+def test_wait_without_otp_prints_sender_and_subject(fake_pool, capsys):
+    from cowbird_cli import main
+
+    fake_pool.registry.get("fake").pages = [
+        [MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]
+    ]
+    assert main(["wait", "a@fake.test", "--provider", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert "s@x.test" in out and "hi" in out
+
+
+def test_wait_timeout_exits_2_and_writes_to_stderr_not_stdout(fake_pool, capsys):
+    from cowbird_cli import main
+
+    code = main(
+        ["wait", "a@fake.test", "--provider", "fake", "--otp", "--timeout", "0.05"]
+    )
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert "timeout" in captured.err
+
+
+def test_wait_cowbird_error_exits_1_and_writes_to_stderr(fake_pool, capsys):
+    from cowbird_cli import main
+
+    code = main(["wait", "a@fake.test", "--provider", "missing"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out == ""
+    assert "error:" in captured.err
+
+
+def test_wait_without_state_fails_fast_when_provider_needs_it(multi_pool, capsys):
+    from cowbird_cli import main
+
+    code = main(["wait", "a@fake.test", "--provider", "fakedel"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out == ""
+    assert "--state" in captured.err
+    assert "new --json" in captured.err
