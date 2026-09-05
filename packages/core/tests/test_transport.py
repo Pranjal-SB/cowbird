@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from cowbird.errors import CloudflareChallenge, ProviderDown, RateLimited, SchemaDrift
 from cowbird.transport import Transport
@@ -78,3 +80,50 @@ async def test_5xx_past_the_retry_budget_raises_provider_down():
     )
     with pytest.raises(ProviderDown):
         await t.json("GET", "https://x.test")
+
+
+async def test_send_returns_the_raw_response():
+    t = transport_with(FakeResponse(status_code=404, text="{}"))
+    resp = await t.send("DELETE", "https://x.test")
+    assert resp.status_code == 404
+
+
+async def test_send_merges_accept_json_but_a_caller_accept_wins():
+    seen = {}
+
+    class RecordingSession(FakeSession):
+        async def request(self, method, url, **kw):
+            seen["headers"] = kw.get("headers")
+            return await super().request(method, url, **kw)
+
+    t = transport_with(FakeResponse())
+    t._session = RecordingSession(FakeResponse())
+    await t.send("GET", "https://x.test")
+    assert seen["headers"]["Accept"] == "application/json"
+
+    t._session = RecordingSession(FakeResponse())
+    await t.send("GET", "https://x.test", headers={"Accept": "text/xml"})
+    assert seen["headers"]["Accept"] == "text/xml"
+
+
+async def test_send_goes_through_the_concurrency_gate():
+    class ConcurrencyTrackingSession(FakeSession):
+        def __init__(self):
+            super().__init__(FakeResponse(), FakeResponse())
+            self.active = 0
+            self.peak = 0
+
+        async def request(self, method, url, **kw):
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+            await asyncio.sleep(0.01)
+            self.active -= 1
+            return self.queued.pop(0)
+
+    t = Transport("fake", max_concurrency=1)
+    t._session = ConcurrencyTrackingSession()
+    await asyncio.gather(
+        t.send("GET", "https://x.test"),
+        t.send("GET", "https://x.test"),
+    )
+    assert t._session.peak == 1
