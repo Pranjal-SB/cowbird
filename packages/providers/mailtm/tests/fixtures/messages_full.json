@@ -1,13 +1,10 @@
-{
-  "hydra:member": [
-    {
-      "id": "6a1f2c9e4b7d",
-      "from": { "address": "noreply@example.test", "name": "Example" },
-      "subject": "Verify your account",
-      "intro": "Your code is 448213",
-      "createdAt": "2026-09-05T10:12:03+00:00",
-      "seen": false
-    }
-  ],
-  "hydra:totalItems": 1
-}
+[
+  {
+    "id": "6a1f2c9e4b7d",
+    "from": { "address": "noreply@example.test", "name": "Example" },
+    "subject": "Verify your account",
+    "intro": "Your code is 448213",
+    "createdAt": "2026-09-05T10:12:03+00:00",
+    "seen": false
+  }
+]
