@@ -1,0 +1,18 @@
+[project]
+name = "cowbird-mailtm"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["cowbird-core"]
+
+[tool.uv.sources]
+cowbird-core = { workspace = true }
+
+[project.entry-points."cowbird.providers"]
+mailtm = "cowbird_mailtm:MailTm"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

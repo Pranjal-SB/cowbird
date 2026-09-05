@@ -1,0 +1,1 @@
+{"@context":"\/contexts\/Domain","@id":"\/domains","@type":"hydra:Collection","hydra:totalItems":1,"hydra:member":[{"@id":"\/domains\/6a99c5515f0c88ec1469ff3a","@type":"Domain","id":"6a99c5515f0c88ec1469ff3a","domain":"uberip.com","isActive":true,"isPrivate":false,"createdAt":"2026-09-03T00:00:00+00:00","updatedAt":"2026-09-03T00:00:00+00:00"}]}
