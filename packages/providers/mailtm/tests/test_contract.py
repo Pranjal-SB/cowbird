@@ -76,6 +76,19 @@ async def test_non_list_domains_response_raises_schema_drift():
         await MailTm(http).generate(GenerateOptions())
 
 
+async def test_message_row_missing_id_raises_schema_drift_naming_id():
+    # A renamed/dropped `id` field must quarantine with a diagnosable message,
+    # not a bare KeyError (which registry.py would only see as "provider down").
+    row_without_id = {
+        "from": {"address": "noreply@example.test"},
+        "subject": "Verify your account",
+        "createdAt": "2026-09-05T10:12:03+00:00",
+    }
+    http = FakeTransport({**DEFAULT_ROUTES, "/messages": [row_without_id]})
+    with pytest.raises(SchemaDrift, match="id"):
+        await MailTm(http).list(_address_with_token())
+
+
 async def test_a_requested_domain_the_provider_does_not_serve_is_refused():
     # NotSupported, not SchemaDrift: a caller typo must not quarantine a healthy
     # provider. NotSupported is also not reroutable, so the pool surfaces it.

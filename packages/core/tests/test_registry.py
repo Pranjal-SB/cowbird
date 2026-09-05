@@ -121,6 +121,21 @@ async def test_schema_drift_still_quarantines():
     assert health.status("fake") == Status.QUARANTINED
 
 
+async def test_non_cowbird_exception_marks_provider_down_and_reraises_unchanged():
+    class BrokenList(FakeProvider):
+        async def list(self, address):
+            raise KeyError("id")
+
+    health = HealthStore()
+    wrapped = HealthTracked(BrokenList(None), health)
+    addr = Address(value="a@fake.test", provider="fake")
+
+    with pytest.raises(KeyError):
+        await wrapped.list(addr)
+
+    assert health.status("fake") == Status.DOWN
+
+
 def test_discover_skips_broken_entry_point_but_registers_others(monkeypatch):
     class FakeEntryPoint:
         def __init__(self, name, loader):

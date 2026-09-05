@@ -4,6 +4,12 @@ from __future__ import annotations
 class CowbirdError(Exception):
     """Base for everything this library raises."""
 
+    # Provider authors: a new error type that doesn't override this defaults
+    # to False, i.e. "surfaced to the caller as-is, never used to reroute to
+    # another provider or recorded as a health failure." That is a real
+    # decision, not an accident — set True only for errors that mean the
+    # provider itself is at fault (down, rate-limited, drifted) rather than
+    # errors that are a correct answer to the caller's specific request.
     reroutable: bool = False
 
 
