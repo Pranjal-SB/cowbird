@@ -48,6 +48,15 @@ def _list(payload: object, where: str) -> list:
     return payload
 
 
+def _field(row: dict, key: str, where: str) -> str:
+    """A missing required field is schema drift, not a bare KeyError: this
+    names the field mail.tm dropped or renamed and what the row actually had,
+    so the quarantine issue is diagnosable instead of a raw stack trace."""
+    if key not in row:
+        raise SchemaDrift("mailtm", expected=f"{key!r} in {where}", got=list(row))
+    return row[key]
+
+
 def _at(row: dict) -> datetime | None:
     raw = row.get("createdAt")
     return datetime.fromisoformat(raw) if raw else None
@@ -99,23 +108,22 @@ class MailTm(Provider):
 
     async def list(self, address: Address) -> list[MessageRow]:
         payload = await self.http.json("GET", f"{API}/messages", headers=self._auth(address))
+        rows = _list(payload, "messages")
         return [
             MessageRow(
-                id=row["id"],
+                id=_field(row, "id", "a message row"),
                 sender=row.get("from", {}).get("address", ""),
                 subject=row.get("subject", ""),
                 received_at=_at(row),
             )
-            for row in _list(payload, "messages")
+            for row in rows
         ]
 
     async def get(self, address: Address, id: str) -> Message:
         row = await self.http.json("GET", f"{API}/messages/{id}", headers=self._auth(address))
-        if "id" not in row:
-            raise SchemaDrift("mailtm", expected="id in a message document", got=list(row))
         html = "".join(row.get("html") or [])
         return Message(
-            id=row["id"],
+            id=_field(row, "id", "a message document"),
             sender=row.get("from", {}).get("address", ""),
             subject=row.get("subject", ""),
             received_at=_at(row),
