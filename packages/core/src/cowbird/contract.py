@@ -35,6 +35,13 @@ class ProviderContract:
         assert provider.caps.kind, "a provider must serve at least one kind"
         assert provider.caps.sites, "a provider must declare its front doors"
         assert provider.caps.domain_count >= 0
+        # If domains are declared upfront, domain_count must be >= declared count.
+        # Empty domains means runtime discovery; domain_count is then an estimate
+        # and can exceed actual runtime domains — do not enforce equality.
+        if provider.caps.domains:
+            assert (
+                provider.caps.domain_count >= len(provider.caps.domains)
+            ), "domain_count must cover all declared domains"
 
     def test_capability_flags_agree_with_the_implementation(
         self, provider: Provider
@@ -68,15 +75,27 @@ class ProviderContract:
         assert isinstance(rows, list)
         assert all(isinstance(r, MessageRow) for r in rows)
 
-    async def test_listing_twice_is_stable(self, provider: Provider) -> None:
+    async def test_listing_is_monotonic(self, provider: Provider) -> None:
+        # The suite runs live against real services where mail can arrive between
+        # calls. Do not assert equality; instead check the weaker property: IDs
+        # from the first call must be a subset of the second. This catches
+        # randomised, garbage, or non-deterministic results while tolerating a
+        # legitimate new message arriving mid-test.
         address = await provider.generate(GenerateOptions())
-        assert await provider.list(address) == await provider.list(address)
+        first_ids = {row.id for row in await provider.list(address)}
+        second_ids = {row.id for row in await provider.list(address)}
+        assert first_ids <= second_ids, "older message IDs must appear in newer list"
 
     async def test_get_returns_a_message_with_text(self, provider: Provider) -> None:
+        # Mocked fixtures should always supply at least one message so the
+        # body-read path is exercised. This skip should only trigger in live mode
+        # against a genuinely empty inbox.
         address = await provider.generate(GenerateOptions())
         rows = await provider.list(address)
         if not rows:
-            pytest.skip("no message available in this fixture")
+            pytest.skip(
+                f"{provider.name}: no message available; body-read path NOT tested"
+            )
         message = await provider.get(address, rows[0].id)
         assert isinstance(message, Message)
         assert message.id == rows[0].id
