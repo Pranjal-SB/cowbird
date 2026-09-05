@@ -67,6 +67,7 @@ class MailTm(Provider):
         custom_local=True,
         self_hosted=False,
         needs_residential_ip=False,
+        needs_state=True,
     )
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:

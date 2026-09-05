@@ -27,9 +27,16 @@ class CodeProvider(FakeProvider):
         )
 
 
-class DeleteProvider(FakeProvider):
-    """caps.delete=True, mirroring mail.tm: a provider whose mutation support
-    implies it also needs the state issued by generate()."""
+class NeedsStateProvider(FakeProvider):
+    """caps.needs_state=True, mirroring mail.tm."""
+
+    name = "fakestate"
+    caps = replace(CAPS, needs_state=True)
+
+
+class DeleteOnlyProvider(FakeProvider):
+    """caps.delete=True but caps.needs_state=False: proves delete is no
+    longer used as a needs-state proxy."""
 
     name = "fakedel"
     caps = replace(CAPS, delete=True)
@@ -63,7 +70,10 @@ def multi_pool(monkeypatch):
     from cowbird.health import HealthStore
     from cowbird.pool import Pool
 
-    pool = Pool(_registry(FakeProvider, CodeProvider, DeleteProvider), HealthStore())
+    pool = Pool(
+        _registry(FakeProvider, CodeProvider, NeedsStateProvider, DeleteOnlyProvider),
+        HealthStore(),
+    )
     monkeypatch.setattr("cowbird_cli.default_pool", lambda: pool)
     monkeypatch.setattr("cowbird_cli.aclose_default_pool", _noop)
     return pool
@@ -175,9 +185,22 @@ def test_wait_cowbird_error_exits_1_and_writes_to_stderr(fake_pool, capsys):
 def test_wait_without_state_fails_fast_when_provider_needs_it(multi_pool, capsys):
     from cowbird_cli import main
 
-    code = main(["wait", "a@fake.test", "--provider", "fakedel"])
+    code = main(["wait", "a@fake.test", "--provider", "fakestate"])
     captured = capsys.readouterr()
     assert code == 1
     assert captured.out == ""
     assert "--state" in captured.err
     assert "new --json" in captured.err
+
+
+def test_wait_without_state_is_fine_when_provider_does_not_need_it(multi_pool, capsys):
+    # fakedel has caps.delete=True but caps.needs_state=False: the old
+    # delete-based proxy would have wrongly blocked this.
+    from cowbird_cli import main
+
+    multi_pool.registry.get("fakedel").pages = [
+        [MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]
+    ]
+    code = main(["wait", "a@fake.test", "--provider", "fakedel"])
+    assert code == 0
+    assert capsys.readouterr().err == ""
