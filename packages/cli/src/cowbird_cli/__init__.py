@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 
 from cowbird.errors import CowbirdError
-from cowbird.health import HealthStore
+from cowbird.health import HealthStore, Status
 from cowbird.inbox import Inbox, aclose_default_pool, default_pool
 from cowbird.models import Address, Kind
 from cowbird.pool import Request
+
+from cowbird_cli.canary import run_canary
 
 
 def health_path() -> Path:
@@ -44,6 +46,7 @@ def _parser() -> argparse.ArgumentParser:
     wait.add_argument("--timeout", type=float, default=120)
 
     sub.add_parser("providers", help="show the provider health matrix")
+    sub.add_parser("canary", help="probe every provider live and show health")
     return parser
 
 
@@ -108,6 +111,18 @@ async def _providers(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _canary(args: argparse.Namespace) -> int:
+    pool = default_pool()
+    outcomes = await run_canary(pool.registry, pool.health)
+    for name in sorted(outcomes):
+        print(f"{name}\t{outcomes[name]}")
+    # "down" alone must not fail the build: a backend being unreachable, or a
+    # datacenter IP drawing a Cloudflare challenge, is not a defect here.
+    # Only "quarantined" means an adapter is wrong and needs a human, so that
+    # is the only outcome that turns the build red.
+    return 1 if Status.QUARANTINED.value in outcomes.values() else 0
+
+
 async def _run(args: argparse.Namespace) -> int:
     # Seed the live store the registry already holds a reference to, rather
     # than replacing it, so measurements taken during this command land
@@ -115,7 +130,12 @@ async def _run(args: argparse.Namespace) -> int:
     pool = default_pool()
     for name, entry in HealthStore.load(health_path()).snapshot().items():
         pool.health._entries[name] = entry
-    handler = {"new": _new, "wait": _wait, "providers": _providers}[args.command]
+    handler = {
+        "new": _new,
+        "wait": _wait,
+        "providers": _providers,
+        "canary": _canary,
+    }[args.command]
     try:
         return await handler(args)
     except CowbirdError as exc:
