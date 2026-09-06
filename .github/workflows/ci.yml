@@ -40,7 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create \
-            --title "canary: provider quarantined $(date -u +%F)" \
-            --body "$(cat canary.txt)" \
-            --label canary
+          # Weekly schedule + a provider that stays quarantined for weeks
+          # would otherwise file one duplicate issue per run. A human already
+          # has the first one open; don't page them again for the same thing.
+          if [ -z "$(gh issue list --label canary --state open --json number -q '.[0]')" ]; then
+            gh issue create \
+              --title "canary: provider quarantined $(date -u +%F)" \
+              --body "$(cat canary.txt)" \
+              --label canary
+          fi

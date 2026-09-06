@@ -3,6 +3,12 @@
 The mocked suite proves this repo is internally consistent. Only this catches a
 backend changing its API underneath us, which is the failure every library of
 this kind eventually dies of.
+
+Probe depth is deliberately shallow: `generate()` then `list()`, not `get()`
+(a body read) or `delete()`. A provider whose body read or delete is broken
+still reports "ok". This is a considered trade, not an oversight: one provider
+in the fleet has a first `get()` of roughly 39 seconds, and probing it on every
+provider on every run would make the canary that much slower per run.
 """
 
 from __future__ import annotations
