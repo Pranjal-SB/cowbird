@@ -1,7 +1,6 @@
 # packages/core/src/cowbird/pool.py
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -85,18 +84,20 @@ class Pool:
         last: Exception | None = None
         for provider in self.candidates(req):
             tried.append(provider.name)
-            started = time.monotonic()
             try:
                 address = await provider.generate(req.to_options())
             except CowbirdError as exc:
-                self.health.record_failure(provider.name, exc)
+                # HealthTracked (the registry wrapper) already recorded this
+                # failure. Recording it again here would double-count it.
                 if not exc.reroutable:
                     raise
                 last = exc
                 continue
             if self._domain_blocked(address, req):
                 continue
-            self.health.record_success(provider.name, "generate", time.monotonic() - started)
+            # HealthTracked already recorded the success. It is the single
+            # chokepoint that covers generate/list/get/delete alike; Pool only
+            # ever calls generate, so recording here too would just double it.
             return provider, address
         raise NoProviderAvailable(tried=tried, last=last)
 
