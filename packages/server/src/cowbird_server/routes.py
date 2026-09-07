@@ -7,12 +7,14 @@ from cowbird.parsing import extract_otp
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from cowbird_server.auth import require_api_key
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
 from cowbird_server.service import InboxService
+from cowbird_server.webhooks import WebhookManager
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
 
@@ -152,3 +154,35 @@ async def wait_for_mail(
             "otp": code,
         }
     )
+
+
+class CreateWebhook(BaseModel):
+    address: str
+    url: str
+    timeout: int = Field(default=25, ge=1)
+
+
+def get_webhooks(request: Request) -> WebhookManager:
+    return request.app.state.webhooks
+
+
+@router.post("/webhooks")
+async def create_webhook(body: CreateWebhook, webhooks: WebhookManager = Depends(get_webhooks)):
+    try:
+        timeout = min(body.timeout, get_settings().wait_max)
+        hook_id = webhooks.create(body.address, body.url, timeout)
+    except ValueError as exc:
+        # The one place a raw exception message reaches a client, deliberately:
+        # it is about the caller's own URL, which they already have.
+        return JSONResponse(status_code=422, content=envelope(error=str(exc)))
+    return envelope(data={"id": hook_id})
+
+
+@router.get("/webhooks")
+async def list_webhooks(webhooks: WebhookManager = Depends(get_webhooks)):
+    return envelope(data=webhooks.list())
+
+
+@router.delete("/webhooks/{hook_id}")
+async def delete_webhook(hook_id: str, webhooks: WebhookManager = Depends(get_webhooks)):
+    return envelope(data={"cancelled": webhooks.cancel(hook_id)})
