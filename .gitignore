@@ -6,5 +6,9 @@ __pycache__/
 .coverage
 .env
 dist/
+
+# Agent scratch. Working notes and SDD ledgers/briefs, not project history.
+# docs/superpowers/ (specs and plans) is tracked and is a different path.
+.superpowers/
 AGENTS.md
 CLAUDE.md
