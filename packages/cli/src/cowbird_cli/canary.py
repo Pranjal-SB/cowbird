@@ -9,6 +9,11 @@ Probe depth is deliberately shallow: `generate()` then `list()`, not `get()`
 still reports "ok". This is a considered trade, not an oversight: one provider
 in the fleet has a first `get()` of roughly 39 seconds, and probing it on every
 provider on every run would make the canary that much slower per run.
+
+Depth is covered elsewhere. `packages/core/tests/test_delivery.py` sends a real
+message to every installed provider and reads the code back out of it, which
+exercises `get()`, the HTML-to-text path and OTP extraction. Read "ok" here as
+"answers the phone", and that test as "does the job".
 """
 
 from __future__ import annotations
