@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
+from cowbird.errors import CowbirdError
 from cowbird.health import HealthStore, default_health_path
 from cowbird.inbox import aclose_default_pool, default_pool
 from cowbird.pool import Pool
@@ -10,11 +12,14 @@ from fastapi.responses import JSONResponse
 
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
+from cowbird_server.errors import status_for
 from cowbird_server.routes import router
 from cowbird_server.service import InboxService, UnknownAddress
 from cowbird_server.store import MemoryStore, Store
 
 __all__ = ["create_app"]
+
+logger = logging.getLogger("cowbird.server")
 
 
 def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
@@ -48,6 +53,16 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
     @app.exception_handler(UnknownAddress)
     async def _unknown_address(request, exc: UnknownAddress):
         return JSONResponse(status_code=404, content=envelope(error="unknown address"))
+
+    @app.exception_handler(CowbirdError)
+    async def _cowbird_error(request, exc: CowbirdError):
+        status, message = status_for(exc)
+        # Full detail to the log, generic message to the caller.
+        logger.warning("%s -> %s: %r", request.url.path, status, exc)
+        headers = {"Retry-After": "30"} if status == 429 else None
+        return JSONResponse(
+            status_code=status, content=envelope(error=message), headers=headers
+        )
 
     app.include_router(router)
 
