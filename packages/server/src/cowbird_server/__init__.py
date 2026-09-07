@@ -16,6 +16,7 @@ from cowbird_server.errors import status_for
 from cowbird_server.routes import router
 from cowbird_server.service import InboxService, UnknownAddress
 from cowbird_server.store import MemoryStore, Store
+from cowbird_server.webhooks import WebhookManager
 
 __all__ = ["create_app"]
 
@@ -36,7 +37,13 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
         app.state.pool.health.seed(HealthStore.load(default_health_path()))
         app.state.store = store if store is not None else MemoryStore()
         app.state.service = InboxService(app.state.pool, app.state.store)
+        app.state.webhooks = WebhookManager(
+            app.state.service,
+            allow_private=settings.webhook_allow_private,
+            secret=settings.webhook_secret,
+        )
         yield
+        await app.state.webhooks.shutdown()
         if pool is None:
             await aclose_default_pool()
 
