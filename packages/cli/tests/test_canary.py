@@ -1,3 +1,5 @@
+import json
+
 from cowbird.errors import ProviderDown, SchemaDrift
 from cowbird.health import HealthStore, Status
 from cowbird.pool import Pool
@@ -113,3 +115,34 @@ def test_canary_prints_one_line_per_provider_for_the_issue_body(monkeypatch, cap
     assert main(["canary"]) == 1
     out = capsys.readouterr().out
     assert out == "bad\tdown\ndrifted\tquarantined\ngood\tok\n"
+
+
+def test_canary_json_is_parseable_and_reports_every_provider(monkeypatch, capsys):
+    drift = SchemaDrift("drifted", expected="hydra:member", got=["items"])
+    _seeded_pool(
+        provider_class("good"),
+        provider_class("drifted", drift),
+        monkeypatch=monkeypatch,
+    )
+    assert main(["canary", "--json"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["good"]["status"] == "ok"
+    assert payload["drifted"]["status"] == "quarantined"
+
+
+def test_canary_json_carries_the_drift_detail(monkeypatch, capsys):
+    # The tab-separated output says a provider is quarantined but not why, so
+    # the CI issue body arrives with nothing anyone can act on. Carrying the
+    # detail is the reason --json exists at all.
+    drift = SchemaDrift("drifted", expected="hydra:member", got=["items", "total"])
+    _seeded_pool(provider_class("drifted", drift), monkeypatch=monkeypatch)
+    main(["canary", "--json"])
+    detail = json.loads(capsys.readouterr().out)["drifted"]["detail"]
+    assert "hydra:member" in detail
+    assert "items" in detail
+
+
+def test_canary_json_detail_is_null_for_a_healthy_provider(monkeypatch, capsys):
+    _seeded_pool(provider_class("good"), monkeypatch=monkeypatch)
+    main(["canary", "--json"])
+    assert json.loads(capsys.readouterr().out)["good"]["detail"] is None

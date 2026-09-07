@@ -29,7 +29,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-packages --all-extras
       - id: canary
-        run: uv run cowbird canary | tee canary.txt
+        run: uv run cowbird canary --json | tee canary.json
         continue-on-error: true
       # A red canary is the point: it means a live backend's API changed
       # underneath us. But a datacenter runner IP can also draw a Cloudflare
@@ -46,6 +46,6 @@ jobs:
           if [ -z "$(gh issue list --label canary --state open --json number -q '.[0]')" ]; then
             gh issue create \
               --title "canary: provider quarantined $(date -u +%F)" \
-              --body "$(cat canary.txt)" \
+              --body "$(printf '```json\n%s\n```' "$(cat canary.json)")" \
               --label canary
           fi
