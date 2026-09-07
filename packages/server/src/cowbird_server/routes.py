@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from cowbird.models import Kind
+from cowbird.parsing import extract_otp
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
 from fastapi import APIRouter, Depends, Request
@@ -99,3 +100,28 @@ async def list_messages(addr: str, service: InboxService = Depends(get_service))
             for row in await box.messages()
         ]
     )
+
+
+@router.get("/inboxes/{addr}/messages/{message_id}")
+async def get_message(addr: str, message_id: str, service: InboxService = Depends(get_service)):
+    box = await service.inbox(addr)
+    message = await box.get(message_id)
+    return envelope(
+        data={
+            "id": message.id,
+            "sender": message.sender,
+            "subject": message.subject,
+            "received_at": message.received_at.isoformat() if message.received_at else None,
+            "html": message.html,
+            "text": message.text,
+            "links": list(message.links),
+            "otp": extract_otp(message.text),
+        }
+    )
+
+
+@router.delete("/inboxes/{addr}/messages/{message_id}")
+async def delete_message(addr: str, message_id: str, service: InboxService = Depends(get_service)):
+    box = await service.inbox(addr)
+    await box.delete(message_id)
+    return envelope(data={"deleted": message_id})
