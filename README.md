@@ -29,14 +29,19 @@ see `docs/superpowers/specs/2026-09-05-cowbird-design.md` for the full set.
 
 ```
 $ uv run cowbird new
-cb94ae406a61@uberip.com	mailtm	ttl forever
+cb94091c592b@tupmail.com	inboxes	ttl forever
 
 $ uv run cowbird new --json
-{"address": "cbad93314265@uberip.com", "provider": "mailtm", "address_ttl": null, "state": "..."}
+{"address": "cbcb4a38cb50@gimpmail.com", "provider": "inboxes", "address_ttl": null, "state": null}
+
+$ uv run cowbird new --gmail
+cb.example.two@gmail.com	emailnator	ttl forever
 
 $ uv run cowbird providers
 PROVIDER        STATUS        P50      KIND                      SITES
-mailtm          ok            -        own-domain                mail.tm
+emailnator      ok            2.3s     gmail-alias               emailnator.com
+inboxes         ok            0.0s     own-domain                inboxes.com
+mailtm          ok            1.4s     own-domain                mail.tm
 ```
 
 `--json` includes `state`: some providers (mail.tm included) bind an inbox to
@@ -51,6 +56,27 @@ come from `HealthStore`, which tracks every call each provider actually makes
 and marks a backend down after it fails, not after someone edits a table by
 hand.
 
+`cowbird canary` probes every installed provider live, generate then list, and
+prints one line each. CI runs it on a schedule every Monday, and a provider
+that quarantines files a GitHub issue with `--json` output in the body so the
+drift detail is in the issue itself. A backend simply being unreachable does
+not fail the build: a datacenter runner IP can draw a Cloudflare challenge that
+a real user never sees, so only a schema drift turns it red.
+
+```
+$ uv run cowbird canary
+emailnator	ok
+inboxes	ok
+mailtm	ok
+```
+
+## Push
+
+`watch()` is part of the provider protocol and providers declare `push` in
+their capabilities, but every provider shipped so far polls. Nothing exercises
+the push path yet. The intended first push backend was dropmail over
+WebSocket, and its free API token path has since closed.
+
 ## Testing
 
 ```bash
@@ -59,7 +85,7 @@ uv run pytest -m live          # hits real backends
 ```
 
 Adapters inherit a shared contract suite (`cowbird.contract.ProviderContract`)
-that runs unchanged in both modes — only the transport behind the fixture
+that runs unchanged in both modes. Only the transport behind the fixture
 swaps. Fixtures must be recorded through `Transport`, never `curl`: the two
 send different `Accept` headers and mail.tm answers them with different
 shapes, which once produced a fully green suite against a payload the runtime
@@ -69,8 +95,11 @@ never sees.
 else stops at `list()`.
 
 It asks `sendtestemail.com` to deliver a message to every installed provider,
-then reads it back — generate, deliver, poll, body-read, parse, extract links.
-No account, no key, no setup: `uv run pytest -m live` runs it as-is.
+then reads it back: generate, deliver, poll, body-read, parse, extract links.
+No account and no key, so `uv run pytest -m live` runs it as-is. The catch is
+that sendtestemail rations its form token per IP, and the test skips rather
+than fails when it does not get one, which is often. A skip there means the
+sender was unavailable, not that a provider is broken.
 
 A second test proves `otp()` returns the code that was actually sent, which
 needs a body under our control and therefore a sender we own. Any credentialed
@@ -99,12 +128,18 @@ to `Address` / `MessageRow` / `Message`. Target size is around 40 lines of
 actual protocol knowledge. If an adapter is doing session handling, backoff,
 or its own HTTP client, that belongs in core instead.
 
-`docs/PROVIDERS.md` has the backlog of ~60 known backends and which ones are
-seeded, starred, or self-hostable.
+`docs/PROVIDERS.md` has the backlog of ~60 known backends: which ship, which
+are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-This is Plan 1 of 3. mail.tm ships today, verified against the live service.
-The rest of the seed set (emailnator, smailpro, tempr.email, inboxes,
-dropmail) and the HTTP server come in Plan 2 and Plan 3. Full design:
+Three providers ship and are verified against the live services: mail.tm,
+emailnator (Gmail aliases) and inboxes.com. Two more from the seed set are
+parked after recon, with the reasons written up in `docs/recon/`: smailpro
+needs a solved Cloudflare Turnstile token on every call, and tempr.email's
+message-read endpoint was never observed.
+
+The deliverable is an HTTP API. The CLI is a convenience for working on the
+library and is not the product. That server is Plan 3, along with shared health
+state so several API instances agree on which backends are rotten. Full design:
 `docs/superpowers/specs/2026-09-05-cowbird-design.md`.
