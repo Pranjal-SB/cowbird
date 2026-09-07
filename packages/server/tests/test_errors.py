@@ -13,9 +13,11 @@ from cowbird.errors import (
 )
 from cowbird.models import Address
 from cowbird.testing import build_pool, provider_class, raising
+from cowbird_server import create_app
+from cowbird_server.config import get_settings
 from cowbird_server.errors import status_for
-from cowbird_server.service import InboxService
 from cowbird_server.store import MemoryStore
+from fastapi.testclient import TestClient
 
 
 @pytest.mark.parametrize(
@@ -62,15 +64,23 @@ def test_nothing_satisfying_the_request_is_a_503(client, auth):
     assert response.status_code == 503
 
 
-async def test_inbox_service_raises_no_provider_available_for_an_uninstalled_provider():
-    # An address can outlive the provider that issued it: the registry it was
-    # built against may not include that name any more. InboxService.inbox()
-    # rebuilds the provider by name on every call, so a stored address for a
-    # provider that isn't registered must surface as NoProviderAvailable (and
-    # therefore 503 via status_for), not a raw KeyError from the registry.
+async def test_a_stored_address_for_an_uninstalled_provider_is_a_503_not_a_500(
+    auth, tmp_path, monkeypatch
+):
+    # An address can outlive the provider that issued it: the registry the app
+    # is built with may not include that name any more. InboxService.inbox()
+    # rebuilds the provider by name on every call, so Registry.get raises
+    # NoProviderAvailable — this pins that it comes back through the real
+    # CowbirdError handler as a 503 in an envelope, not an unhandled 500/KeyError.
+    monkeypatch.setenv("API_KEYS", "test-key")
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "health.json"))
+    get_settings.cache_clear()
+
     store = MemoryStore()
     await store.put(Address(value="a@gone.test", provider="gone"))
-    service = InboxService(build_pool(provider_class("fake")), store)
 
-    with pytest.raises(NoProviderAvailable):
-        await service.inbox("a@gone.test")
+    with TestClient(create_app(pool=build_pool(provider_class("fake")), store=store)) as client:
+        response = client.get("/v1/inboxes/a@gone.test/messages", headers=auth)
+    get_settings.cache_clear()
+
+    assert response.status_code == 503
