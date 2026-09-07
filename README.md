@@ -51,6 +51,43 @@ come from `HealthStore`, which tracks every call each provider actually makes
 and marks a backend down after it fails, not after someone edits a table by
 hand.
 
+## Testing
+
+```bash
+uv run pytest -m "not live"    # offline, the default gate
+uv run pytest -m live          # hits real backends
+```
+
+Adapters inherit a shared contract suite (`cowbird.contract.ProviderContract`)
+that runs unchanged in both modes — only the transport behind the fixture
+swaps. Fixtures must be recorded through `Transport`, never `curl`: the two
+send different `Accept` headers and mail.tm answers them with different
+shapes, which once produced a fully green suite against a payload the runtime
+never sees.
+
+`packages/core/tests/test_delivery.py` proves mail actually arrives. Everything
+else stops at `list()`.
+
+It asks `sendtestemail.com` to deliver a message to every installed provider,
+then reads it back — generate, deliver, poll, body-read, parse, extract links.
+No account, no key, no setup: `uv run pytest -m live` runs it as-is.
+
+A second test proves `otp()` returns the code that was actually sent, which
+needs a body under our control and therefore a sender we own. Any credentialed
+sender works (a Gmail app password, a free Brevo or SendGrid key, your own
+postfix). Put it in `.env` at the repo root, which is gitignored:
+
+```
+COWBIRD_SMTP_HOST=smtp.gmail.com
+COWBIRD_SMTP_PORT=587
+COWBIRD_SMTP_USER=you@example.com
+COWBIRD_SMTP_PASSWORD=your-app-password
+COWBIRD_SMTP_FROM=you@example.com
+```
+
+Unset, that second test skips; the first still runs. Both are `live`-marked, so
+the offline suite is unaffected either way.
+
 ## Adding a provider
 
 Read `packages/core/src/cowbird/contract.py` for the contract
