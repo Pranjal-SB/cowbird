@@ -106,9 +106,10 @@ class HealthStore:
     def seed(self, other: HealthStore) -> None:
         """Merge another store's entries into this one, overwriting per provider.
 
-        Loading persisted health means filling in the live store the registry
-        already holds a reference to, rather than replacing it, so measurements
-        taken during this run land where routing can see them.
+        Used at startup to fold persisted health into the live store the registry
+        already holds a reference to, so routing sees measurements from previous
+        runs. `other` wins on conflict, so seeding after live measurements exist
+        would discard them; both callers seed before any provider call.
         """
         self._entries.update(other._entries)
 
