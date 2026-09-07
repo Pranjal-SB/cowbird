@@ -46,7 +46,8 @@ def _parser() -> argparse.ArgumentParser:
     wait.add_argument("--timeout", type=float, default=120)
 
     sub.add_parser("providers", help="show the provider health matrix")
-    sub.add_parser("canary", help="probe every provider live and show health")
+    canary = sub.add_parser("canary", help="probe every provider live and show health")
+    canary.add_argument("--json", action="store_true")
     return parser
 
 
@@ -117,8 +118,22 @@ async def _providers(args: argparse.Namespace) -> int:
 async def _canary(args: argparse.Namespace) -> int:
     pool = default_pool()
     outcomes = await run_canary(pool.registry, pool.health)
-    for name in sorted(outcomes):
-        print(f"{name}\t{outcomes[name]}")
+    if args.json:
+        # Carry last_failure as well. The tab-separated form says a provider is
+        # quarantined but not why, so the CI issue body arrives with a name and
+        # nothing anyone can act on.
+        health = pool.health.snapshot()
+        entries = {
+            name: {
+                "status": outcomes[name],
+                "detail": health[name].last_failure if name in health else None,
+            }
+            for name in sorted(outcomes)
+        }
+        print(json.dumps(entries, indent=2))
+    else:
+        for name in sorted(outcomes):
+            print(f"{name}\t{outcomes[name]}")
     # "down" alone must not fail the build: a backend being unreachable, or a
     # datacenter IP drawing a Cloudflare challenge, is not a defect here.
     # Only "quarantined" means an adapter is wrong and needs a human, so that
