@@ -6,10 +6,11 @@ from cowbird.models import Kind
 from cowbird.parsing import extract_otp
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 
 from cowbird_server.auth import require_api_key
+from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
 from cowbird_server.service import InboxService
 
@@ -125,3 +126,29 @@ async def delete_message(addr: str, message_id: str, service: InboxService = Dep
     box = await service.inbox(addr)
     await box.delete(message_id)
     return envelope(data={"deleted": message_id})
+
+
+@router.get("/inboxes/{addr}/wait")
+async def wait_for_mail(
+    addr: str,
+    timeout: int | None = Query(default=None, ge=1),
+    otp: bool = Query(default=False),
+    pattern: str | None = Query(default=None),
+    service: InboxService = Depends(get_service),
+):
+    settings = get_settings()
+    held = min(timeout or settings.wait_default, settings.wait_max)
+    message, code = await service.wait(addr, held, pattern=pattern, want_otp=otp)
+    if message is None:
+        return envelope(data=None)
+    return envelope(
+        data={
+            "id": message.id,
+            "sender": message.sender,
+            "subject": message.subject,
+            "received_at": message.received_at.isoformat() if message.received_at else None,
+            "text": message.text,
+            "links": list(message.links),
+            "otp": code,
+        }
+    )

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import aclosing
+
 from cowbird.inbox import Inbox
-from cowbird.models import Address
+from cowbird.models import Address, Message
+from cowbird.parsing import extract_otp
 from cowbird.pool import Pool, Request
 
 from cowbird_server.store import Store
@@ -39,3 +43,36 @@ class InboxService:
         if address is None:
             raise UnknownAddress(value)
         return Inbox(self._pool.registry.get(address.provider), address)
+
+    async def wait(
+        self,
+        value: str,
+        timeout: float,
+        pattern: str | None = None,
+        want_otp: bool = False,
+    ) -> tuple[Message | None, str | None]:
+        """Hold until mail arrives or the timeout expires.
+
+        Returns (message, otp). Both None means nothing arrived in time, which
+        is a normal answer and not an error. With want_otp, messages that carry
+        no code are skipped rather than returned, because a caller waiting for
+        an OTP does not want the newsletter that arrived first.
+        """
+        box = await self.inbox(value)
+
+        async def first() -> tuple[Message, str | None]:
+            # aclosing matters: without it the polling generator is left to the
+            # garbage collector when wait_for cancels, which leaks a task per
+            # abandoned request.
+            async with aclosing(box.watch()) as stream:
+                async for message in stream:
+                    code = extract_otp(message.text, pattern)
+                    if want_otp and not code:
+                        continue
+                    return message, code
+            raise TimeoutError("the mail stream ended")
+
+        try:
+            return await asyncio.wait_for(first(), timeout)
+        except TimeoutError:
+            return None, None
