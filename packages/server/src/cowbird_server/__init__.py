@@ -1,25 +1,18 @@
 from __future__ import annotations
 
-import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from cowbird.health import HealthStore
+from cowbird.health import HealthStore, default_health_path
 from cowbird.inbox import aclose_default_pool, default_pool
 from cowbird.pool import Pool
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
+from cowbird_server.routes import router
 
 __all__ = ["create_app"]
-
-
-def health_path() -> Path:
-    override = os.environ.get("COWBIRD_HEALTH_PATH")
-    if override:
-        return Path(override)
-    return Path.home() / ".cowbird" / "health.json"
 
 
 def create_app(pool: Pool | None = None) -> FastAPI:
@@ -33,10 +26,7 @@ def create_app(pool: Pool | None = None) -> FastAPI:
         if not settings.api_keys:
             raise RuntimeError("API_KEYS is empty; refusing to start")
         app.state.pool = pool if pool is not None else default_pool()
-        # Seed the live store the registry already holds rather than replacing
-        # it, so health measured this run lands where routing can see it.
-        for name, entry in HealthStore.load(health_path()).snapshot().items():
-            app.state.pool.health._entries[name] = entry
+        app.state.pool.health.seed(HealthStore.load(default_health_path()))
         yield
         if pool is None:
             await aclose_default_pool()
@@ -46,5 +36,11 @@ def create_app(pool: Pool | None = None) -> FastAPI:
     @app.get("/health")
     async def health():
         return envelope(data={"status": "ok"})
+
+    @app.exception_handler(HTTPException)
+    async def _http_exception(request, exc: HTTPException):
+        return JSONResponse(status_code=exc.status_code, content=envelope(error=exc.detail))
+
+    app.include_router(router)
 
     return app
