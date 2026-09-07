@@ -104,7 +104,10 @@ async def _providers(args: argparse.Namespace) -> int:
         print(
             f"{provider.name:<16}"
             f"{pool.health.status(provider.name):<14}"
-            f"{(f'{p50:.1f}s' if p50 else '-'):<9}"
+            # `is not None`, not truthiness: a p50 of 0.0 is a real measurement.
+            # inboxes generates addresses without any HTTP call, so its median
+            # is legitimately zero, and `if p50` printed that as "no data".
+            f"{(f'{p50:.1f}s' if p50 is not None else '-'):<9}"
             f"{','.join(sorted(provider.caps.kind)):<26}"
             f"{','.join(provider.caps.sites)}"
         )
