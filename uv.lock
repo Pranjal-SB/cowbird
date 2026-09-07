@@ -219,11 +219,14 @@ version = "0.1.0"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "cowbird-core" },
+    { name = "cowbird-emailnator" },
+    { name = "cowbird-inboxes" },
     { name = "cowbird-mailtm" },
 ]
 
 [package.optional-dependencies]
 dev = [
+    { name = "packaging" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -233,7 +236,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cowbird-core", editable = "packages/core" },
+    { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
+    { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
+    { name = "packaging", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
