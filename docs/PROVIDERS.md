@@ -22,7 +22,7 @@ The six that the interface must survive before any of the rest are written.
 | ⭐ emailnator | emailnator.com | gmail-alias | forever | 1d | 6 |
 | ⭐ smailpro | smailpro.com | gmail-alias, outlook-alias | ? | ? | 30+ |
 | ⭐ tempr.email | tempr.email | own-domain | forever | 1mo | 50+ |
-| ⭐ inboxes | inboxes.com | own-domain | forever | 7d | 19 |
+| ⭐ inboxes | inboxes.com | own-domain | forever | 7d | 18 |
 | dropmail | dropmail.me | own-domain | ? | ? | 17 |
 
 mail.tm and dropmail are documented APIs; the other four are reversed.
