@@ -26,6 +26,14 @@ SLOW_FACTOR = 3.0
 _WINDOW = 20
 
 
+def default_health_path() -> Path:
+    """Where measured provider health is cached between runs."""
+    override = os.environ.get("COWBIRD_HEALTH_PATH")
+    if override:
+        return Path(override)
+    return Path.home() / ".cowbird" / "health.json"
+
+
 class Status(StrEnum):
     OK = "ok"
     SLOW = "slow"
@@ -94,6 +102,15 @@ class HealthStore:
     def p50(self, provider: str) -> float | None:
         latencies = self._entry(provider).latencies
         return statistics.median(latencies) if latencies else None
+
+    def seed(self, other: HealthStore) -> None:
+        """Merge another store's entries into this one, overwriting per provider.
+
+        Loading persisted health means filling in the live store the registry
+        already holds a reference to, rather than replacing it, so measurements
+        taken during this run land where routing can see them.
+        """
+        self._entries.update(other._entries)
 
     def snapshot(self) -> dict[str, ProviderHealth]:
         # Copy each entry (and its mutable latencies deque) so callers can't
