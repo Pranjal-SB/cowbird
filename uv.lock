@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 members = [
     "cowbird",
     "cowbird-core",
+    "cowbird-emailnator",
+    "cowbird-inboxes",
     "cowbird-mailtm",
 ]
 
@@ -264,6 +266,28 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-emailnator"
+version = "0.1.0"
+source = { editable = "packages/providers/emailnator" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-inboxes"
+version = "0.1.0"
+source = { editable = "packages/providers/inboxes" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
 name = "cowbird-mailtm"
