@@ -4,6 +4,11 @@ members = ["packages/core", "packages/providers/*", "packages/cli"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 markers = ["live: hits a real provider (skipped by default)"]
+# Every provider package has tests/test_contract.py and tests/test_live.py.
+# Under the default import mode those identical basenames collide across
+# packages; importlib mode keys modules by full path instead, so adding a
+# provider never breaks collection.
+addopts = "--import-mode=importlib -m 'not live'"
 
 [tool.ruff]
 line-length = 100
