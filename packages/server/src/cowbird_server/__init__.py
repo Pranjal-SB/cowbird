@@ -8,7 +8,12 @@ from cowbird.health import HealthStore, default_health_path
 from cowbird.inbox import aclose_default_pool, default_pool
 from cowbird.pool import Pool
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
@@ -21,6 +26,12 @@ from cowbird_server.webhooks import WebhookManager
 __all__ = ["create_app"]
 
 logger = logging.getLogger("cowbird.server")
+
+
+def _rate_key(request) -> str:
+    # Key on the API key when there is one, so one noisy client cannot spend
+    # another's budget from behind the same NAT or the same edge worker.
+    return request.headers.get("x-api-key") or get_remote_address(request)
 
 
 def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
@@ -49,7 +60,12 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
 
     app = FastAPI(title="cowbird", lifespan=lifespan)
 
+    settings = get_settings()
+    limiter = Limiter(key_func=_rate_key, default_limits=[settings.rate_limit])
+    app.state.limiter = limiter
+
     @app.get("/health")
+    @limiter.exempt
     async def health():
         return envelope(data={"status": "ok"})
 
@@ -71,6 +87,31 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
             status_code=status, content=envelope(error=message), headers=headers
         )
 
-    app.include_router(router)
+    # Not app.include_router(router): this FastAPI wraps included routers in
+    # a lazy _IncludedRouter with no .endpoint attribute, which is invisible
+    # to slowapi's SlowAPIMiddleware (it walks app.routes looking for
+    # hasattr(route, "endpoint") to decide what to rate-limit). router's
+    # prefix and per-route auth dependency are already baked into each
+    # APIRoute at decoration time, so splicing the routes in directly keeps
+    # them real APIRoute objects the middleware can see.
+    app.router.routes.extend(router.routes)
+
+    app.add_middleware(SlowAPIMiddleware)
+
+    @app.exception_handler(RateLimitExceeded)
+    def _rate_limited(request, exc):
+        # slowapi's SlowAPIMiddleware runs on BaseHTTPMiddleware, which calls
+        # sync_check_limits internally; that helper refuses to await a
+        # coroutine handler and silently falls back to slowapi's own
+        # unenveloped default. Sync fixes it: no I/O here needed anyway.
+        return JSONResponse(status_code=429, content=envelope(error="rate limit exceeded"))
+
+    if settings.allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.allowed_origins,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     return app
