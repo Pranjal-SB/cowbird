@@ -15,9 +15,10 @@ class Store(Protocol):
     `GET /v1/inboxes/{addr}/messages` impossible to call from a plain curl. So
     the server holds it.
 
-    Two implementations: MemoryStore here, PostgresStore in Plan 3b. The second
-    one exists because the fan-out topology needs backend 2 to serve an address
-    backend 1 issued, which no per-process dict can do.
+    Two implementations: MemoryStore here, and a Postgres-backed one once the
+    fleet runs more than one instance. The second exists because the fan-out
+    topology needs backend 2 to serve an address backend 1 issued, which no
+    per-process dict can do.
     """
 
     async def put(self, address: Address) -> None: ...
@@ -50,8 +51,7 @@ class MemoryStore:
         return address
 
     async def aclose(self) -> None:
-        # No connection to close. PostgresStore in Plan 3b closes its pool
-        # here.
+        # No connection to close. A Postgres-backed store closes its pool here.
         pass
 
     def size(self) -> int:

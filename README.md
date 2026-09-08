@@ -154,7 +154,7 @@ from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
 client that needs to keep waiting just re-issues the request. Issued
 addresses and webhook registrations live in the server's process memory, so a
-restart drops them; Postgres-backed storage is the next plan (Plan 3b).
+restart drops them. Postgres-backed storage is next.
 
 ## Adding a provider
 
@@ -182,5 +182,5 @@ The deliverable is an HTTP API, and it ships: `cowbird-server` in
 `packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
 per-key rate limiting. The CLI is a convenience for working on the library and
 is not the product. Shared health state across instances and Postgres-backed
-storage are Plan 3b. Full design:
+storage are not built yet. Full design:
 `docs/superpowers/specs/2026-09-05-cowbird-design.md`.
