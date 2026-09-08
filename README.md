@@ -155,9 +155,25 @@ $ curl -s -H "x-api-key: local-dev" localhost:8000/v1/providers
 Every route except `/health` requires an `x-api-key` header; valid keys come
 from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
-client that needs to keep waiting just re-issues the request. Issued
-addresses and webhook registrations live in the server's process memory, so a
-restart drops them. Postgres-backed storage is next.
+client that needs to keep waiting just re-issues the request. Issued addresses
+live in Postgres when `DATABASE_URL` is set, which is what lets several
+instances serve each other's addresses; without it they live in process
+memory and a restart drops them. Webhook registrations always live in process
+memory: they are one-shot and capped at `WEBHOOK_MAX`, so a restart drops
+pending ones. Fine for one-shot automation, not something to rely on across a
+redeploy.
+
+### Running more than one instance
+
+```bash
+$ docker compose up -d --build
+$ curl -H "x-api-key: local-dev" -X POST http://127.0.0.1:8000/v1/inboxes
+{"success":true,"data":{"address":"cb.example.one@gmail.com","provider":"emailnator","expires_at":null},"error":null}
+```
+
+Caddy round-robins port 8000 across two servers sharing one Postgres. The
+instances are also published individually on 8001 and 8002, which is how the
+cross-instance tests address them.
 
 ## Adding a provider
 
