@@ -154,7 +154,7 @@ from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
 client that needs to keep waiting just re-issues the request. Issued
 addresses and webhook registrations live in the server's process memory, so a
-restart drops them; Postgres-backed storage is next.
+restart drops them. Postgres-backed storage is next.
 
 ## Adding a provider
 

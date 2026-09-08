@@ -2,8 +2,7 @@
 
 Registrations live in this process. A restart drops every pending hook without
 telling the caller their hook is gone, which is the same defect the spec records
-against emailnator-api. A later change moves them into Postgres alongside the address
-store.
+against emailnator-api. They move into Postgres alongside the address store.
 """
 
 from __future__ import annotations
