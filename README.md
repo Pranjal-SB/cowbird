@@ -126,7 +126,10 @@ API_KEYS=local-dev uv run uvicorn cowbird_server:create_app --factory --host 0.0
 ```
 
 or build the image at the repo root: `docker build -t cowbird-server .` then
-`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`.
+`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`. The
+container listens on `$PORT` and defaults to 8000, so hosts that assign a port
+(Render, Koyeb, Fly) need no extra configuration. It runs as a non-root user and
+carries a `HEALTHCHECK` against `/health`.
 
 ```
 POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
