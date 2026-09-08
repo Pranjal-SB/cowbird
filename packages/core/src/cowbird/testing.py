@@ -2,6 +2,12 @@
 
 Shipped rather than kept in tests/: four tasks need it, one of them from a
 different package, and anyone writing a provider wants it too.
+
+Also ships `provider_class`, `raising` and `build_pool` so the server tests
+(and any provider package) can assemble a `Pool` of fakes without a network.
+Being installed package code rather than a test fixture, they import cleanly
+from any test module, sidestepping the `--import-mode=importlib` problem that
+blocks `from tests.conftest import ...`.
 """
 
 from __future__ import annotations
@@ -9,8 +15,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 
+from cowbird.health import HealthStore
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.pool import Pool
 from cowbird.provider import GenerateOptions, Provider
+from cowbird.registry import Registry
 from cowbird.transport import Transport
 
 CAPS = Capabilities(
@@ -53,3 +62,27 @@ class FakeProvider(Provider):
         return Message(
             id=id, sender="s@x.test", subject="hi", received_at=None, html="", text=""
         )
+
+
+def provider_class(name: str, **namespace):
+    """A FakeProvider subclass under a chosen name, with any method overridden.
+
+    Tests that need a provider to fail pass an override, for example:
+        provider_class("bad", generate=raising(ProviderDown("boom")))
+    """
+    return type(name.upper(), (FakeProvider,), {"name": name, "caps": CAPS, **namespace})
+
+
+def raising(exc: Exception):
+    async def method(self, *args, **kwargs):
+        raise exc
+
+    return method
+
+
+def build_pool(*classes) -> Pool:
+    health = HealthStore()
+    registry = Registry(discover=False, health=health, transport_factory=lambda n: None)
+    for cls in classes:
+        registry.register(cls)
+    return Pool(registry, health)

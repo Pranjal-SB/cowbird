@@ -1,0 +1,12 @@
+# Allowlist. The image needs pyproject.toml, uv.lock, packages/ and README.md;
+# anything else in the working tree, .env included, stays out of the build
+# context and so out of every image layer.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!packages/
+**/__pycache__/
+**/*.egg-info/
+**/.pytest_cache/
+**/.ruff_cache/
