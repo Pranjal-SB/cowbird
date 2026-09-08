@@ -1,0 +1,15 @@
+# Keep the build context to what the image genuinely needs: pyproject.toml,
+# uv.lock, packages/, README.md. Everything below either carries secrets
+# (.env) or is local/dev cruft that has no business in an image layer.
+.env
+.venv/
+.git/
+.gitignore
+.superpowers/
+AGENTS.md
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+docs/

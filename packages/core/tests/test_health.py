@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from cowbird.errors import CloudflareChallenge, ProviderDown, SchemaDrift
-from cowbird.health import ROUTABLE, HealthStore, Status
+from cowbird.health import ROUTABLE, HealthStore, Status, default_health_path
 
 
 def test_unknown_provider_is_assumed_ok_until_proven_otherwise():
@@ -195,3 +195,28 @@ def test_invalid_status_degrades_entire_load_to_empty_store(tmp_path):
     path.write_text(json.dumps({"p": {"status": "invalid"}}))
     store = HealthStore.load(path)
     assert store.snapshot() == {}
+
+
+def test_default_health_path_honours_the_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "custom.json"))
+    assert default_health_path() == tmp_path / "custom.json"
+
+
+def test_default_health_path_falls_back_under_home(monkeypatch):
+    monkeypatch.delenv("COWBIRD_HEALTH_PATH", raising=False)
+    assert default_health_path().name == "health.json"
+    assert ".cowbird" in str(default_health_path())
+
+
+def test_seed_overwrites_matching_provider_but_leaves_others_intact():
+    store = HealthStore()
+    store.record_success("keep", "list", 1.0)
+    store.record_success("overwritten", "list", 1.0)
+
+    other = HealthStore()
+    other.record_failure("overwritten", ProviderDown("boom"))
+
+    store.seed(other)
+
+    assert store.status("keep") is Status.OK
+    assert store.status("overwritten") is Status.DOWN
