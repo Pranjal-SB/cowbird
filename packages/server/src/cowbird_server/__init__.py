@@ -7,14 +7,17 @@ from cowbird.errors import CowbirdError
 from cowbird.health import HealthStore, default_health_path
 from cowbird.inbox import aclose_default_pool, default_pool
 from cowbird.pool import Pool
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from cowbird_server.auth import _key_matches
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
 from cowbird_server.errors import status_for
@@ -29,9 +32,20 @@ logger = logging.getLogger("cowbird.server")
 
 
 def _rate_key(request) -> str:
-    # Key on the API key when there is one, so one noisy client cannot spend
-    # another's budget from behind the same NAT or the same edge worker.
-    return request.headers.get("x-api-key") or get_remote_address(request)
+    # A *valid* API key gets its own budget, address-scoped, so one noisy
+    # client cannot spend another's from behind the same NAT or edge worker.
+    # An invalid or missing key buckets on the address alone: the header is
+    # attacker controlled at this point (middleware runs before the auth
+    # dependency), so if any header value bought its own bucket -- even paired
+    # with the address -- rotating a bogus key each request would still mint
+    # a fresh composite bucket per request and leave unauthenticated floods
+    # unmetered, which is the bug this replaces. Checking it against the
+    # configured keys here is cheap and needs no dependency injection.
+    address = get_remote_address(request)
+    key = request.headers.get("x-api-key", "")
+    if key and _key_matches(key, get_settings().api_keys):
+        return f"{address}|{key}"
+    return address
 
 
 def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
@@ -55,6 +69,7 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
         )
         yield
         await app.state.webhooks.shutdown()
+        await app.state.store.aclose()
         if pool is None:
             await aclose_default_pool()
 
@@ -69,9 +84,32 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
     async def health():
         return envelope(data={"status": "ok"})
 
-    @app.exception_handler(HTTPException)
-    async def _http_exception(request, exc: HTTPException):
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception(request, exc: StarletteHTTPException):
+        # Registered on Starlette's base class, not FastAPI's subclass:
+        # Starlette's router raises the base class directly for 404/405, which
+        # a handler registered on the FastAPI subclass never sees. FastAPI's
+        # own HTTPException(...) call sites (auth included) still land here —
+        # it's a subclass, and Starlette's handler lookup walks the MRO.
         return JSONResponse(status_code=exc.status_code, content=envelope(error=exc.detail))
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(request, exc: RequestValidationError):
+        # Field locations only. FastAPI's default body echoes the caller's
+        # submitted input back in `input`, which round-trips whatever they
+        # sent (secrets included) straight into the error response.
+        fields = ", ".join(".".join(str(part) for part in e["loc"]) for e in exc.errors())
+        return JSONResponse(
+            status_code=422, content=envelope(error=f"invalid request: {fields}")
+        )
+
+    @app.exception_handler(Exception)
+    async def _unhandled_exception(request, exc: Exception):
+        # Never str(exc) here: an unhandled exception can carry anything,
+        # including upstream response bodies. Log the real thing, return a
+        # fixed message.
+        logger.exception("unhandled error on %s", request.url.path)
+        return JSONResponse(status_code=500, content=envelope(error="internal server error"))
 
     @app.exception_handler(UnknownAddress)
     async def _unknown_address(request, exc: UnknownAddress):

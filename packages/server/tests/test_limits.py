@@ -13,6 +13,20 @@ def test_the_rate_limit_returns_429_in_an_envelope(client_for, auth):
     assert limited.json() == {"success": False, "data": None, "error": "rate limit exceeded"}
 
 
+def test_rotating_bogus_api_keys_cannot_evade_the_rate_limit(client_for):
+    # Before the fix, _rate_key bucketed on the (unvalidated, attacker-
+    # controlled) x-api-key header alone: a fresh bogus key every request
+    # meant a fresh bucket every request, so this ran 401 forever and never
+    # tripped the limiter.
+    with client_for(provider_class("fake"), RATE_LIMIT="2/minute") as client:
+        responses = [
+            client.get("/v1/providers", headers={"x-api-key": f"bogus-{i}"}) for i in range(8)
+        ]
+    codes = [r.status_code for r in responses]
+    assert codes[:2] == [401, 401]
+    assert 429 in codes[2:], f"never rate limited: {codes}"
+
+
 def test_health_is_not_rate_limited(client_for):
     # A load balancer probes /health far more often than any client calls the
     # API. Rate limiting the probe takes the instance out of rotation for being
