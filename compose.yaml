@@ -18,3 +18,38 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  server-1: &server
+    build: .
+    environment:
+      API_KEYS: local-dev
+      DATABASE_URL: postgresql://cowbird:cowbird@postgres:5432/cowbird
+      INSTANCE_ID: backend-1
+      HEALTH_FLUSH_SECONDS: "2"
+      WEBHOOK_ALLOW_PRIVATE: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+
+  server-2:
+    <<: *server
+    environment:
+      API_KEYS: local-dev
+      DATABASE_URL: postgresql://cowbird:cowbird@postgres:5432/cowbird
+      INSTANCE_ID: backend-2
+      HEALTH_FLUSH_SECONDS: "2"
+      WEBHOOK_ALLOW_PRIVATE: "1"
+    ports:
+      - "8002:8000"
+
+  caddy:
+    image: caddy:2-alpine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - server-1
+      - server-2
+    ports:
+      - "8000:8000"
