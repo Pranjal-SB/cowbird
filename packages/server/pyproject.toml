@@ -7,7 +7,9 @@ dependencies = [
     "cowbird-mailtm",
     "cowbird-emailnator",
     "cowbird-inboxes",
-    "fastapi>=0.115",
+    # slowapi reads FastAPI's route internals and has not shipped since 2023.
+    # Upper bound stays until the rate-limit tests are re-run against a newer FastAPI.
+    "fastapi>=0.115,<0.142",
     "uvicorn[standard]>=0.30",
     "pydantic-settings>=2.4",
     "slowapi>=0.1.9",
