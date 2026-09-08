@@ -17,13 +17,15 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from cowbird_server import db
 from cowbird_server.auth import _key_matches
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
 from cowbird_server.errors import status_for
+from cowbird_server.pgstore import PostgresStore
 from cowbird_server.routes import router
 from cowbird_server.service import InboxService, UnknownAddress
-from cowbird_server.store import MemoryStore, Store
+from cowbird_server.store import MemoryStore, Store, StoreUnavailable
 from cowbird_server.webhooks import WebhookManager
 
 __all__ = ["create_app"]
@@ -60,7 +62,19 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
             raise RuntimeError("API_KEYS is empty; refusing to start")
         app.state.pool = pool if pool is not None else default_pool()
         app.state.pool.health.seed(HealthStore.load(default_health_path()))
-        app.state.store = store if store is not None else MemoryStore()
+        # An injected store wins: tests hand one in and must not open a socket.
+        app.state.db_pool = None
+        if store is not None:
+            app.state.store = store
+        elif settings.database_url:
+            # Any failure here propagates and the app does not come up. A silent
+            # fall back to MemoryStore while an operator believes state is
+            # shared is invisible until reads start missing.
+            app.state.db_pool = await db.connect(settings.database_url)
+            await db.migrate(app.state.db_pool)
+            app.state.store = PostgresStore(app.state.db_pool)
+        else:
+            app.state.store = MemoryStore()
         app.state.service = InboxService(app.state.pool, app.state.store)
         app.state.webhooks = WebhookManager(
             app.state.service,
@@ -114,6 +128,17 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
     @app.exception_handler(UnknownAddress)
     async def _unknown_address(request, exc: UnknownAddress):
         return JSONResponse(status_code=404, content=envelope(error="unknown address"))
+
+    @app.exception_handler(StoreUnavailable)
+    async def _store_unavailable(request, exc: StoreUnavailable):
+        # Fixed message: str(exc) here is a driver error, which can carry the
+        # DSN, and the DSN carries a password.
+        logger.warning("store unavailable on %s: %r", request.url.path, exc)
+        return JSONResponse(
+            status_code=503,
+            content=envelope(error="address store unavailable"),
+            headers={"Retry-After": "5"},
+        )
 
     @app.exception_handler(CowbirdError)
     async def _cowbird_error(request, exc: CowbirdError):
