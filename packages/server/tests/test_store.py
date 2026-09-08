@@ -29,12 +29,11 @@ async def test_an_expired_address_is_gone_and_is_evicted():
     assert store.size() == 0
 
 
-async def test_delete_is_idempotent():
+async def test_aclose_is_a_noop_and_does_not_drop_rows():
     store = MemoryStore()
-    await store.delete("never-existed@fake.test")
     await store.put(address())
-    await store.delete("a@fake.test")
-    assert await store.get("a@fake.test") is None
+    await store.aclose()
+    assert (await store.get("a@fake.test")).state == "secret-jwt"
 
 
 def test_memorystore_satisfies_the_protocol():

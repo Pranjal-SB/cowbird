@@ -24,7 +24,7 @@ class Store(Protocol):
 
     async def get(self, value: str) -> Address | None: ...
 
-    async def delete(self, value: str) -> None: ...
+    async def aclose(self) -> None: ...
 
 
 class MemoryStore:
@@ -49,8 +49,10 @@ class MemoryStore:
             return None
         return address
 
-    async def delete(self, value: str) -> None:
-        self._rows.pop(value, None)
+    async def aclose(self) -> None:
+        # No connection to close. PostgresStore closes its pool
+        # here.
+        pass
 
     def size(self) -> int:
         """Row count including expired rows not yet read. Tests and diagnostics
