@@ -64,6 +64,58 @@ def test_nothing_satisfying_the_request_is_a_503(client, auth):
     assert response.status_code == 503
 
 
+def test_a_validation_error_is_an_envelope_and_never_echoes_the_body(client, auth):
+    # timeout is constrained to >= 1; -5 trips FastAPI's validation before the
+    # route ever runs.
+    response = client.get("/v1/inboxes/a@fake.test/wait?timeout=-5", headers=auth)
+    assert response.status_code == 422
+    body = response.json()
+    assert body["success"] is False
+    assert body["data"] is None
+    assert "detail" not in body
+    assert "-5" not in body["error"]
+
+
+def test_an_unmatched_route_is_a_404_envelope_not_starlettes_default(client, auth):
+    # Starlette's router raises the base starlette.exceptions.HTTPException
+    # for a 404, which a handler registered on fastapi.HTTPException (a
+    # subclass) never sees.
+    response = client.get("/v1/nope", headers=auth)
+    assert response.status_code == 404
+    assert response.json()["success"] is False
+    assert "detail" not in response.json()
+
+
+def test_a_wrong_method_is_a_405_envelope(client, auth):
+    response = client.patch("/v1/providers", headers=auth)
+    assert response.status_code == 405
+    assert response.json()["success"] is False
+    assert "detail" not in response.json()
+
+
+def test_an_unhandled_exception_is_a_500_envelope_without_the_raw_message(
+    monkeypatch, tmp_path, auth
+):
+    # Starlette's ServerErrorMiddleware always re-raises after handing the
+    # response to the ASGI send callable -- for a real server that's just
+    # for logging, but TestClient's default raise_server_exceptions=True
+    # re-raises it into the test too. raise_server_exceptions=False is what a
+    # real deployment sees: the enveloped 500, nothing more.
+    monkeypatch.setenv("API_KEYS", "test-key")
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "health.json"))
+    get_settings.cache_clear()
+    pool = build_pool(provider_class("fake", list=raising(RuntimeError("db password: hunter2"))))
+    with TestClient(create_app(pool=pool), raise_server_exceptions=False) as client:
+        client.post("/v1/inboxes", headers=auth, json={})
+        response = client.get("/v1/inboxes/a@fake.test/messages", headers=auth)
+    get_settings.cache_clear()
+
+    assert response.status_code == 500
+    body = response.json()
+    assert body == {"success": False, "data": None, "error": "internal server error"}
+    assert "hunter2" not in response.text
+
+
 async def test_a_stored_address_for_an_uninstalled_provider_is_a_503_not_a_500(
     auth, tmp_path, monkeypatch
 ):
