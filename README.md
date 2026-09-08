@@ -126,7 +126,10 @@ API_KEYS=local-dev uv run uvicorn cowbird_server:create_app --factory --host 0.0
 ```
 
 or build the image at the repo root: `docker build -t cowbird-server .` then
-`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`.
+`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`. The
+container listens on `$PORT` and defaults to 8000, so hosts that assign a port
+(Render, Koyeb, Fly) need no extra configuration. It runs as a non-root user and
+carries a `HEALTHCHECK` against `/health`.
 
 ```
 POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
@@ -154,7 +157,7 @@ from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
 client that needs to keep waiting just re-issues the request. Issued
 addresses and webhook registrations live in the server's process memory, so a
-restart drops them; Postgres-backed storage is next.
+restart drops them. Postgres-backed storage is next.
 
 ## Adding a provider
 
