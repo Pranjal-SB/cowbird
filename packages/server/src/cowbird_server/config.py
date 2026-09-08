@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     def _split_csv(cls, v):
         return _csv(v)
 
+    def clamp_wait(self, requested: int | None) -> int:
+        """The one place the wait-timeout policy lives: default when unset,
+        capped at wait_max either way."""
+        return min(requested or self.wait_default, self.wait_max)
+
 
 @lru_cache
 def get_settings() -> Settings:

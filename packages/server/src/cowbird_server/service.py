@@ -44,6 +44,14 @@ class InboxService:
             raise UnknownAddress(value)
         return Inbox(self._pool.registry.get(address.provider), address)
 
+    async def get_message(self, value: str, message_id: str) -> tuple[Message, str | None]:
+        """A message plus its OTP, computed here rather than in the route --
+        the same value `wait` already computes at this layer, so no route
+        calls cowbird.parsing directly."""
+        box = await self.inbox(value)
+        message = await box.get(message_id)
+        return message, extract_otp(message.text)
+
     async def wait(
         self,
         value: str,

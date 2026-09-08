@@ -18,6 +18,7 @@ import socket
 import urllib.parse
 import uuid
 
+from cowbird_server.messages import message_dict
 from cowbird_server.service import InboxService
 
 logger = logging.getLogger("cowbird.server")
@@ -122,12 +123,7 @@ class WebhookManager:
                 payload = {
                     "event": "message",
                     "address": hook["address"],
-                    "id": message.id,
-                    "sender": message.sender,
-                    "subject": message.subject,
-                    "text": message.text,
-                    "links": list(message.links),
-                    "otp": code,
+                    **message_dict(message, code),
                 }
             await self._deliver(hook["url"], payload)
         except asyncio.CancelledError:
