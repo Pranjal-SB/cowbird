@@ -1,0 +1,18 @@
+# The servers and the proxy arrive later. Postgres alone is what the store and
+# health tests need, and it is useful on its own for local work.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: cowbird
+      POSTGRES_PASSWORD: cowbird
+      POSTGRES_DB: cowbird
+    ports:
+      - "5432:5432"
+    healthcheck:
+      # pg_isready returns before the server accepts connections on first boot,
+      # so dependents that wait on this still need to tolerate one refusal.
+      test: ["CMD-SHELL", "pg_isready -U cowbird -d cowbird"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
