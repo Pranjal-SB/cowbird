@@ -7,11 +7,15 @@ this is where that shows.
 
 from __future__ import annotations
 
+import logging
+
 import asyncpg
 from asyncpg.exceptions import InterfaceError
 from cowbird.models import Address
 
 from cowbird_server.store import StoreUnavailable
+
+logger = logging.getLogger("cowbird.server")
 
 # A closed or broken pool raises InterfaceError, which is not a PostgresError,
 # so catching only the latter would let the most likely failure through
@@ -85,4 +89,12 @@ class PostgresStore:
             raise StoreUnavailable(str(exc)) from exc
 
     async def aclose(self) -> None:
-        await self._pool.close()
+        # Best-effort, unlike the other three methods. This runs during lifespan
+        # shutdown: there is no request to answer and nothing for a client to
+        # retry, so raising StoreUnavailable here would only mask whatever else
+        # is already tearing the server down. MemoryStore.aclose cannot fail
+        # either, and the protocol should mean the same thing for both.
+        try:
+            await self._pool.close()
+        except _DB_ERRORS as exc:
+            logger.warning("error closing store pool: %s", exc)
