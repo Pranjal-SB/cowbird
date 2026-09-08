@@ -4,6 +4,7 @@ from dataclasses import replace
 import pytest
 from cowbird.models import Message, MessageRow
 from cowbird.testing import CAPS, FakeProvider
+from cowbird_cli import health_path, main
 
 
 async def _noop() -> None:
@@ -42,10 +43,24 @@ class DeleteOnlyProvider(FakeProvider):
     caps = replace(CAPS, delete=True)
 
 
-def _registry(*classes):
+def _seed(registry, name, pages):
+    """Set canned inbox pages on the REAL provider.
+
+    Registry.get() returns a HealthTracked wrapper whose list() delegates to
+    self._inner, so setting .pages on the wrapper would be silently ignored and
+    the inbox would stay empty forever.
+    """
+    provider = registry.get(name)
+    getattr(provider, "_inner", provider).pages = pages
+
+
+def _registry(*classes, health):
     from cowbird.registry import Registry
 
-    reg = Registry(transport_factory=lambda name: None, discover=False)
+    # Pass the same store the Pool gets, matching default_pool() in
+    # production: HealthTracked (the registry's wrapper) is what records
+    # health, not Pool.acquire.
+    reg = Registry(transport_factory=lambda name: None, discover=False, health=health)
     for cls in classes:
         reg.register(cls)
     return reg
@@ -56,7 +71,8 @@ def fake_pool(monkeypatch):
     from cowbird.health import HealthStore
     from cowbird.pool import Pool
 
-    pool = Pool(_registry(FakeProvider), HealthStore())
+    health = HealthStore()
+    pool = Pool(_registry(FakeProvider, health=health), health)
     monkeypatch.setattr("cowbird_cli.default_pool", lambda: pool)
     monkeypatch.setattr("cowbird_cli.aclose_default_pool", _noop)
     return pool
@@ -70,9 +86,12 @@ def multi_pool(monkeypatch):
     from cowbird.health import HealthStore
     from cowbird.pool import Pool
 
+    health = HealthStore()
     pool = Pool(
-        _registry(FakeProvider, CodeProvider, NeedsStateProvider, DeleteOnlyProvider),
-        HealthStore(),
+        _registry(
+            FakeProvider, CodeProvider, NeedsStateProvider, DeleteOnlyProvider, health=health
+        ),
+        health,
     )
     monkeypatch.setattr("cowbird_cli.default_pool", lambda: pool)
     monkeypatch.setattr("cowbird_cli.aclose_default_pool", _noop)
@@ -142,9 +161,11 @@ def test_unknown_command_exits_nonzero(capsys):
 def test_wait_otp_prints_only_the_bare_code(multi_pool, capsys):
     from cowbird_cli import main
 
-    multi_pool.registry.get("fakeotp").pages = [
-        [MessageRow(id="1", sender="s@x.test", subject="c", received_at=None)]
-    ]
+    _seed(
+        multi_pool.registry,
+        "fakeotp",
+        [[MessageRow(id="1", sender="s@x.test", subject="c", received_at=None)]],
+    )
     assert main(["wait", "a@fake.test", "--provider", "fakeotp", "--otp"]) == 0
     assert capsys.readouterr().out == "294819\n"
 
@@ -152,9 +173,11 @@ def test_wait_otp_prints_only_the_bare_code(multi_pool, capsys):
 def test_wait_without_otp_prints_sender_and_subject(fake_pool, capsys):
     from cowbird_cli import main
 
-    fake_pool.registry.get("fake").pages = [
-        [MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]
-    ]
+    _seed(
+        fake_pool.registry,
+        "fake",
+        [[MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]],
+    )
     assert main(["wait", "a@fake.test", "--provider", "fake"]) == 0
     out = capsys.readouterr().out
     assert "s@x.test" in out and "hi" in out
@@ -198,9 +221,52 @@ def test_wait_without_state_is_fine_when_provider_does_not_need_it(multi_pool, c
     # delete-based proxy would have wrongly blocked this.
     from cowbird_cli import main
 
-    multi_pool.registry.get("fakedel").pages = [
-        [MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]
-    ]
+    _seed(
+        multi_pool.registry,
+        "fakedel",
+        [[MessageRow(id="1", sender="s@x.test", subject="hi", received_at=None)]],
+    )
     code = main(["wait", "a@fake.test", "--provider", "fakedel"])
     assert code == 0
     assert capsys.readouterr().err == ""
+
+
+def test_health_path_honours_the_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "custom.json"))
+    assert health_path() == tmp_path / "custom.json"
+
+
+def test_health_path_defaults_under_home(monkeypatch):
+    monkeypatch.delenv("COWBIRD_HEALTH_PATH", raising=False)
+    assert health_path().name == "health.json"
+    assert ".cowbird" in str(health_path())
+
+
+def test_new_persists_measured_health(fake_pool, monkeypatch, tmp_path, capsys):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    assert main(["new"]) == 0
+    saved = json.loads(path.read_text())
+    assert "fake" in saved
+    assert saved["fake"]["status"] == "ok"
+    assert saved["fake"]["latencies"]
+
+
+def test_providers_reports_persisted_latency(fake_pool, monkeypatch, tmp_path, capsys):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    path.write_text(json.dumps({
+        "fake": {"status": "slow", "latencies": [9.0, 9.0], "last_checked": None,
+                 "last_failure": None, "needs_residential_ip": False}
+    }))
+    assert main(["providers"]) == 0
+    out = capsys.readouterr().out
+    assert "slow" in out
+    assert "9.0" in out
+
+
+def test_a_corrupt_health_file_does_not_break_the_cli(fake_pool, monkeypatch, tmp_path):
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    path.write_text("{{{ broken")
+    assert main(["providers"]) == 0

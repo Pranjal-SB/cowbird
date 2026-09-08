@@ -2,13 +2,27 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
+import os
 import sys
+from pathlib import Path
 
 from cowbird.errors import CowbirdError
+from cowbird.health import HealthStore, Status
 from cowbird.inbox import Inbox, aclose_default_pool, default_pool
 from cowbird.models import Address, Kind
 from cowbird.pool import Request
+
+from cowbird_cli.canary import run_canary
+
+
+def health_path() -> Path:
+    """Where the CLI caches measured provider health between runs."""
+    override = os.environ.get("COWBIRD_HEALTH_PATH")
+    if override:
+        return Path(override)
+    return Path.home() / ".cowbird" / "health.json"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -32,6 +46,8 @@ def _parser() -> argparse.ArgumentParser:
     wait.add_argument("--timeout", type=float, default=120)
 
     sub.add_parser("providers", help="show the provider health matrix")
+    canary = sub.add_parser("canary", help="probe every provider live and show health")
+    canary.add_argument("--json", action="store_true")
     return parser
 
 
@@ -89,15 +105,55 @@ async def _providers(args: argparse.Namespace) -> int:
         print(
             f"{provider.name:<16}"
             f"{pool.health.status(provider.name):<14}"
-            f"{(f'{p50:.1f}s' if p50 else '-'):<9}"
+            # `is not None`, not truthiness: a p50 of 0.0 is a real measurement.
+            # inboxes generates addresses without any HTTP call, so its median
+            # is legitimately zero, and `if p50` printed that as "no data".
+            f"{(f'{p50:.1f}s' if p50 is not None else '-'):<9}"
             f"{','.join(sorted(provider.caps.kind)):<26}"
             f"{','.join(provider.caps.sites)}"
         )
     return 0
 
 
+async def _canary(args: argparse.Namespace) -> int:
+    pool = default_pool()
+    outcomes = await run_canary(pool.registry, pool.health)
+    if args.json:
+        # Carry last_failure as well. The tab-separated form says a provider is
+        # quarantined but not why, so the CI issue body arrives with a name and
+        # nothing anyone can act on.
+        health = pool.health.snapshot()
+        entries = {
+            name: {
+                "status": outcomes[name],
+                "detail": health[name].last_failure if name in health else None,
+            }
+            for name in sorted(outcomes)
+        }
+        print(json.dumps(entries, indent=2))
+    else:
+        for name in sorted(outcomes):
+            print(f"{name}\t{outcomes[name]}")
+    # "down" alone must not fail the build: a backend being unreachable, or a
+    # datacenter IP drawing a Cloudflare challenge, is not a defect here.
+    # Only "quarantined" means an adapter is wrong and needs a human, so that
+    # is the only outcome that turns the build red.
+    return 1 if Status.QUARANTINED.value in outcomes.values() else 0
+
+
 async def _run(args: argparse.Namespace) -> int:
-    handler = {"new": _new, "wait": _wait, "providers": _providers}[args.command]
+    # Seed the live store the registry already holds a reference to, rather
+    # than replacing it, so measurements taken during this command land
+    # somewhere the next run's `providers`/routing can actually see.
+    pool = default_pool()
+    for name, entry in HealthStore.load(health_path()).snapshot().items():
+        pool.health._entries[name] = entry
+    handler = {
+        "new": _new,
+        "wait": _wait,
+        "providers": _providers,
+        "canary": _canary,
+    }[args.command]
     try:
         return await handler(args)
     except CowbirdError as exc:
@@ -107,6 +163,9 @@ async def _run(args: argparse.Namespace) -> int:
         print(f"timeout: {exc}", file=sys.stderr)
         return 2
     finally:
+        # A read-only or full disk must not fail the user's command.
+        with contextlib.suppress(OSError):
+            default_pool().health.save(health_path())
         # Closes curl_cffi sessions held by the shared pool/registry. Done
         # once here rather than per-command so every exit path (success,
         # CowbirdError, TimeoutError) tears the pool down the same way.

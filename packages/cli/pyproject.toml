@@ -2,14 +2,21 @@
 name = "cowbird"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["cowbird-core", "cowbird-mailtm"]
+dependencies = [
+    "cowbird-core",
+    "cowbird-mailtm",
+    "cowbird-emailnator",
+    "cowbird-inboxes",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "pytest-cov>=5", "ruff>=0.6"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "pytest-cov>=5", "ruff>=0.6", "packaging"]
 
 [tool.uv.sources]
 cowbird-core = { workspace = true }
 cowbird-mailtm = { workspace = true }
+cowbird-emailnator = { workspace = true }
+cowbird-inboxes = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"

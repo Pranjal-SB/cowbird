@@ -12,23 +12,49 @@ retained. `?` = not established yet.
 Legend: ⭐ seed set · 🔓 open source, self-hostable · 🔗 shares a backend with
 its listed aliases
 
-## Seed set
+## Shipped
 
-The six that the interface must survive before any of the rest are written.
+Live, contract-tested, and proven end to end by
+`packages/core/tests/test_delivery.py`. P50 is measured, from a real
+`cowbird providers` run on 2026-09-07, not declared.
+
+| backend | sites | kind | addr | msg | domains | p50 |
+|---|---|---|---|---|---|---|
+| mail.tm | mail.tm | own-domain | forever | 7d | 1 | 1.4s |
+| emailnator | emailnator.com | gmail-alias | forever | 1d | 6 | 2.3s |
+| inboxes | inboxes.com | own-domain | forever | 7d | 18 | 0.0s |
+
+inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
+local-part and a domain and returns, which is where the 0.0s comes from. It
+also accepts a custom local-part. emailnator and mail.tm do not.
+
+## Parked
+
+Reconned, not built, reasons written up. Do not restart either without reading
+its recon first.
+
+| backend | why | recon |
+|---|---|---|
+| smailpro | every call needs a solved Cloudflare Turnstile token in `x-captcha` | `docs/recon/smailpro.md` |
+| tempr.email | the message-read endpoint was never observed, only list | `docs/recon/tempr.md` |
+| dropmail | the free API token path closed | none |
+
+dropmail was in the seed set only because it was the one known push
+(WebSocket) backend, so `watch()` could be proven against a real push provider
+before polling adapters were built on it. No shipped provider uses push today.
+
+## Seed set, remaining
 
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
-| ⭐ mail.tm | mail.tm | own-domain | forever | 7d | 1 |
-| ⭐ emailnator | emailnator.com | gmail-alias | forever | 1d | 6 |
-| ⭐ smailpro | smailpro.com | gmail-alias, outlook-alias | ? | ? | 30+ |
-| ⭐ tempr.email | tempr.email | own-domain | forever | 1mo | 50+ |
-| ⭐ inboxes | inboxes.com | own-domain | forever | 7d | 19 |
-| dropmail | dropmail.me | own-domain | ? | ? | 17 |
+| ⭐ smailpro | smailpro.com | gmail-alias, outlook-alias | ? | ? | 30 free, 43 total |
+| ⭐ tempr.email | tempr.email | own-domain | ? | 30d | 60 |
 
-mail.tm and dropmail are documented APIs; the other four are reversed.
-dropmail is not starred but is in the seed set because it is the only known
-push (WebSocket) backend, and `watch()` must be proven against a real push
-provider before 50 polling adapters are built on top of it.
+Recon corrected both rows. smailpro's 43 domains are 2 Gmail, 9 Outlook and 32
+in the `other` pool, of which 13 are premium: an anonymous caller reaches 30.
+tempr.email serves 60 domains, not the "50+" the source list claimed and not
+the "50" its own page says in one place, and its 30 days is message retention,
+with address lifetime still unestablished.
 
 ## Starred, not seeded
 
@@ -143,5 +169,5 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 ## Counts
 
 Roughly 90 front doors, roughly 60 distinct backends after alias dedup, of
-which 6 are seeded, 3 more are starred, 3 are self-hostable, and 13 are the
-unverified .edu tier.
+which 3 ship, 3 are parked, 2 remain in the seed set, 3 more are starred, 2 are
+self-hostable, and 13 are the unverified .edu tier.

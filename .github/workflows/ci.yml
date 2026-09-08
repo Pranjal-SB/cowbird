@@ -28,4 +28,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-packages --all-extras
-      - run: uv run pytest -m live -v
+      - id: canary
+        run: uv run cowbird canary --json | tee canary.json
+        continue-on-error: true
+      # A red canary is the point: it means a live backend's API changed
+      # underneath us. But a datacenter runner IP can also draw a Cloudflare
+      # challenge that a real user never sees, so "down" alone isn't wired to
+      # fail here -- only "quarantined" (schema drift) does, inside the CLI.
+      - name: File an issue for any quarantined provider
+        if: steps.canary.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Weekly schedule + a provider that stays quarantined for weeks
+          # would otherwise file one duplicate issue per run. A human already
+          # has the first one open; don't page them again for the same thing.
+          if [ -z "$(gh issue list --label canary --state open --json number -q '.[0]')" ]; then
+            gh issue create \
+              --title "canary: provider quarantined $(date -u +%F)" \
+              --body "$(printf '```json\n%s\n```' "$(cat canary.json)")" \
+              --label canary
+          fi
