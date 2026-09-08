@@ -126,7 +126,10 @@ API_KEYS=local-dev uv run uvicorn cowbird_server:create_app --factory --host 0.0
 ```
 
 or build the image at the repo root: `docker build -t cowbird-server .` then
-`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`.
+`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`. The
+container listens on `$PORT` and defaults to 8000, so hosts that assign a port
+(Render, Koyeb, Fly) need no extra configuration. It runs as a non-root user and
+carries a `HEALTHCHECK` against `/health`.
 
 ```
 POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
@@ -154,7 +157,7 @@ from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
 client that needs to keep waiting just re-issues the request. Issued
 addresses and webhook registrations live in the server's process memory, so a
-restart drops them; Postgres-backed storage is the next plan (Plan 3b).
+restart drops them. Postgres-backed storage is next.
 
 ## Adding a provider
 
@@ -182,5 +185,5 @@ The deliverable is an HTTP API, and it ships: `cowbird-server` in
 `packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
 per-key rate limiting. The CLI is a convenience for working on the library and
 is not the product. Shared health state across instances and Postgres-backed
-storage are Plan 3b. Full design:
+storage are not built yet. Full design:
 `docs/superpowers/specs/2026-09-05-cowbird-design.md`.

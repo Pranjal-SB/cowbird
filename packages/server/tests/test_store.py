@@ -37,6 +37,6 @@ async def test_aclose_is_a_noop_and_does_not_drop_rows():
 
 
 def test_memorystore_satisfies_the_protocol():
-    # PostgresStore in Plan 3b implements this same protocol. Pinning it here
+    # A Postgres-backed store implements this same protocol. Pinning it here
     # makes the seam a contract rather than a convention.
     assert isinstance(MemoryStore(), Store)

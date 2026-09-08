@@ -56,8 +56,8 @@ class ProviderHealth:
 class HealthStore:
     """What the pool knows about which providers still work.
 
-    In-memory here. Plan 2 persists it and feeds it from the scheduled live
-    canary; this interface does not change.
+    In-memory here; the CLI persists it to disk between runs and the
+    scheduled live canary feeds it. This interface does not change either way.
     """
 
     def __init__(self) -> None:
