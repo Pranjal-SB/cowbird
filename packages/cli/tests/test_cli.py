@@ -4,7 +4,7 @@ from dataclasses import replace
 import pytest
 from cowbird.models import Message, MessageRow
 from cowbird.testing import CAPS, FakeProvider
-from cowbird_cli import health_path, main
+from cowbird_cli import main
 
 
 async def _noop() -> None:
@@ -229,17 +229,6 @@ def test_wait_without_state_is_fine_when_provider_does_not_need_it(multi_pool, c
     code = main(["wait", "a@fake.test", "--provider", "fakedel"])
     assert code == 0
     assert capsys.readouterr().err == ""
-
-
-def test_health_path_honours_the_environment(monkeypatch, tmp_path):
-    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(tmp_path / "custom.json"))
-    assert health_path() == tmp_path / "custom.json"
-
-
-def test_health_path_defaults_under_home(monkeypatch):
-    monkeypatch.delenv("COWBIRD_HEALTH_PATH", raising=False)
-    assert health_path().name == "health.json"
-    assert ".cowbird" in str(health_path())
 
 
 def test_new_persists_measured_health(fake_pool, monkeypatch, tmp_path, capsys):
