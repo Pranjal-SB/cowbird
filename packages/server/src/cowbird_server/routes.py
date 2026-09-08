@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from cowbird.health import Status
 from cowbird.models import Kind
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -38,6 +39,37 @@ async def providers(pool: Pool = Depends(get_pool)):
             for provider in sorted(pool.registry.all(), key=lambda p: p.name)
         ]
     )
+
+
+def get_db_pool(request: Request):
+    return request.app.state.db_pool
+
+
+@router.delete("/providers/{name}/quarantine")
+async def clear_quarantine(
+    name: str,
+    pool: Pool = Depends(get_pool),
+    db_pool=Depends(get_db_pool),
+):
+    """Return a quarantined provider to routing.
+
+    Quarantine used to clear on restart, which was accidental but was the only
+    way out. A durable global row removes that, so without this route a provider
+    stays dead forever.
+
+    The global row is deleted first. Clearing only the local status would leave
+    the row in place for the next flush to read straight back, and the clear
+    would look like it silently failed.
+    """
+    if name not in {p.name for p in pool.registry.all()}:
+        raise HTTPException(status_code=404, detail="unknown provider")
+    was = pool.health.status(name) is Status.QUARANTINED
+    if db_pool is not None:
+        async with db_pool.acquire() as conn:
+            await conn.execute("delete from provider_quarantine where provider = $1", name)
+    if was:
+        pool.health.restore(name, status=Status.OK)
+    return envelope(data={"cleared": was})
 
 
 def _seconds(value: int | None) -> timedelta | None:

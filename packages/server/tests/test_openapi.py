@@ -3,6 +3,7 @@ from __future__ import annotations
 EXPECTED_PATHS = {
     "/health",
     "/v1/providers",
+    "/v1/providers/{name}/quarantine",
     "/v1/inboxes",
     "/v1/inboxes/{addr}/messages",
     "/v1/inboxes/{addr}/messages/{message_id}",
