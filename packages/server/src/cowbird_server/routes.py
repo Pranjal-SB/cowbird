@@ -144,7 +144,16 @@ def get_webhooks(request: Request) -> WebhookManager:
 
 
 @router.post("/webhooks")
-async def create_webhook(body: CreateWebhook, webhooks: WebhookManager = Depends(get_webhooks)):
+async def create_webhook(
+    body: CreateWebhook,
+    webhooks: WebhookManager = Depends(get_webhooks),
+    service: InboxService = Depends(get_service),
+):
+    # Resolve first: WebhookManager.create is sync and cannot await
+    # service.inbox() itself, so an address this server never issued would
+    # otherwise register fine and only fail as a silent timeout later.
+    # UnknownAddress from a bad address propagates to the existing 404 handler.
+    await service.inbox(body.address)
     timeout = get_settings().clamp_wait(body.timeout)
     try:
         hook_id = webhooks.create(body.address, body.url, timeout)
@@ -157,7 +166,12 @@ async def create_webhook(body: CreateWebhook, webhooks: WebhookManager = Depends
 
 @router.get("/webhooks")
 async def list_webhooks(webhooks: WebhookManager = Depends(get_webhooks)):
-    return envelope(data=webhooks.list())
+    return envelope(
+        data=[
+            {"id": h["id"], "address": h["address"], "url": h["url"], "timeout": h["timeout"]}
+            for h in webhooks.list()
+        ]
+    )
 
 
 @router.delete("/webhooks/{hook_id}")
