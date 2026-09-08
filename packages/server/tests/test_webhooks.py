@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import socket
 
 import pytest
-from cowbird_server.webhooks import validate_url
+from cowbird_server.webhooks import WebhookManager, validate_url
 
 PUBLIC = "93.184.216.34"
+
+
+class FakeSession:
+    """Records every `post()` call; never touches a socket."""
+
+    def __init__(self, status_code: int = 200):
+        self.status_code = status_code
+        self.calls: list[dict] = []
+
+    async def post(self, url, **kwargs):
+        self.calls.append({"url": url, **kwargs})
+        return type("Resp", (), {"status_code": self.status_code})()
 
 
 def _resolves_to(ip: str):
@@ -81,3 +96,32 @@ def test_a_hook_never_echoes_the_signing_secret(client, auth, monkeypatch):
     listed = client.get("/v1/webhooks", headers=auth)
     for body in (created.text, listed.text):
         assert "secret" not in body.lower()
+
+
+async def test_delivery_disables_redirects_and_signs_the_body():
+    # allow_redirects=False is the second half of the SSRF defence: validate_url
+    # checks the target at registration time, but a permitted target can still
+    # answer with a 302 to an internal address at delivery time. Without this
+    # flag the redirect would be followed.
+    session = FakeSession()
+    secret = "s3cr3t"
+    manager = WebhookManager(service=None, allow_private=True, secret=secret, session=session)
+
+    await manager._deliver("https://example.test/hook", {"event": "message"})
+
+    assert len(session.calls) == 1
+    call = session.calls[0]
+    assert call["allow_redirects"] is False
+
+    body = json.dumps({"event": "message"}).encode()
+    expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    assert call["headers"]["x-cowbird-signature"] == expected
+
+
+async def test_delivery_without_a_secret_sends_no_signature_header():
+    session = FakeSession()
+    manager = WebhookManager(service=None, allow_private=True, secret=None, session=session)
+
+    await manager._deliver("https://example.test/hook", {"event": "message"})
+
+    assert "x-cowbird-signature" not in session.calls[0]["headers"]
