@@ -154,7 +154,7 @@ async def create_webhook(
     # otherwise register fine and only fail as a silent timeout later.
     # UnknownAddress from a bad address propagates to the existing 404 handler.
     await service.inbox(body.address)
-    timeout = get_settings().clamp_wait(body.timeout)
+    timeout = get_settings().clamp_webhook(body.timeout)
     try:
         hook_id = webhooks.create(body.address, body.url, timeout)
     except ValueError as exc:
