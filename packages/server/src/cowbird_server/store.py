@@ -5,6 +5,17 @@ from typing import Protocol, runtime_checkable
 from cowbird.models import Address
 
 
+class StoreUnavailable(Exception):
+    """The store could not be reached. Transient, and the caller should retry.
+
+    Server-layer, like UnknownAddress, rather than a CowbirdError: core's error
+    taxonomy is about providers and has no concept of a store. It gets its own
+    handler in the app factory, because status_for only matches CowbirdError
+    subclasses and an asyncpg error would otherwise reach the catch-all and be
+    reported as a 500.
+    """
+
+
 @runtime_checkable
 class Store(Protocol):
     """Where the server keeps the addresses it has issued.
