@@ -11,13 +11,14 @@ from __future__ import annotations
 
 from importlib.metadata import entry_points, requires
 
+import pytest
 from packaging.requirements import Requirement
 
 
-def declared() -> set[str]:
+def declared(distribution: str) -> set[str]:
     return {
         Requirement(raw).name
-        for raw in requires("cowbird") or []
+        for raw in requires(distribution) or []
         if "extra ==" not in raw
     }
 
@@ -26,9 +27,10 @@ def installed_provider_distributions() -> set[str]:
     return {ep.dist.name for ep in entry_points(group="cowbird.providers") if ep.dist}
 
 
-def test_cowbird_depends_on_every_installed_provider():
-    missing = installed_provider_distributions() - declared()
+@pytest.mark.parametrize("distribution", ["cowbird", "cowbird-server"])
+def test_the_shipped_distributions_depend_on_every_installed_provider(distribution):
+    missing = installed_provider_distributions() - declared(distribution)
     assert not missing, (
-        f"{sorted(missing)} are installed here but not declared by the cowbird "
-        "distribution, so `pip install cowbird` would not get them"
+        f"{sorted(missing)} are installed here but not declared by {distribution}, "
+        f"so `pip install {distribution}` would not get them"
     )

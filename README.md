@@ -117,6 +117,45 @@ COWBIRD_SMTP_FROM=you@example.com
 Unset, that second test skips; the first still runs. Both are `live`-marked, so
 the offline suite is unaffected either way.
 
+## HTTP API
+
+`cowbird-server` is a FastAPI app in `packages/server`. Run it locally with:
+
+```bash
+API_KEYS=local-dev uv run uvicorn cowbird_server:create_app --factory --host 0.0.0.0 --port 8000
+```
+
+or build the image at the repo root: `docker build -t cowbird-server .` then
+`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`.
+
+```
+POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
+GET    /v1/inboxes/{addr}/messages
+GET    /v1/inboxes/{addr}/messages/{id}
+GET    /v1/inboxes/{addr}/wait?otp=1   long-poll, server-capped
+DELETE /v1/inboxes/{addr}/messages/{id}
+POST   /v1/webhooks                    one-shot, SSRF-guarded
+GET    /v1/webhooks
+DELETE /v1/webhooks/{id}
+GET    /v1/providers                   health matrix
+GET    /health                         liveness, unauthenticated
+```
+
+```
+$ curl -s -X POST -H "x-api-key: local-dev" localhost:8000/v1/inboxes
+{"success":true,"data":{"address":"cbdf0cddf3a2@getnada.com","provider":"inboxes","expires_at":null},"error":null}
+
+$ curl -s -H "x-api-key: local-dev" localhost:8000/v1/providers
+{"success":true,"data":[{"provider":"emailnator","status":"ok","p50":1.11,"kind":["gmail-alias"],"sites":["emailnator.com"]},{"provider":"inboxes","status":"ok","p50":0.0,"kind":["own-domain"],"sites":["inboxes.com"]},{"provider":"mailtm","status":"ok","p50":1.36,"kind":["own-domain"],"sites":["mail.tm"]}],"error":null}
+```
+
+Every route except `/health` requires an `x-api-key` header; valid keys come
+from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
+seconds (25 by default) regardless of the `timeout` a client asks for; a
+client that needs to keep waiting just re-issues the request. Issued
+addresses and webhook registrations live in the server's process memory, so a
+restart drops them; Postgres-backed storage is next.
+
 ## Adding a provider
 
 Read `packages/core/src/cowbird/contract.py` for the contract
@@ -139,6 +178,8 @@ parked after recon, with the reasons written up in `docs/recon/`: smailpro
 needs a solved Cloudflare Turnstile token on every call, and tempr.email's
 message-read endpoint was never observed.
 
-The deliverable is an HTTP API. The CLI is a convenience for working on the
-library and is not the product. That server comes next, along with shared health
-state so several API instances agree on which backends are rotten.
+The deliverable is an HTTP API, and it ships: `cowbird-server` in
+`packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
+per-key rate limiting. The CLI is a convenience for working on the library and
+is not the product. Shared health state across instances and Postgres-backed
+storage are not built yet.
