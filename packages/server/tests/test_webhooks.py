@@ -68,6 +68,19 @@ def test_registering_a_hook_at_an_internal_address_is_a_422(client, auth, monkey
     assert response.status_code == 422
 
 
+def test_registering_a_webhook_for_an_unknown_address_is_a_404(client, auth):
+    # Before the fix this returned 200: WebhookManager.create is sync and
+    # cannot await service.inbox(), so a never-issued address only failed
+    # silently as a timeout the caller never saw.
+    response = client.post(
+        "/v1/webhooks",
+        headers=auth,
+        json={"address": "ghost@fake.test", "url": "https://example.test/hook"},
+    )
+    assert response.status_code == 404
+    assert response.json()["success"] is False
+
+
 def test_a_registered_hook_is_listed_and_can_be_cancelled(client, auth, monkeypatch):
     # Resolution is stubbed so the offline suite never makes a DNS query.
     monkeypatch.setattr("cowbird_server.webhooks.socket.getaddrinfo", _resolves_to(PUBLIC))
@@ -83,6 +96,18 @@ def test_a_registered_hook_is_listed_and_can_be_cancelled(client, auth, monkeypa
     assert client.delete(f"/v1/webhooks/{hook_id}", headers=auth).json()["data"] == {
         "cancelled": True
     }
+
+
+def test_list_webhooks_projects_its_fields_explicitly(client, auth, monkeypatch):
+    monkeypatch.setattr("cowbird_server.webhooks.socket.getaddrinfo", _resolves_to(PUBLIC))
+    client.post("/v1/inboxes", headers=auth, json={})
+    client.post(
+        "/v1/webhooks",
+        headers=auth,
+        json={"address": "a@fake.test", "url": "https://example.test/hook", "timeout": 1},
+    )
+    [row] = client.get("/v1/webhooks", headers=auth).json()["data"]
+    assert row.keys() == {"id", "address", "url", "timeout"}
 
 
 def test_a_hook_never_echoes_the_signing_secret(client, auth, monkeypatch):
