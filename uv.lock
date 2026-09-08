@@ -377,7 +377,7 @@ requires-dist = [
     { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
     { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
-    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastapi", specifier = ">=0.115,<0.142" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
     { name = "pydantic-settings", specifier = ">=2.4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
