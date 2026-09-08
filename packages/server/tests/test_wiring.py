@@ -79,3 +79,20 @@ def test_database_url_selects_postgresstore(monkeypatch, tmp_path):
     with TestClient(app):
         assert isinstance(app.state.store, PostgresStore)
     get_settings.cache_clear()
+
+
+def test_a_single_instance_saves_its_health_on_shutdown(monkeypatch, tmp_path):
+    # It had been seeding from this file and never writing it, so a
+    # single-instance deploy discarded every measurement it took.
+    import json
+
+    path = tmp_path / "health.json"
+    monkeypatch.setenv("API_KEYS", KEY)
+    monkeypatch.setenv("COWBIRD_HEALTH_PATH", str(path))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    get_settings.cache_clear()
+    app = create_app(pool=build_pool(provider_class("fake")))
+    with TestClient(app) as client:
+        client.post("/v1/inboxes", headers={"x-api-key": KEY})
+    get_settings.cache_clear()
+    assert "fake" in json.loads(path.read_text())

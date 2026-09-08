@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 
@@ -22,6 +24,7 @@ from cowbird_server.auth import _key_matches
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
 from cowbird_server.errors import status_for
+from cowbird_server.healthsync import HealthSync
 from cowbird_server.pgstore import PostgresStore
 from cowbird_server.routes import router
 from cowbird_server.service import InboxService, UnknownAddress
@@ -31,6 +34,26 @@ from cowbird_server.webhooks import WebhookManager
 __all__ = ["create_app"]
 
 logger = logging.getLogger("cowbird.server")
+
+
+async def _maintenance(sync: HealthSync, store: Store, interval: int) -> None:
+    """One periodic loop, two jobs: publish health and reap expired addresses.
+
+    Together rather than in two tasks because both are periodic, cheap, and
+    tolerate being late, and a second task would only add a second thing to
+    cancel and a second way to leak one.
+
+    `sweep` is the other half of expiry. `get` evicts on read, which only ever
+    reaches rows somebody asks for, and nobody asks for an address after it has
+    expired; without this they accumulate forever. StoreUnavailable is
+    suppressed for the same reason a flush failure is: this is maintenance, and
+    a database blip must not kill the loop that resumes when it comes back.
+    """
+    while True:
+        await asyncio.sleep(interval)
+        await sync.flush()
+        with contextlib.suppress(StoreUnavailable, AttributeError):
+            await store.sweep()
 
 
 def _rate_key(request) -> str:
@@ -61,7 +84,6 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
         if not settings.api_keys:
             raise RuntimeError("API_KEYS is empty; refusing to start")
         app.state.pool = pool if pool is not None else default_pool()
-        app.state.pool.health.seed(HealthStore.load(default_health_path()))
         # An injected store wins: tests hand one in and must not open a socket.
         app.state.db_pool = None
         if store is not None:
@@ -75,6 +97,19 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
             app.state.store = PostgresStore(app.state.db_pool)
         else:
             app.state.store = MemoryStore()
+        # Postgres is the authority once configured. Seeding from the file as
+        # well would race on whichever ran last.
+        app.state.health_task = None
+        if app.state.db_pool is not None:
+            sync = HealthSync(
+                app.state.db_pool, app.state.pool.health, settings.instance_id
+            )
+            await sync.load()
+            app.state.health_task = asyncio.create_task(
+                _maintenance(sync, app.state.store, settings.health_flush_seconds)
+            )
+        else:
+            app.state.pool.health.seed(HealthStore.load(default_health_path()))
         app.state.service = InboxService(app.state.pool, app.state.store)
         app.state.webhooks = WebhookManager(
             app.state.service,
@@ -82,6 +117,16 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
             secret=settings.webhook_secret,
         )
         yield
+        if app.state.health_task is not None:
+            app.state.health_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await app.state.health_task
+        else:
+            # The server has been reading this file at startup and never writing
+            # it, so every measurement a single-instance deploy took was thrown
+            # away at exit. A read-only or full disk must not fail shutdown.
+            with contextlib.suppress(OSError):
+                app.state.pool.health.save(default_health_path())
         await app.state.webhooks.shutdown()
         await app.state.store.aclose()
         if pool is None:
