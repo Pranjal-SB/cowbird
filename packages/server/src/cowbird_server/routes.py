@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from cowbird.models import Kind
-from cowbird.parsing import extract_otp
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
 from fastapi import APIRouter, Depends, Query, Request
@@ -13,6 +12,7 @@ from pydantic import BaseModel, Field
 from cowbird_server.auth import require_api_key
 from cowbird_server.config import get_settings
 from cowbird_server.envelope import envelope
+from cowbird_server.messages import message_dict
 from cowbird_server.service import InboxService
 from cowbird_server.webhooks import WebhookManager
 
@@ -107,20 +107,8 @@ async def list_messages(addr: str, service: InboxService = Depends(get_service))
 
 @router.get("/inboxes/{addr}/messages/{message_id}")
 async def get_message(addr: str, message_id: str, service: InboxService = Depends(get_service)):
-    box = await service.inbox(addr)
-    message = await box.get(message_id)
-    return envelope(
-        data={
-            "id": message.id,
-            "sender": message.sender,
-            "subject": message.subject,
-            "received_at": message.received_at.isoformat() if message.received_at else None,
-            "html": message.html,
-            "text": message.text,
-            "links": list(message.links),
-            "otp": extract_otp(message.text),
-        }
-    )
+    message, otp = await service.get_message(addr, message_id)
+    return envelope(data=message_dict(message, otp))
 
 
 @router.delete("/inboxes/{addr}/messages/{message_id}")
@@ -138,22 +126,11 @@ async def wait_for_mail(
     pattern: str | None = Query(default=None),
     service: InboxService = Depends(get_service),
 ):
-    settings = get_settings()
-    held = min(timeout or settings.wait_default, settings.wait_max)
+    held = get_settings().clamp_wait(timeout)
     message, code = await service.wait(addr, held, pattern=pattern, want_otp=otp)
     if message is None:
         return envelope(data=None)
-    return envelope(
-        data={
-            "id": message.id,
-            "sender": message.sender,
-            "subject": message.subject,
-            "received_at": message.received_at.isoformat() if message.received_at else None,
-            "text": message.text,
-            "links": list(message.links),
-            "otp": code,
-        }
-    )
+    return envelope(data=message_dict(message, code))
 
 
 class CreateWebhook(BaseModel):
@@ -168,8 +145,8 @@ def get_webhooks(request: Request) -> WebhookManager:
 
 @router.post("/webhooks")
 async def create_webhook(body: CreateWebhook, webhooks: WebhookManager = Depends(get_webhooks)):
+    timeout = get_settings().clamp_wait(body.timeout)
     try:
-        timeout = min(body.timeout, get_settings().wait_max)
         hook_id = webhooks.create(body.address, body.url, timeout)
     except ValueError as exc:
         # The one place a raw exception message reaches a client, deliberately:
