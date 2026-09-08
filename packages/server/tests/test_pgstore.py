@@ -62,3 +62,11 @@ async def test_a_dead_pool_raises_storeunavailable_not_a_driver_error(store):
     await store._pool.close()
     with pytest.raises(StoreUnavailable):
         await store.get("a@fake.test")
+
+
+async def test_aclose_on_an_already_closed_pool_does_not_raise(store):
+    # Unlike put/get/sweep, aclose runs at shutdown with no request to answer
+    # and nothing for a client to retry, so it swallows driver errors instead
+    # of raising StoreUnavailable.
+    await store._pool.close()
+    await store.aclose()
