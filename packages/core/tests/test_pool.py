@@ -33,10 +33,14 @@ def provider_class(name, caps=CAPS, fails=None, returns=None):
 
 
 def build(*classes, health=None):
-    reg = Registry(transport_factory=lambda name: None, discover=False)
+    # Wire the registry and pool to the SAME store, matching default_pool()
+    # in production: HealthTracked (the registry's wrapper) is what actually
+    # records health now that Pool.acquire no longer double-records it.
+    health = health or HealthStore()
+    reg = Registry(transport_factory=lambda name: None, discover=False, health=health)
     for cls in classes:
         reg.register(cls)
-    return Pool(reg, health or HealthStore())
+    return Pool(reg, health)
 
 
 def test_candidates_exclude_providers_lacking_the_requested_kind():
@@ -161,6 +165,26 @@ async def test_rejecting_a_blocked_domain_does_not_mark_the_provider_unhealthy()
     pool = build(_mixed_provider(), provider_class("clean"), health=health)
     await pool.acquire(Request(domain_not_in=("spam.test",)))
     assert health.status("mixed") is Status.OK
+
+
+async def test_acquire_records_exactly_one_latency_sample():
+    health = HealthStore()
+    pool = build(provider_class("works"), health=health)
+    await pool.acquire(Request())
+    assert len(health._entry("works").latencies) == 1
+
+
+async def test_acquire_records_exactly_one_failure_on_reroute():
+    health = HealthStore()
+    pool = build(
+        provider_class("broken", fails=ProviderDown("x")),
+        provider_class("works"),
+        health=health,
+    )
+    await pool.acquire(Request())
+    assert health._entry("broken").last_failure is not None
+    assert health.status("broken") is Status.DOWN
+    assert len(health._entry("works").latencies) == 1
 
 
 async def test_blocked_domain_match_is_case_insensitive():

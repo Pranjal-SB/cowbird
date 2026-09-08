@@ -1,0 +1,58 @@
+{
+  "domains": [
+    {
+      "qdn": "blondmail.com"
+    },
+    {
+      "qdn": "chapsmail.com"
+    },
+    {
+      "qdn": "clowmail.com"
+    },
+    {
+      "qdn": "dropjar.com"
+    },
+    {
+      "qdn": "fivermail.com"
+    },
+    {
+      "qdn": "getairmail.com"
+    },
+    {
+      "qdn": "getmule.com"
+    },
+    {
+      "qdn": "getnada.com"
+    },
+    {
+      "qdn": "gimpmail.com"
+    },
+    {
+      "qdn": "givmail.com"
+    },
+    {
+      "qdn": "guysmail.com"
+    },
+    {
+      "qdn": "inboxbear.com"
+    },
+    {
+      "qdn": "replyloop.com"
+    },
+    {
+      "qdn": "robot-mail.com"
+    },
+    {
+      "qdn": "tafmail.com"
+    },
+    {
+      "qdn": "temptami.com"
+    },
+    {
+      "qdn": "tupmail.com"
+    },
+    {
+      "qdn": "vomoto.com"
+    }
+  ]
+}

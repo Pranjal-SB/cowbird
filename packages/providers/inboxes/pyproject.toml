@@ -1,0 +1,18 @@
+[project]
+name = "cowbird-inboxes"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["cowbird-core"]
+
+[project.entry-points."cowbird.providers"]
+inboxes = "cowbird_inboxes:Inboxes"
+
+[tool.uv.sources]
+cowbird-core = { workspace = true }
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

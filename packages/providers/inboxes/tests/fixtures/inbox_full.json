@@ -1,0 +1,40 @@
+{
+  "msgs": [
+    {
+      "uid": "gSAJBkAgVEvQN2RHLygwM8Fz4VBBpu",
+      "f": "The Home Depot",
+      "s": "Daily Deals >> Tap In <<",
+      "d": false,
+      "at": [],
+      "cr": "2026-09-07T13:22:58.315Z",
+      "r": 1788787378,
+      "ph": "[https://trk.mg.homedepot.com/o/4/eyJ...",
+      "rr": "1 hours ago",
+      "ib": "test@guysmail.com"
+    },
+    {
+      "uid": "IQXinAosndsVrfBJVsyyuQSO0oQh9s",
+      "f": "The Home Depot",
+      "s": "< FINAL DAYS > Labor Day Deals",
+      "d": false,
+      "at": [],
+      "cr": "2026-09-07T13:13:10.290Z",
+      "r": 1788786790,
+      "ph": "[https://trk.mg.homedepot.com/o/4/eyJ...",
+      "rr": "2 hours ago",
+      "ib": "test@guysmail.com"
+    },
+    {
+      "uid": "TJPQgF77ldfO1ApvkAFopqP4QUd6Vw",
+      "f": "Naman Kamra",
+      "s": "An Exclusive Opportunity to Put Your Brand ...",
+      "d": false,
+      "at": [],
+      "cr": "2026-09-07T09:56:48.014Z",
+      "r": 1788775008,
+      "ph": "[https://economictimes.indiatimes.com...",
+      "rr": "5 hours ago",
+      "ib": "test@guysmail.com"
+    }
+  ]
+}
