@@ -3,6 +3,8 @@
 services:
   postgres:
     image: postgres:17
+    # Literal password is deliberate: a local throwaway container credential.
+    # Nothing in a deploy reads this file.
     environment:
       POSTGRES_USER: cowbird
       POSTGRES_PASSWORD: cowbird
