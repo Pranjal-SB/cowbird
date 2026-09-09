@@ -155,6 +155,20 @@ class HealthStore:
         entry.status = Status.QUARANTINED
         entry.last_failure = reason
 
+    def unquarantine(self, provider: str) -> None:
+        """Return a quarantined provider to routing, keeping its measurements.
+
+        Symmetric with quarantine(). Only touches status, because latency
+        history and the residential-IP hint are still true after a human
+        decides the adapter is fine again.
+
+        Guarded on QUARANTINED so a reconcile against the global table cannot
+        stamp OK over a live DOWN or SLOW this instance measured itself.
+        """
+        entry = self._entry(provider)
+        if entry.status is Status.QUARANTINED:
+            entry.status = Status.OK
+
     def snapshot(self) -> dict[str, ProviderHealth]:
         # Copy each entry (and its mutable latencies deque) so callers can't
         # rewrite live health state through the value they were handed.

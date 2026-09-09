@@ -20,6 +20,8 @@ import logging
 import asyncpg
 from cowbird.health import HealthStore, Status
 
+from cowbird_server.db import ACQUIRE_TIMEOUT
+
 logger = logging.getLogger("cowbird.server")
 
 
@@ -28,6 +30,12 @@ class HealthSync:
         self._pool = pool
         self._health = health
         self._instance = instance_id
+        # Providers whose quarantine is already accounted for against the
+        # table: either we inserted the row, or we adopted one somebody else
+        # inserted. Anything in here must not be re-inserted, or an instance
+        # that adopted a quarantine would resurrect the global row seconds
+        # after an operator deleted it, on every instance.
+        self._published: set[str] = set()
 
     async def load(self) -> None:
         """Seed at startup: this instance's own rows, then the global quarantines.
@@ -35,7 +43,7 @@ class HealthSync:
         Raises. A failure here happens during the lifespan, where refusing to
         start is the right answer; `flush` is the one that must never raise.
         """
-        async with self._pool.acquire() as conn:
+        async with self._pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
             rows = await conn.fetch(
                 "select provider, status, latencies, last_checked, last_failure,"
                 " needs_residential_ip from provider_health where instance_id = $1",
@@ -52,13 +60,13 @@ class HealthSync:
                     last_failure=row["last_failure"],
                     needs_residential_ip=row["needs_residential_ip"],
                 )
-            await self._apply_quarantines(conn)
+            await self._reconcile_quarantines(conn)
 
     async def flush(self) -> None:
         """Write this instance's rows, publish its quarantines, read back the
         global ones. Never raises: see the module docstring."""
         try:
-            async with self._pool.acquire() as conn:
+            async with self._pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
                 snapshot = self._health.snapshot()
                 for provider, entry in snapshot.items():
                     await conn.execute(
@@ -79,7 +87,7 @@ class HealthSync:
                         entry.last_failure,
                         entry.needs_residential_ip,
                     )
-                    if entry.status is Status.QUARANTINED:
+                    if entry.status is Status.QUARANTINED and provider not in self._published:
                         # First writer wins. A later instance noticing the same
                         # drift must not overwrite who saw it first or when.
                         await conn.execute(
@@ -89,11 +97,28 @@ class HealthSync:
                             entry.last_failure or "quarantined",
                             self._instance,
                         )
-                await self._apply_quarantines(conn)
+                await self._reconcile_quarantines(conn)
         except Exception:
             logger.warning("health flush failed; continuing on the in-memory copy",
                            exc_info=True)
 
-    async def _apply_quarantines(self, conn: asyncpg.Connection) -> None:
-        for row in await conn.fetch("select provider, reason from provider_quarantine"):
+    async def _reconcile_quarantines(self, conn: asyncpg.Connection) -> None:
+        """Match local quarantines to the table, in both directions.
+
+        Adding only would make a clear impossible with more than one instance:
+        the instance that did not serve the DELETE is still QUARANTINED in
+        memory, its next flush re-inserts the global row, and every instance
+        reads it back seconds later. The table is the authority, so a provider
+        absent from it is one no instance may hold.
+        """
+        rows = await conn.fetch("select provider, reason from provider_quarantine")
+        quarantined = {row["provider"] for row in rows}
+        for row in rows:
             self._health.quarantine(row["provider"], row["reason"])
+        for provider, entry in self._health.snapshot().items():
+            if entry.status is Status.QUARANTINED and provider not in quarantined:
+                self._health.unquarantine(provider)
+        # The fetch above ran after this flush's inserts on the same connection,
+        # so the table now names exactly the quarantines this instance has
+        # accounted for -- ours and everyone else's.
+        self._published = quarantined
