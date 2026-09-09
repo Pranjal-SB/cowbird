@@ -38,10 +38,36 @@ COMMAND_TIMEOUT = 15.0
 ACQUIRE_TIMEOUT = 5.0
 
 
-async def connect(dsn: str) -> asyncpg.Pool:
+async def connect(dsn: str, schema: str | None = None) -> asyncpg.Pool:
+    """Open the pool. `schema`, when given, becomes the connection search_path.
+
+    Only the test suite passes it. The suite drops and truncates these tables,
+    and .env.example and compose both point DATABASE_URL at the database a
+    developer is running the stack against, so without somewhere else to put
+    them a plain `pytest` run takes the live tables out from under two servers.
+    A schema costs no CREATE DATABASE privilege and no second variable.
+    """
+    settings = {"search_path": schema} if schema else None
     return await asyncpg.create_pool(
-        dsn, min_size=1, max_size=10, command_timeout=COMMAND_TIMEOUT
+        dsn,
+        min_size=1,
+        max_size=10,
+        command_timeout=COMMAND_TIMEOUT,
+        server_settings=settings,
     )
+
+
+async def ensure_schema(dsn: str, schema: str) -> None:
+    """Create `schema` if it is not there yet, on a throwaway connection.
+
+    Separate from connect() because the pool's own search_path points at a
+    schema that may not exist yet, and asyncpg sets it while connecting.
+    """
+    conn = await asyncpg.connect(dsn, command_timeout=COMMAND_TIMEOUT)
+    try:
+        await conn.execute(f'create schema if not exists "{schema}"')
+    finally:
+        await conn.close()
 
 
 def _files() -> list[tuple[int, Path]]:
