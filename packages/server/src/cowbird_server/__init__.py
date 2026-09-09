@@ -48,11 +48,14 @@ async def _maintenance(sync: HealthSync, store: Store, interval: int) -> None:
     expired; without this they accumulate forever. StoreUnavailable is
     suppressed for the same reason a flush failure is: this is maintenance, and
     a database blip must not kill the loop that resumes when it comes back.
+    Only StoreUnavailable: this loop runs only for a PostgresStore, which always
+    has sweep(), so suppressing AttributeError could only ever hide a real one
+    raised inside sweep and leave the reaper silently reaping nothing.
     """
     while True:
         await asyncio.sleep(interval)
         await sync.flush()
-        with contextlib.suppress(StoreUnavailable, AttributeError):
+        with contextlib.suppress(StoreUnavailable):
             await store.sweep()
 
 
@@ -86,51 +89,65 @@ def create_app(pool: Pool | None = None, store: Store | None = None) -> FastAPI:
         app.state.pool = pool if pool is not None else default_pool()
         # An injected store wins: tests hand one in and must not open a socket.
         app.state.db_pool = None
-        if store is not None:
-            app.state.store = store
-        elif settings.database_url:
-            # Any failure here propagates and the app does not come up. A silent
-            # fall back to MemoryStore while an operator believes state is
-            # shared is invisible until reads start missing.
-            app.state.db_pool = await db.connect(settings.database_url)
-            await db.migrate(app.state.db_pool)
-            app.state.store = PostgresStore(app.state.db_pool)
-        else:
-            app.state.store = MemoryStore()
-        # Postgres is the authority once configured. Seeding from the file as
-        # well would race on whichever ran last.
         app.state.health_task = None
-        if app.state.db_pool is not None:
-            sync = HealthSync(
-                app.state.db_pool, app.state.pool.health, settings.instance_id
+        app.state.store = None
+        app.state.webhooks = None
+        # Everything acquired above this point has to come back even if startup
+        # dies half way. migrate() and sync.load() both raise deliberately, and
+        # without the finally an operator retrying a failing start leaks a pool
+        # of open connections per attempt.
+        try:
+            if store is not None:
+                app.state.store = store
+            elif settings.database_url:
+                # Any failure here propagates and the app does not come up. A
+                # silent fall back to MemoryStore while an operator believes
+                # state is shared is invisible until reads start missing.
+                app.state.db_pool = await db.connect(settings.database_url)
+                await db.migrate(app.state.db_pool)
+                app.state.store = PostgresStore(app.state.db_pool)
+            else:
+                app.state.store = MemoryStore()
+            # Postgres is the authority once configured. Seeding from the file
+            # as well would race on whichever ran last.
+            if app.state.db_pool is not None:
+                sync = HealthSync(
+                    app.state.db_pool, app.state.pool.health, settings.instance_id
+                )
+                await sync.load()
+                app.state.health_task = asyncio.create_task(
+                    _maintenance(sync, app.state.store, settings.health_flush_seconds)
+                )
+            else:
+                app.state.pool.health.seed(HealthStore.load(default_health_path()))
+            app.state.service = InboxService(app.state.pool, app.state.store)
+            app.state.webhooks = WebhookManager(
+                app.state.service,
+                allow_private=settings.webhook_allow_private,
+                secret=settings.webhook_secret,
             )
-            await sync.load()
-            app.state.health_task = asyncio.create_task(
-                _maintenance(sync, app.state.store, settings.health_flush_seconds)
-            )
-        else:
-            app.state.pool.health.seed(HealthStore.load(default_health_path()))
-        app.state.service = InboxService(app.state.pool, app.state.store)
-        app.state.webhooks = WebhookManager(
-            app.state.service,
-            allow_private=settings.webhook_allow_private,
-            secret=settings.webhook_secret,
-        )
-        yield
-        if app.state.health_task is not None:
-            app.state.health_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await app.state.health_task
-        else:
-            # The server has been reading this file at startup and never writing
-            # it, so every measurement a single-instance deploy took was thrown
-            # away at exit. A read-only or full disk must not fail shutdown.
-            with contextlib.suppress(OSError):
-                app.state.pool.health.save(default_health_path())
-        await app.state.webhooks.shutdown()
-        await app.state.store.aclose()
-        if pool is None:
-            await aclose_default_pool()
+            yield
+        finally:
+            if app.state.health_task is not None:
+                app.state.health_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await app.state.health_task
+            elif app.state.db_pool is None:
+                # The server has been reading this file at startup and never
+                # writing it, so every measurement a single-instance deploy took
+                # was thrown away at exit. A read-only or full disk must not
+                # fail shutdown.
+                with contextlib.suppress(OSError):
+                    app.state.pool.health.save(default_health_path())
+            if app.state.webhooks is not None:
+                await app.state.webhooks.shutdown()
+            if app.state.store is not None:
+                await app.state.store.aclose()
+            elif app.state.db_pool is not None:
+                # A pool opened but never wrapped in a store: migrate() raised.
+                await app.state.db_pool.close()
+            if pool is None:
+                await aclose_default_pool()
 
     app = FastAPI(title="cowbird", lifespan=lifespan)
 
