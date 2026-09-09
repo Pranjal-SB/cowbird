@@ -14,8 +14,8 @@ pytestmark = [
 
 
 @pytest.fixture
-async def store():
-    pool = await db.connect(os.environ["DATABASE_URL"])
+async def store(pg_pool):
+    pool = await pg_pool()
     await db.migrate(pool)
     async with pool.acquire() as conn:
         await conn.execute("truncate addresses")

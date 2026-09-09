@@ -13,8 +13,8 @@ pytestmark = [
 
 
 @pytest.fixture
-async def pool():
-    p = await db.connect(os.environ["DATABASE_URL"])
+async def pool(pg_pool):
+    p = await pg_pool()
     await db.migrate(p)
     async with p.acquire() as conn:
         await conn.execute("truncate provider_health, provider_quarantine")

@@ -26,7 +26,7 @@ def address(value="a@fake.test", expires_at=None) -> Address:
         ),
     ]
 )
-async def store(request):
+async def store(request, pg_pool):
     """Both implementations, one contract.
 
     Two hand-written suites for two implementations of the same protocol drift,
@@ -35,7 +35,7 @@ async def store(request):
     if request.param == "memory":
         yield MemoryStore()
         return
-    pool = await db.connect(os.environ["DATABASE_URL"])
+    pool = await pg_pool()
     await db.migrate(pool)
     async with pool.acquire() as conn:
         await conn.execute("truncate addresses")
@@ -55,8 +55,16 @@ async def test_an_unknown_address_is_none_rather_than_an_error(store):
 
 
 async def test_an_expired_address_is_gone(store):
+    # Gone, not hidden. Both implementations delete on read; asserting only the
+    # None would pass against a store that answers None forever while holding
+    # the row, which is a leak with a polite face.
     await store.put(address(expires_at=datetime.now(UTC) - timedelta(seconds=1)))
     assert await store.get("a@fake.test") is None
+    if isinstance(store, MemoryStore):
+        assert store.size() == 0
+    else:
+        async with store._pool.acquire() as conn:
+            assert await conn.fetchval("select count(*) from addresses") == 0
 
 
 def test_both_implementations_satisfy_the_protocol():

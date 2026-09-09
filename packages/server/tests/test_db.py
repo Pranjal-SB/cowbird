@@ -11,8 +11,8 @@ pytestmark = [
 
 
 @pytest.fixture
-async def pool():
-    p = await db.connect(os.environ["DATABASE_URL"])
+async def pool(pg_pool):
+    p = await pg_pool()
     # Every pg test starts from an empty schema so ordering between tests
     # cannot decide whether one passes.
     async with p.acquire() as conn:
@@ -24,13 +24,13 @@ async def pool():
     await p.close()
 
 
-async def test_migrate_creates_the_tables(pool):
+async def test_migrate_creates_the_tables(pool, pg_schema):
     await db.migrate(pool)
     async with pool.acquire() as conn:
         names = {
             r["tablename"]
             for r in await conn.fetch(
-                "select tablename from pg_tables where schemaname = 'public'"
+                "select tablename from pg_tables where schemaname = $1", pg_schema
             )
         }
     assert {"addresses", "provider_health", "provider_quarantine"} <= names
@@ -44,12 +44,12 @@ async def test_migrate_is_idempotent(pool):
         assert await conn.fetchval("select max(version) from schema_version") == 1
 
 
-async def test_two_instances_migrating_at_once_do_not_collide(pool):
+async def test_two_instances_migrating_at_once_do_not_collide(pool, pg_pool):
     # Compose starts both servers together, so this race happens on the very
     # first run rather than being theoretical.
     import asyncio
 
-    other = await db.connect(os.environ["DATABASE_URL"])
+    other = await pg_pool()
     try:
         await asyncio.gather(db.migrate(pool), db.migrate(other))
     finally:
