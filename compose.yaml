@@ -21,6 +21,10 @@ services:
 
   server-1: &server
     build: .
+    # WEBHOOK_ALLOW_PRIVATE is on for both servers here and must not be in a
+    # deploy: it disables the SSRF guard that stops a caller pointing a webhook
+    # at a private address. Local callbacks are the point of this stack -- the
+    # only reachable targets are containers on a private compose network.
     environment:
       API_KEYS: local-dev
       DATABASE_URL: postgresql://cowbird:cowbird@postgres:5432/cowbird
