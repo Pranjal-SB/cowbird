@@ -75,8 +75,14 @@ async def test_a_quarantine_raised_on_one_instance_reaches_the_other():
     entry = next(p for p in listed if p["provider"] == "inboxes")
     assert entry["status"] == "quarantined"
 
-    # Leave the stack usable for a re-run. Without this the next run starts with
-    # inboxes quarantined and the address test above fails for an unrelated
-    # reason, which is a confusing way to learn that a test did not clean up.
+    # One DELETE, to one instance, and it stays cleared everywhere. Firing at
+    # both used to be necessary and was the bug written down: whichever
+    # instance had only adopted the quarantine re-inserted the global row on
+    # its next flush and every instance read it back.
     httpx.delete(f"{TWO}/v1/providers/inboxes/quarantine", headers=AUTH, timeout=10)
-    httpx.delete(f"{ONE}/v1/providers/inboxes/quarantine", headers=AUTH, timeout=10)
+    time.sleep(6)
+
+    for base in (ONE, TWO):
+        listed = httpx.get(f"{base}/v1/providers", headers=AUTH, timeout=10).json()["data"]
+        entry = next(p for p in listed if p["provider"] == "inboxes")
+        assert entry["status"] != "quarantined", base

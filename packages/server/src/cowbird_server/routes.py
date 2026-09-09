@@ -12,9 +12,11 @@ from pydantic import BaseModel, Field
 
 from cowbird_server.auth import require_api_key
 from cowbird_server.config import get_settings
+from cowbird_server.db import ACQUIRE_TIMEOUT
 from cowbird_server.envelope import envelope
 from cowbird_server.messages import message_dict
 from cowbird_server.service import InboxService
+from cowbird_server.store import StoreUnavailable
 from cowbird_server.webhooks import WebhookManager
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
@@ -59,16 +61,29 @@ async def clear_quarantine(
 
     The global row is deleted first. Clearing only the local status would leave
     the row in place for the next flush to read straight back, and the clear
-    would look like it silently failed.
+    would look like it silently failed. Every other instance picks the deletion
+    up on its next reconcile.
+
+    unquarantine() and not restore(): restore() takes every other field from
+    defaults, so clearing would wipe this instance's latency window and its
+    residential-IP hint, neither of which the operator said anything about.
     """
     if name not in {p.name for p in pool.registry.all()}:
         raise HTTPException(status_code=404, detail="unknown provider")
     was = pool.health.status(name) is Status.QUARANTINED
     if db_pool is not None:
-        async with db_pool.acquire() as conn:
-            await conn.execute("delete from provider_quarantine where provider = $1", name)
+        try:
+            async with db_pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
+                await conn.execute(
+                    "delete from provider_quarantine where provider = $1", name
+                )
+        except OSError as exc:
+            # An exhausted pool or a blackholed connection times out here.
+            # Clearing locally without deleting the row would be undone by the
+            # next reconcile, so say 503 and let the operator retry.
+            raise StoreUnavailable(str(exc)) from exc
     if was:
-        pool.health.restore(name, status=Status.OK)
+        pool.health.unquarantine(name)
     return envelope(data={"cleared": was})
 
 
