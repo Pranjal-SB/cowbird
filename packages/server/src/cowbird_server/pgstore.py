@@ -13,13 +13,16 @@ import asyncpg
 from asyncpg.exceptions import InterfaceError
 from cowbird.models import Address
 
+from cowbird_server.db import ACQUIRE_TIMEOUT
 from cowbird_server.store import StoreUnavailable
 
 logger = logging.getLogger("cowbird.server")
 
 # A closed or broken pool raises InterfaceError, which is not a PostgresError,
 # so catching only the latter would let the most likely failure through
-# unwrapped and reach the catch-all handler as a 500.
+# unwrapped and reach the catch-all handler as a 500. OSError covers the pool's
+# two timeouts as well: TimeoutError is a subclass of it, so a blackholed
+# connection or an exhausted pool becomes a 503 like any other outage.
 _DB_ERRORS = (asyncpg.PostgresError, OSError, InterfaceError)
 
 
@@ -32,7 +35,7 @@ class PostgresStore:
         # (one issues it, another refreshes provider state), and a duplicate-key
         # error would surface as a 500 on a normal request.
         try:
-            async with self._pool.acquire() as conn:
+            async with self._pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
                 await conn.execute(
                     "insert into addresses (value, provider, state, expires_at)"
                     " values ($1, $2, $3, $4)"
@@ -50,7 +53,7 @@ class PostgresStore:
 
     async def get(self, value: str) -> Address | None:
         try:
-            async with self._pool.acquire() as conn:
+            async with self._pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
                 row = await conn.fetchrow(
                     "select value, provider, state, expires_at from addresses"
                     " where value = $1",
@@ -80,7 +83,7 @@ class PostgresStore:
         This is the rest of them, and it is the leak MemoryStore still has.
         """
         try:
-            async with self._pool.acquire() as conn:
+            async with self._pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
                 result = await conn.execute(
                     "delete from addresses where expires_at is not null and expires_at <= now()"
                 )
