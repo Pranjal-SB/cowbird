@@ -6,6 +6,7 @@ import json
 import socket
 
 import pytest
+from cowbird.testing import provider_class
 from cowbird_server.webhooks import WebhookManager, validate_url
 
 PUBLIC = "93.184.216.34"
@@ -150,3 +151,48 @@ async def test_delivery_without_a_secret_sends_no_signature_header():
     await manager._deliver("https://example.test/hook", {"event": "message"})
 
     assert "x-cowbird-signature" not in session.calls[0]["headers"]
+
+
+def test_a_webhook_timeout_is_not_capped_by_the_long_poll_limit(client_for, auth):
+    # WAIT_MAX exists because Cloudflare kills a held proxied subrequest. A
+    # webhook holds nothing open: the caller gets an id back immediately. The
+    # two limits are unrelated and must not share a number.
+    with client_for(
+        provider_class("fake"),
+        WAIT_MAX="5",
+        WEBHOOK_MAX="600",
+        WEBHOOK_ALLOW_PRIVATE="1",
+    ) as client:
+        client.post("/v1/inboxes", headers=auth)
+        client.post(
+            "/v1/webhooks",
+            headers=auth,
+            json={
+                "address": "a@fake.test",
+                "url": "http://127.0.0.1:9/hook",
+                "timeout": 300,
+            },
+        )
+        listed = client.get("/v1/webhooks", headers=auth).json()["data"]
+        assert listed[0]["timeout"] == 300
+
+
+def test_a_webhook_timeout_is_still_capped_by_its_own_limit(client_for, auth):
+    with client_for(
+        provider_class("fake"),
+        WAIT_MAX="5",
+        WEBHOOK_MAX="60",
+        WEBHOOK_ALLOW_PRIVATE="1",
+    ) as client:
+        client.post("/v1/inboxes", headers=auth)
+        client.post(
+            "/v1/webhooks",
+            headers=auth,
+            json={
+                "address": "a@fake.test",
+                "url": "http://127.0.0.1:9/hook",
+                "timeout": 300,
+            },
+        )
+        listed = client.get("/v1/webhooks", headers=auth).json()["data"]
+        assert listed[0]["timeout"] == 60

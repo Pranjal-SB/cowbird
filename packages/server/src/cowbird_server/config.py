@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import socket
 from functools import lru_cache
 from typing import Annotated
 
@@ -34,6 +36,25 @@ class Settings(BaseSettings):
     # measured against a deployed worker.
     wait_max: int = 25
     wait_default: int = 25
+    # A webhook holds no request open -- the caller gets an id back and the wait
+    # happens server-side -- so Cloudflare's ceiling on a proxied subrequest,
+    # which is what WAIT_MAX is for, does not apply to it. Long enough for "tell
+    # me when the signup mail lands", short enough that a redeploy rarely lands
+    # on a live registration, which is the exposure of keeping these in process.
+    webhook_max: int = Field(default=600, ge=1)
+    # Unset selects MemoryStore and changes nothing. That is the single-instance
+    # deploy and the whole existing test suite.
+    database_url: str | None = None
+    # Key for this instance's own health rows. Must be stable across restarts or
+    # the instance never finds its own latency history again, and unique per
+    # process: the one-writer-per-row guarantee is instance_id being in the
+    # primary key, so `uvicorn --workers 4` under a bare hostname gives four
+    # writers one row and starts applying one egress's residential-IP hint to
+    # another. The pid keeps them apart when nobody sets this explicitly.
+    instance_id: str = Field(default_factory=lambda: f"{socket.gethostname()}-{os.getpid()}")
+    # ge=1 because 0 is a `while True` with no sleep: it hammers Postgres as
+    # fast as the loop can issue queries and pins a core doing it.
+    health_flush_seconds: int = Field(default=10, ge=1)
     webhook_secret: str | None = None
     webhook_allow_private: bool = False
 
@@ -46,6 +67,15 @@ class Settings(BaseSettings):
         """The one place the wait-timeout policy lives: default when unset,
         capped at wait_max either way."""
         return min(requested or self.wait_default, self.wait_max)
+
+    def clamp_webhook(self, requested: int | None) -> int:
+        """The webhook timeout policy, deliberately not clamp_wait.
+
+        Sharing that method is how the two limits got conflated: a webhook was
+        capped at the long-poll ceiling and could not outlive a single held
+        request, which defeats the reason to register one.
+        """
+        return min(requested or self.webhook_max, self.webhook_max)
 
 
 @lru_cache

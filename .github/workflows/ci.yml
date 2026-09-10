@@ -12,12 +12,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cowbird
+          POSTGRES_PASSWORD: cowbird
+          POSTGRES_DB: cowbird
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cowbird -d cowbird"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-packages --all-extras
       - run: uv run ruff check .
       - run: uv run pytest -m "not live" --cov --cov-report=term-missing
+        env:
+          DATABASE_URL: postgresql://cowbird:cowbird@127.0.0.1:5432/cowbird
 
   canary:
     # Never on a PR: a third party being down is not a regression here, and a
