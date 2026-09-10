@@ -109,7 +109,10 @@ def test_round_trip_preserves_status_latencies_and_flags(tmp_path):
     assert back.status("fast") is Status.OK
     assert back.p50("fast") == 0.2
     assert back.status("broken") is Status.QUARANTINED
-    assert back.status("blocked") is Status.DOWN
+    # DOWN does not survive a reload: it describes one moment, and a stale one
+    # would hold this provider out of rotation with nothing to clear it. The
+    # residential-IP hint below is a different kind of fact and does survive.
+    assert back.status("blocked") is Status.OK
     assert back.snapshot()["blocked"].needs_residential_ip is True
 
 
@@ -220,3 +223,52 @@ def test_seed_overwrites_matching_provider_but_leaves_others_intact():
 
     assert store.status("keep") is Status.OK
     assert store.status("overwritten") is Status.DOWN
+
+
+def test_restore_degrades_down_to_ok():
+    # Reachability is a statement about one moment. ROUTABLE is (OK, SLOW), so
+    # a DOWN written hours ago would hold a provider out of rotation with
+    # nothing routinely clearing it.
+    store = HealthStore()
+    store.restore("p", status=Status.DOWN, latencies=[1.0, 2.0])
+    assert store.status("p") is Status.OK
+
+
+def test_restore_keeps_slow_because_its_baseline_comes_back_too():
+    store = HealthStore()
+    store.restore("p", status=Status.SLOW, latencies=[1.0, 2.0, 3.0])
+    assert store.status("p") is Status.SLOW
+    assert store.p50("p") == 2.0
+
+
+def test_restore_keeps_quarantine_and_the_residential_hint():
+    store = HealthStore()
+    store.restore(
+        "p", status=Status.QUARANTINED, last_failure="drift", needs_residential_ip=True
+    )
+    assert store.status("p") is Status.QUARANTINED
+    assert store.snapshot()["p"].needs_residential_ip is True
+
+
+def test_restore_replaces_latencies_rather_than_appending():
+    # Restoring twice must not double the window; the second call is the truth.
+    store = HealthStore()
+    store.restore("p", status=Status.OK, latencies=[1.0, 1.0, 1.0])
+    store.restore("p", status=Status.OK, latencies=[5.0])
+    assert store.p50("p") == 5.0
+
+
+def test_quarantine_sets_the_status_and_records_why():
+    store = HealthStore()
+    store.quarantine("p", "SchemaDrift('p', expected='a', got='b')")
+    assert store.status("p") is Status.QUARANTINED
+    assert store.snapshot()["p"].last_failure == "SchemaDrift('p', expected='a', got='b')"
+
+
+def test_a_quarantine_applied_from_outside_is_still_terminal():
+    # Local stickiness must hold for a quarantine that arrived from another
+    # instance, not only for one this process raised itself.
+    store = HealthStore()
+    store.quarantine("p", "drift")
+    store.record_success("p", "list", 0.1)
+    assert store.status("p") is Status.QUARANTINED

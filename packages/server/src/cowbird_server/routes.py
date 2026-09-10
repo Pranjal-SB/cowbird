@@ -2,18 +2,21 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from cowbird.health import Status
 from cowbird.models import Kind
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from cowbird_server.auth import require_api_key
 from cowbird_server.config import get_settings
+from cowbird_server.db import ACQUIRE_TIMEOUT
 from cowbird_server.envelope import envelope
 from cowbird_server.messages import message_dict
 from cowbird_server.service import InboxService
+from cowbird_server.store import StoreUnavailable
 from cowbird_server.webhooks import WebhookManager
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_api_key)])
@@ -38,6 +41,50 @@ async def providers(pool: Pool = Depends(get_pool)):
             for provider in sorted(pool.registry.all(), key=lambda p: p.name)
         ]
     )
+
+
+def get_db_pool(request: Request):
+    return request.app.state.db_pool
+
+
+@router.delete("/providers/{name}/quarantine")
+async def clear_quarantine(
+    name: str,
+    pool: Pool = Depends(get_pool),
+    db_pool=Depends(get_db_pool),
+):
+    """Return a quarantined provider to routing.
+
+    Quarantine used to clear on restart, which was accidental but was the only
+    way out. A durable global row removes that, so without this route a provider
+    stays dead forever.
+
+    The global row is deleted first. Clearing only the local status would leave
+    the row in place for the next flush to read straight back, and the clear
+    would look like it silently failed. Every other instance picks the deletion
+    up on its next reconcile.
+
+    unquarantine() and not restore(): restore() takes every other field from
+    defaults, so clearing would wipe this instance's latency window and its
+    residential-IP hint, neither of which the operator said anything about.
+    """
+    if name not in {p.name for p in pool.registry.all()}:
+        raise HTTPException(status_code=404, detail="unknown provider")
+    was = pool.health.status(name) is Status.QUARANTINED
+    if db_pool is not None:
+        try:
+            async with db_pool.acquire(timeout=ACQUIRE_TIMEOUT) as conn:
+                await conn.execute(
+                    "delete from provider_quarantine where provider = $1", name
+                )
+        except OSError as exc:
+            # An exhausted pool or a blackholed connection times out here.
+            # Clearing locally without deleting the row would be undone by the
+            # next reconcile, so say 503 and let the operator retry.
+            raise StoreUnavailable(str(exc)) from exc
+    if was:
+        pool.health.unquarantine(name)
+    return envelope(data={"cleared": was})
 
 
 def _seconds(value: int | None) -> timedelta | None:
@@ -154,7 +201,7 @@ async def create_webhook(
     # otherwise register fine and only fail as a silent timeout later.
     # UnknownAddress from a bad address propagates to the existing 404 handler.
     await service.inbox(body.address)
-    timeout = get_settings().clamp_wait(body.timeout)
+    timeout = get_settings().clamp_webhook(body.timeout)
     try:
         hook_id = webhooks.create(body.address, body.url, timeout)
     except ValueError as exc:

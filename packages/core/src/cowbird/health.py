@@ -4,6 +4,7 @@ import json
 import os
 import statistics
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -113,6 +114,61 @@ class HealthStore:
         """
         self._entries.update(other._entries)
 
+    def restore(
+        self,
+        provider: str,
+        *,
+        status: Status,
+        latencies: Sequence[float] = (),
+        last_checked: datetime | None = None,
+        last_failure: str | None = None,
+        needs_residential_ip: bool = False,
+    ) -> None:
+        """Load one provider's persisted health, from a file or a database.
+
+        DOWN is not restored. Reachability is a statement about one moment, and
+        ROUTABLE is (OK, SLOW), so a DOWN written hours ago would keep a
+        provider out of rotation until something else moved it, and nothing
+        routinely does. SLOW survives, because it is defined against the
+        trailing median being restored alongside it, and QUARANTINED survives
+        because only a human clears it.
+
+        Every persistence path goes through here so the rule cannot be applied
+        in one loader and forgotten in the other.
+        """
+        entry = self._entry(provider)
+        entry.status = Status.OK if status is Status.DOWN else status
+        entry.latencies.clear()
+        entry.latencies.extend(latencies)
+        entry.last_checked = last_checked
+        entry.last_failure = last_failure
+        entry.needs_residential_ip = needs_residential_ip
+
+    def quarantine(self, provider: str, reason: str) -> None:
+        """Mark a provider's adapter as broken. Terminal until a human clears it.
+
+        Public because the fleet reads quarantines raised by other instances and
+        has to apply them locally. Doing that through `seed()` would replace the
+        whole ProviderHealth and discard this instance's latency window with it.
+        """
+        entry = self._entry(provider)
+        entry.status = Status.QUARANTINED
+        entry.last_failure = reason
+
+    def unquarantine(self, provider: str) -> None:
+        """Return a quarantined provider to routing, keeping its measurements.
+
+        Symmetric with quarantine(). Only touches status, because latency
+        history and the residential-IP hint are still true after a human
+        decides the adapter is fine again.
+
+        Guarded on QUARANTINED so a reconcile against the global table cannot
+        stamp OK over a live DOWN or SLOW this instance measured itself.
+        """
+        entry = self._entry(provider)
+        if entry.status is Status.QUARANTINED:
+            entry.status = Status.OK
+
     def snapshot(self) -> dict[str, ProviderHealth]:
         # Copy each entry (and its mutable latencies deque) so callers can't
         # rewrite live health state through the value they were handed.
@@ -139,9 +195,8 @@ class HealthStore:
     def from_dict(cls, data: dict[str, dict]) -> HealthStore:
         store = cls()
         for name, raw in data.items():
-            entry = store._entry(name)
             try:
-                entry.status = Status(raw["status"])
+                status = Status(raw["status"])
             except (KeyError, ValueError):
                 # Invalid status degrades entire load to empty store.
                 return cls()
@@ -150,16 +205,24 @@ class HealthStore:
             # poisoning p50() and breaking routing. Reject non-numbers and bools
             # (isinstance(True, int) is True in Python).
             raw_latencies = raw.get("latencies", [])
-            if isinstance(raw_latencies, list):
-                entry.latencies.extend(
+            latencies = (
+                [
                     v
                     for v in raw_latencies
                     if isinstance(v, int | float) and not isinstance(v, bool)
-                )
+                ]
+                if isinstance(raw_latencies, list)
+                else []
+            )
             checked = raw.get("last_checked")
-            entry.last_checked = datetime.fromisoformat(checked) if checked else None
-            entry.last_failure = raw.get("last_failure")
-            entry.needs_residential_ip = bool(raw.get("needs_residential_ip", False))
+            store.restore(
+                name,
+                status=status,
+                latencies=latencies,
+                last_checked=datetime.fromisoformat(checked) if checked else None,
+                last_failure=raw.get("last_failure"),
+                needs_residential_ip=bool(raw.get("needs_residential_ip", False)),
+            )
         return store
 
     def save(self, path: str | Path) -> None:
