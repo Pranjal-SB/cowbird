@@ -200,5 +200,8 @@ message-read endpoint was never observed.
 The deliverable is an HTTP API, and it ships: `cowbird-server` in
 `packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
 per-key rate limiting. The CLI is a convenience for working on the library and
-is not the product. Shared health state across instances and Postgres-backed
-storage are not built yet.
+is not the product. Set `DATABASE_URL` and several instances share one address
+store and one quarantine table, which is what lets a load balancer put a read
+on a different instance than the one that issued the address; latency and the
+residential-IP hint stay per-instance on purpose. Webhook registrations are
+still per-process and a restart drops the pending ones.
