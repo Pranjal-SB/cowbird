@@ -23,7 +23,9 @@ ONE = "http://127.0.0.1:8001"
 TWO = "http://127.0.0.1:8002"
 PROXY = "http://127.0.0.1:8000"
 AUTH = {"x-api-key": "local-dev"}
-DSN = "postgresql://cowbird:cowbird@127.0.0.1:5432/cowbird"
+# The compose default. Overridable for a stack brought up on another port,
+# which is what a machine already running something on 5432 needs.
+DSN = os.environ.get("DATABASE_URL", "postgresql://cowbird:cowbird@127.0.0.1:5432/cowbird")
 
 
 def test_an_address_issued_by_one_instance_is_readable_from_the_other():
