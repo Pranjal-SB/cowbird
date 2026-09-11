@@ -7,8 +7,9 @@ __pycache__/
 .env
 dist/
 
-# Agent scratch. Working notes and SDD ledgers/briefs, not project history.
-# docs/superpowers/ (specs and plans) is tracked and is a different path.
+# Local working notes and maintainer docs, kept out of the repo.
 .superpowers/
+docs/superpowers/
+docs/recon/
 AGENTS.md
 CLAUDE.md

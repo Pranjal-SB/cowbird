@@ -1,8 +1,8 @@
 """One-shot outbound webhooks.
 
-Registrations live in this process. A restart drops every pending hook without
-telling the caller their hook is gone, which is the same defect the spec records
-against emailnator-api. They move into Postgres alongside the address store.
+Registrations live in this process, so a restart drops every pending hook without
+telling the caller. That is deliberate: a hook is one-shot and capped at
+WEBHOOK_MAX seconds, so durability would buy little.
 """
 
 from __future__ import annotations

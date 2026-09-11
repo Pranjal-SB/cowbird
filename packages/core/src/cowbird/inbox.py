@@ -120,7 +120,7 @@ async def open_inboxes(n: int, pool: Pool | None = None, **kw) -> AsyncIterator[
     pool = pool or default_pool()
     req = Request(**kw)
     # Spread across distinct providers rather than hammering whichever one ranks
-    # first: it is what the spec promises, it respects each backend's
+    # first: it is what the API promises, it respects each backend's
     # concurrency budget, and it means one backend dying costs you 1/n of the
     # batch instead of all of it. Wraps around when n exceeds the candidates.
     names = [p.name for p in pool.candidates(req)] or [None]

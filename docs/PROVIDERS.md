@@ -30,14 +30,13 @@ also accepts a custom local-part. emailnator and mail.tm do not.
 
 ## Parked
 
-Reconned, not built, reasons written up. Do not restart either without reading
-its recon first.
+Probed, not built. The reason is in the table.
 
-| backend | why | recon |
-|---|---|---|
-| smailpro | every call needs a solved Cloudflare Turnstile token in `x-captcha` | `docs/recon/smailpro.md` |
-| tempr.email | the message-read endpoint was never observed, only list | `docs/recon/tempr.md` |
-| dropmail | the free API token path closed | none |
+| backend | why |
+|---|---|
+| smailpro | every call needs a solved Cloudflare Turnstile token in `x-captcha` |
+| tempr.email | the message-read endpoint was never observed, only list |
+| dropmail | the free API token path closed |
 
 dropmail was in the seed set only because it was the one known push
 (WebSocket) backend, so `watch()` could be proven against a real push provider
@@ -165,7 +164,7 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 
 ## Counts
 
-Roughly 90 front doors. The first full probe (`docs/recon/sweep-2026-09-11-batch-3.md`)
+Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
 That leaves roughly 55 distinct backends, of which 3 ship.

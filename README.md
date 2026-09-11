@@ -23,7 +23,7 @@ async with cowbird.inbox() as box:
 
 `inbox()` picks the best healthy provider for you. Pass `provider=`, `kind=`,
 or a capability filter (`address_ttl=`, `domain_not_in=`, ...) to narrow it;
-see `docs/superpowers/specs/2026-09-05-cowbird-design.md` for the full set.
+see `cowbird.pool.Request` for the full set.
 
 ## CLI
 
@@ -193,7 +193,7 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 Three providers ship and are verified against the live services: mail.tm,
 emailnator (Gmail aliases) and inboxes.com. Two more from the seed set are
-parked after recon, with the reasons written up in `docs/recon/`: smailpro
+parked after recon, with the reasons in `docs/PROVIDERS.md`: smailpro
 needs a solved Cloudflare Turnstile token on every call, and tempr.email's
 message-read endpoint was never observed.
 
@@ -204,6 +204,4 @@ is not the product. Set `DATABASE_URL` and several instances share one address
 store and one quarantine table, which is what lets a load balancer put a read
 on a different instance than the one that issued the address; latency and the
 residential-IP hint stay per-instance on purpose. Webhook registrations are
-still per-process and a restart drops the pending ones. Full design:
-`docs/superpowers/specs/2026-09-05-cowbird-design.md`, with the shared-state
-half in `docs/superpowers/specs/2026-09-08-cowbird-shared-state-design.md`.
+still per-process and a restart drops the pending ones.

@@ -32,8 +32,7 @@ class Settings(BaseSettings):
     rate_limit: str = "30/minute"
     # Well under Cloudflare's ceiling on a proxied subrequest. The client
     # re-issues rather than holding one long request open through the edge.
-    # See the spec's "Server build order" section; the real ceiling gets
-    # measured against a deployed worker in Task 10.
+    # The real ceiling has not been measured against a deployed worker yet.
     wait_max: int = 25
     wait_default: int = 25
     # A webhook holds no request open -- the caller gets an id back and the wait
