@@ -2,6 +2,7 @@
 name = "cowbird-server"
 version = "0.1.0"
 requires-python = ">=3.12"
+license = "AGPL-3.0-or-later"
 dependencies = [
     "cowbird-core",
     "cowbird-mailtm",
@@ -26,7 +27,7 @@ cowbird-emailnator = { workspace = true }
 cowbird-inboxes = { workspace = true }
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
