@@ -3,6 +3,7 @@ from __future__ import annotations
 from cowbird.errors import (
     AddressExpired,
     CowbirdError,
+    MessageGone,
     MessageLocked,
     NoProviderAvailable,
     NotSupported,
@@ -17,6 +18,7 @@ from cowbird.errors import (
 _MAPPING: tuple[tuple[type[CowbirdError], int, str], ...] = (
     (RateLimited, 429, "upstream rate limited"),
     (MessageLocked, 423, "the message is behind the provider's paywall"),
+    (MessageGone, 410, "that message is no longer available"),
     (NoProviderAvailable, 503, "no provider available for that request"),
     (NotSupported, 422, "no provider supports that combination of options"),
     (AddressExpired, 410, "that address has expired"),

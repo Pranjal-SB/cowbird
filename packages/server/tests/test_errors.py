@@ -136,3 +136,13 @@ async def test_a_stored_address_for_an_uninstalled_provider_is_a_503_not_a_500(
     get_settings.cache_clear()
 
     assert response.status_code == 503
+
+
+def test_message_gone_maps_to_410_with_a_fixed_message():
+    from cowbird.errors import MessageGone
+    from cowbird_server.errors import status_for
+
+    assert status_for(MessageGone("tempmailorg: 410 on 6aa3")) == (
+        410,
+        "that message is no longer available",
+    )

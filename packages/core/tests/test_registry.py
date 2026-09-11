@@ -160,3 +160,22 @@ def test_discover_skips_broken_entry_point_but_registers_others(monkeypatch):
     # A retry is not a silent no-op, and does not re-raise or duplicate.
     reg.discover()
     assert reg.get("fake").name == "fake"
+
+
+async def test_message_gone_is_not_recorded_as_a_provider_failure():
+    # A stale row whose storage expired upstream is an answer about one
+    # message. Recording it would evict a healthy provider from routing.
+    from cowbird.errors import MessageGone
+    from cowbird.health import HealthStore, Status
+    from cowbird.models import Address
+    from cowbird.registry import Registry
+    from cowbird.testing import provider_class, raising
+
+    health = HealthStore()
+    registry = Registry(discover=False, health=health, transport_factory=lambda n: None)
+    registry.register(provider_class("gone", get=raising(MessageGone("gone: m1"))))
+    provider = registry.get("gone")
+    with pytest.raises(MessageGone):
+        await provider.get(Address("a@fake.test", "gone"), "m1")
+    assert health.status("gone") is Status.OK
+    assert health.snapshot()["gone"].last_failure is None
