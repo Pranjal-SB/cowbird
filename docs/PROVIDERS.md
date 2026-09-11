@@ -63,7 +63,7 @@ Next in line once the interface holds.
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
 | ⭐ zemail | zemail.me | gmail-alias | forever | 1d | 7 |
-| ⭐ temp-mail.org | temp-mail.org | own-domain | forever | 2h | ? |
+| ⭐ temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | ? |
 | ⭐ temp-mail.io | temp-mail.io | own-domain | 1d | 1d | 12 |
 
 ## Self-hostable
@@ -84,7 +84,7 @@ is what defeats domain blocklists.
 |---|---|---|---|---|
 | tmail.io | tmail.io | forever | 1d | 4 |
 | temptom | temptom.com | forever | 1d | 15 |
-| 22.do | 22.do | 1d | 1d | 3 |
+| 22.do | 22.do (also issues outlook/hotmail and own-domain) | 1d | 1d | 3 |
 | mailticking | mailticking.com | ? | ? | 2 |
 | ghostinbox | ghostinbox.net, temp-gmail.ghostinbox.net | 1d | 1d | 10 |
 
@@ -92,12 +92,11 @@ is what defeats domain blocklists.
 
 | backend | sites | addr | msg | domains |
 |---|---|---|---|---|
-| guerrillamail 🔗 | guerrillamail.com, sharklasers.com | forever | 1h | 11 |
+| guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | 1h | 1h | 11 |
 | yopmail | yopmail.com | forever | 8d | 100+ |
 | maildrop 🔗 | maildrop.cc, trashmail.ws | forever | 1d | 1 |
 | mailnesia | mailnesia.com | forever | 2d | 1 |
-| generator-email 🔗 | generator.email, email-fake.com, tempm.com | ? | ? | 50+ |
-| emailfake 🔗 | mail-temp.com, emailfake.com | ? | ? | 50+ |
+| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ |
 | disposablemail 🔗 | disposablemail.com, fakemail.net | 14d | 14d | 1 |
 | mintemail 🔗 | mintemail.com, tempail.com | 1h | 1h | 1 |
 | anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 |
@@ -105,7 +104,6 @@ is what defeats domain blocklists.
 | altaddress | altaddress.org | forever | 3d | 14 |
 | driftz | driftz.net | ? | ? | 23 |
 | moakt | moakt.com | 1h | 1h | 13 |
-| cs.email | cs.email | forever | 1h | 12 |
 | temporary-mail | temporary-mail.net | forever | ? | 11 |
 | 48hr.email | 48hr.email | forever | 2d | 7 |
 | temporarymail | temporarymail.com | forever* | ? | 7 |
@@ -114,7 +112,7 @@ is what defeats domain blocklists.
 | mails.org | mails.org | ? | 30m | 5 |
 | spambox | spambox.xyz | forever | 1d | 4 |
 | urtempmail | urtempmail.com | 1d | 1d | 4 |
-| nicemail | nicemail.cc | forever | 1d | 3 |
+| nicemail | nicemail.cc (API: web.mailporary.com) | forever | 1d | 6 |
 | xeramail | xeramail.com | 1d | 1d | 2 |
 | vmail.dev | vmail.dev | 1d | 1d | 2 |
 | re146 | mail.re146.dev | 1d | 1h | 2 |
@@ -136,7 +134,6 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 |---|---|
 | muellmail | muellmail.com |
 | minuteinbox | minuteinbox.com |
-| 10minemail | 10minemail.com |
 | 10minutemail | 10minutemail.com |
 | linshi | linshi-email.com |
 
@@ -168,6 +165,7 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 
 ## Counts
 
-Roughly 90 front doors, roughly 60 distinct backends after alias dedup, of
-which 3 ship, 3 are parked, 2 remain in the seed set, 3 more are starred, 2 are
-self-hostable, and 13 are the unverified .edu tier.
+Roughly 90 front doors. The first full probe (`docs/recon/sweep-2026-09-11-batch-3.md`)
+folded four rows into backends already listed: cs.email and dismail.top are
+guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
+That leaves roughly 55 distinct backends, of which 3 ship.
