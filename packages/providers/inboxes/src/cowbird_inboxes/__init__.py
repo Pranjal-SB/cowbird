@@ -1,6 +1,6 @@
 """inboxes.com — catch-all disposable addresses across 18 domains.
 
-Contract reversed and verified live 2026-09-06/07; notes in `docs/recon/inboxes.md`.
+Contract reversed and verified live 2026-09-06/07.
 
 The backend is a catch-all: any local-part on any of its domains receives mail
 with no registration step. So `generate()` makes **no HTTP request at all** — it

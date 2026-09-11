@@ -6,3 +6,6 @@ __pycache__/
 .coverage
 .env
 dist/
+
+# Local working notes and maintainer docs, kept out of the repo.
+docs/recon/

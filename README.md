@@ -193,7 +193,7 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 Three providers ship and are verified against the live services: mail.tm,
 emailnator (Gmail aliases) and inboxes.com. Two more from the seed set are
-parked after recon, with the reasons written up in `docs/recon/`: smailpro
+parked after recon, with the reasons in `docs/PROVIDERS.md`: smailpro
 needs a solved Cloudflare Turnstile token on every call, and tempr.email's
 message-read endpoint was never observed.
 
