@@ -125,15 +125,21 @@ class Registry:
 
     def _default_transport_factory(self, name: str) -> Transport:
         # A provider class declares its own tolerance via caps.max_concurrency
-        # (mail.tm's 8 QPS, e.g.). Ignoring it and always using Transport's
-        # default of 4 would let callers fire more concurrent requests than
-        # the backend accepts and collect rate-limit errors for it.
+        # (mail.tm's 8 QPS, e.g.) and whether it needs a fresh session per request.
+        # Ignoring max_concurrency and always using Transport's default of 4 would let
+        # callers fire more concurrent requests than the backend accepts and collect
+        # rate-limit errors for it.
         cls = self._classes.get(name)
         # cls is always found here: this factory is only ever invoked from
         # get() with a name that was just looked up in _classes and confirmed
         # present. The None branch is unreachable today, not an unhandled bug.
-        max_concurrency = cls.caps.max_concurrency if cls is not None else 4
-        return Transport(name, max_concurrency=max_concurrency)
+        if cls is None:
+            return Transport(name)
+        return Transport(
+            name,
+            max_concurrency=cls.caps.max_concurrency,
+            fresh_session=cls.caps.fresh_session,
+        )
 
     def register(self, cls: type[Provider]) -> None:
         self._classes[cls.name] = cls
