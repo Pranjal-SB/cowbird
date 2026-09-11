@@ -167,10 +167,16 @@ class FakeTransport:
 
     @staticmethod
     def _text(payload: object) -> str:
-        return payload if isinstance(payload, str) else json.dumps(payload)
+        if isinstance(payload, str):
+            return payload
+        if payload is None:
+            return ""
+        return json.dumps(payload)
 
     async def json(self, method: str, url: str, **kw) -> object:
         payload = self._answer(method, url, kw).payload
+        if payload is None:
+            raise SchemaDrift(self.provider, expected="a JSON body", got="")
         if not isinstance(payload, str):
             return payload
         try:
