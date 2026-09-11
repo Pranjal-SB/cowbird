@@ -36,36 +36,51 @@ class Transport:
         timeout: float = 60.0,
         retries: int = 2,
         max_concurrency: int = 4,
+        fresh_session: bool = False,
     ) -> None:
         self.provider = provider
         self.impersonate = impersonate
         self.proxy = proxy
         self.timeout = timeout
         self.retries = retries
+        self.fresh_session = fresh_session
         # Held across every request to this backend, so no amount of caller
         # concurrency can exceed what the backend tolerates.
         self._gate = asyncio.Semaphore(max_concurrency)
         self._session: Any | None = None
 
+    def _new_session(self) -> Any:
+        return AsyncSession(
+            impersonate=self.impersonate,
+            proxies={"http": self.proxy, "https": self.proxy} if self.proxy else None,
+            timeout=self.timeout,
+        )
+
     def _ensure_session(self) -> Any:
         if self._session is None:
-            self._session = AsyncSession(
-                impersonate=self.impersonate,
-                proxies={"http": self.proxy, "https": self.proxy} if self.proxy else None,
-                timeout=self.timeout,
-            )
+            self._session = self._new_session()
         return self._session
+
+    async def _send_once(self, method: str, url: str, **kw: Any) -> Any:
+        if not self.fresh_session:
+            return await self._ensure_session().request(method, url, **kw)
+        # ponytail: one TLS handshake per request. Pool sessions keyed by
+        # identity if latency on these backends ever matters.
+        session = self._new_session()
+        try:
+            return await session.request(method, url, **kw)
+        finally:
+            await session.close()
 
     async def _request(self, method: str, url: str, **kw: Any) -> Any:
         async with self._gate:
             return await self._request_unthrottled(method, url, **kw)
 
     async def _request_unthrottled(self, method: str, url: str, **kw: Any) -> Any:
-        session = self._ensure_session()
         last: Exception | None = None
         for attempt in range(self.retries + 1):
             try:
-                resp = await session.request(method, url, **kw)
+                resp = await self._send_once(method, url, **kw)
             except Exception as exc:  # curl_cffi raises its own transport errors
                 last = ProviderDown(f"{self.provider}: {exc}")
             else:

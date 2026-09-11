@@ -179,3 +179,16 @@ async def test_message_gone_is_not_recorded_as_a_provider_failure():
         await provider.get(Address("a@fake.test", "gone"), "m1")
     assert health.status("gone") is Status.OK
     assert health.snapshot()["gone"].last_failure is None
+
+
+def test_the_default_transport_honours_fresh_session():
+    from dataclasses import replace
+
+    from cowbird.registry import Registry
+    from cowbird.testing import CAPS, provider_class
+
+    registry = Registry(discover=False)
+    registry.register(provider_class("sticky", caps=replace(CAPS, fresh_session=True)))
+    registry.register(provider_class("plain"))
+    assert registry.get("sticky").http.fresh_session is True
+    assert registry.get("plain").http.fresh_session is False

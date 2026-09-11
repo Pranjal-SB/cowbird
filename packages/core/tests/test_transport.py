@@ -127,3 +127,39 @@ async def test_send_goes_through_the_concurrency_gate():
         t.send("GET", "https://x.test"),
     )
     assert t._session.peak == 1
+
+
+class ClosingSession(FakeSession):
+    closed = False
+
+    async def close(self):
+        self.closed = True
+
+
+async def test_fresh_session_runs_each_request_on_its_own_closed_session():
+    # A backend that keys the inbox on a session cookie hands the same address
+    # to every generate() on a shared jar. A fresh session per request means no
+    # cookie set by one call is ever sent by another.
+    made = []
+
+    def new_session():
+        session = ClosingSession(FakeResponse())
+        made.append(session)
+        return session
+
+    t = Transport("fake", fresh_session=True)
+    t._new_session = new_session
+    await t.json("GET", "https://x.test/a")
+    await t.json("GET", "https://x.test/b")
+    assert len(made) == 2
+    assert all(session.closed for session in made)
+    assert t._session is None
+
+
+async def test_default_transport_reuses_one_session():
+    t = transport_with(FakeResponse(), FakeResponse())
+    first = t._session
+    await t.json("GET", "https://x.test/a")
+    await t.json("GET", "https://x.test/b")
+    assert t._session is first
+    assert first.calls == 2
