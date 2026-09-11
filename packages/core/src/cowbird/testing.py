@@ -8,13 +8,21 @@ Also ships `provider_class`, `raising` and `build_pool` so the server tests
 Being installed package code rather than a test fixture, they import cleanly
 from any test module, sidestepping the `--import-mode=importlib` problem that
 blocks `from tests.conftest import ...`.
+
+`FakeTransport` replays recorded upstream responses for a provider's contract
+suite, so every provider package tests against the same fake instead of carrying
+its own.
 """
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import timedelta
+from urllib.parse import urlencode
 
+from cowbird.errors import SchemaDrift
 from cowbird.health import HealthStore
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.pool import Pool
@@ -86,3 +94,98 @@ def build_pool(*classes) -> Pool:
     for cls in classes:
         registry.register(cls)
     return Pool(registry, health)
+
+
+@dataclass(frozen=True, slots=True)
+class Reply:
+    """A routed answer with its own status and response metadata."""
+
+    status: int = 200
+    payload: object = None
+    headers: dict[str, str] = field(default_factory=dict)
+    cookies: dict[str, str] = field(default_factory=dict)
+
+
+class Responses:
+    """A route that answers differently on each call; the last answer repeats.
+
+    Explicit rather than a plain list, because a list is already a valid JSON
+    payload: mail.tm answers its list endpoints with bare arrays.
+    """
+
+    def __init__(self, *answers: object) -> None:
+        if not answers:
+            raise ValueError("Responses needs at least one answer")
+        self._answers = list(answers)
+        self._calls = 0
+
+    def next(self) -> object:
+        answer = self._answers[min(self._calls, len(self._answers) - 1)]
+        self._calls += 1
+        return answer
+
+
+@dataclass
+class FakeResponse:
+    status_code: int
+    text: str
+    headers: dict[str, str]
+    cookies: dict[str, str]
+
+
+class FakeTransport:
+    """Replays recorded upstream responses in place of a `Transport`.
+
+    A route key is matched as a substring of "METHOD url?query json-body",
+    longest key first, so a single-message URL never gets the list fixture and a
+    backend that multiplexes one URL on a query parameter or a GraphQL query can
+    still be routed per call. `json()` and `text()` ignore status, as they only
+    ever see a response `Transport` let through; route an Exception to model a
+    failure. `send()` is where status, headers and cookies are visible.
+    """
+
+    def __init__(self, provider: str, routes: dict[str, object], status: int = 200) -> None:
+        self.provider = provider
+        self.routes = routes
+        self.status = status
+        self.seen: list[tuple[str, str, dict]] = []
+
+    def _answer(self, method: str, url: str, kw: dict) -> Reply:
+        self.seen.append((method, url, kw))
+        query = urlencode(kw.get("params") or {})
+        body = json.dumps(kw["json"]) if "json" in kw else ""
+        target = f"{method} {url}?{query} {body}"
+        for key in sorted(self.routes, key=len, reverse=True):
+            if key in target:
+                answer = self.routes[key]
+                if isinstance(answer, Responses):
+                    answer = answer.next()
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer if isinstance(answer, Reply) else Reply(self.status, answer)
+        raise AssertionError(f"unexpected request: {target}")
+
+    @staticmethod
+    def _text(payload: object) -> str:
+        return payload if isinstance(payload, str) else json.dumps(payload)
+
+    async def json(self, method: str, url: str, **kw) -> object:
+        payload = self._answer(method, url, kw).payload
+        if not isinstance(payload, str):
+            return payload
+        try:
+            return json.loads(payload)
+        except ValueError as exc:
+            raise SchemaDrift(self.provider, expected="a JSON body", got=payload[:200]) from exc
+
+    async def text(self, method: str, url: str, **kw) -> str:
+        return self._text(self._answer(method, url, kw).payload)
+
+    async def send(self, method: str, url: str, **kw) -> FakeResponse:
+        reply = self._answer(method, url, kw)
+        return FakeResponse(
+            reply.status, self._text(reply.payload), dict(reply.headers), dict(reply.cookies)
+        )
+
+    async def aclose(self) -> None:
+        pass
