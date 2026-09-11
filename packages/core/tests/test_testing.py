@@ -71,3 +71,16 @@ async def test_seen_records_method_url_and_kwargs():
     http = FakeTransport("p", {"/x": {}})
     await http.json("POST", "https://x.test/x", json={"a": 1}, headers={"h": "v"})
     assert http.seen == [("POST", "https://x.test/x", {"json": {"a": 1}, "headers": {"h": "v"}})]
+
+
+async def test_a_reply_without_a_payload_is_an_empty_body():
+    http = FakeTransport("p", {"/x": Reply(204)})
+    resp = await http.send("GET", "https://x.test/x")
+    assert resp.status_code == 204
+    assert resp.text == ""
+
+
+async def test_json_on_an_empty_body_is_schema_drift():
+    http = FakeTransport("p", {"/x": Reply(200)})
+    with pytest.raises(SchemaDrift):
+        await http.json("GET", "https://x.test/x")
