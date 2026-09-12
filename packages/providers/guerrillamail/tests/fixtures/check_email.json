@@ -1,0 +1,10 @@
+{
+  "list": [
+    {"mail_from": "noreply@example.test", "mail_timestamp": 1789066500, "mail_read": 0, "mail_date": "18:55:00", "reply_to": "", "mail_subject": "Your verification code", "mail_excerpt": "Your verification code is 482913.", "mail_id": 41, "att": 0, "content_type": "text", "mail_recipient": "cbfixture01", "source_id": 0, "source_mail_id": 0, "mail_body": "Your verification code is 482913.", "size": 120}
+  ],
+  "count": 1,
+  "email": "cbfixture01@guerrillamailblock.com",
+  "alias": "fixturealias01",
+  "ts": 1789066500,
+  "sid_token": "fixturesid0000000000000001"
+}
