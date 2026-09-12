@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import ClassVar
 
-from cowbird.errors import NotSupported
+from cowbird.errors import MessageGone, NotSupported
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.transport import Transport
 
@@ -66,5 +66,11 @@ class Provider(ABC):
                 seen.add(row.id)
                 if row.locked:
                     continue
-                yield await self.get(address, row.id)
+                try:
+                    yield await self.get(address, row.id)
+                except MessageGone:
+                    # The row was listed and the message expired before we read it.
+                    # `seen` already holds the id, so it is not retried. One gone
+                    # message must not end the caller's stream.
+                    continue
             await asyncio.sleep(interval)

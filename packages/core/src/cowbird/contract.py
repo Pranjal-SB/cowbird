@@ -42,6 +42,15 @@ class ProviderContract:
             assert (
                 provider.caps.domain_count >= len(provider.caps.domains)
             ), "domain_count must cover all declared domains"
+        # A backend that needs a throwaway session per request keys its inbox
+        # on something the session used to carry, so the adapter has to replay
+        # that identity from Address.state. Without it, list() quietly returns
+        # an empty inbox forever instead of failing.
+        if provider.caps.fresh_session:
+            assert provider.caps.needs_state, (
+                f"{provider.name} sets fresh_session but not needs_state: "
+                "the identity a fresh session drops has to travel in Address.state"
+            )
 
     def test_capability_flags_agree_with_the_implementation(
         self, provider: Provider
