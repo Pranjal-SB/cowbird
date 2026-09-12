@@ -62,6 +62,19 @@ class ProviderContract:
         assert "@" in address.value
         assert address.provider == provider.name
 
+    async def test_two_generates_yield_distinct_addresses(self, provider: Provider) -> None:
+        # A backend that keys the inbox on a session cookie hands every
+        # generate() on a shared cookie jar the same address, and two callers
+        # then read each other's mail. Capabilities.fresh_session is the fix;
+        # this is what catches a provider that needs it and does not set it.
+        first = await provider.generate(GenerateOptions())
+        second = await provider.generate(GenerateOptions())
+        assert first.value != second.value, (
+            f"{provider.name} issued {first.value} twice. If the backend keys "
+            "inboxes on a session cookie, set Capabilities.fresh_session and "
+            "replay the identity from Address.state."
+        )
+
     async def test_needs_state_providers_actually_issue_state(
         self, provider: Provider
     ) -> None:

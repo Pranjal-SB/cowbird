@@ -59,9 +59,14 @@ class FakeProvider(Provider):
         # without a transport.
         super().__init__(http)  # type: ignore[arg-type]
         self.pages = list(pages)
+        self._generated = 0
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
-        return Address(value="a@fake.test", provider=self.name)
+        # a@fake.test first, as the CLI tests expect, then a1@, a2@...: a real
+        # provider never hands two callers one inbox, and neither does the fake.
+        n, self._generated = self._generated, self._generated + 1
+        local = "a" if n == 0 else f"a{n}"
+        return Address(value=f"{local}@fake.test", provider=self.name)
 
     async def list(self, address: Address) -> list[MessageRow]:
         return self.pages.pop(0) if self.pages else []
