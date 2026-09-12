@@ -8,6 +8,14 @@ dependencies = [
     "cowbird-mailtm",
     "cowbird-emailnator",
     "cowbird-inboxes",
+"cowbird-guerrillamail",
+"cowbird-tenminutemail",
+"cowbird-tempmailorg",
+"cowbird-twentytwodo",
+"cowbird-inboxkitten",
+"cowbird-maildrop",
+"cowbird-nicemail",
+"cowbird-mailcx",
     # slowapi reads FastAPI's route internals and has not shipped since 2023.
     # Upper bound stays until the rate-limit tests are re-run against a newer FastAPI.
     "fastapi>=0.115,<0.142",
@@ -25,6 +33,14 @@ cowbird-core = { workspace = true }
 cowbird-mailtm = { workspace = true }
 cowbird-emailnator = { workspace = true }
 cowbird-inboxes = { workspace = true }
+cowbird-guerrillamail = { workspace = true }
+cowbird-tenminutemail = { workspace = true }
+cowbird-tempmailorg = { workspace = true }
+cowbird-twentytwodo = { workspace = true }
+cowbird-inboxkitten = { workspace = true }
+cowbird-maildrop = { workspace = true }
+cowbird-nicemail = { workspace = true }
+cowbird-mailcx = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=77"]
