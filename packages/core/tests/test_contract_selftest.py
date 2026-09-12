@@ -171,3 +171,14 @@ def test_empty_domains_with_high_domain_count_passes():
     contract = ProviderContract()
     # Should pass, not raise
     contract.test_declares_a_name_and_capabilities(DynamicDomainProvider())
+
+
+async def test_contract_rejects_a_provider_that_reissues_one_address():
+    # The session-cookie bug: a shared jar hands every generate() the same
+    # inbox. The contract has to catch it for every provider, present and future.
+    class Sticky(FakeProvider):
+        async def generate(self, opts=None):
+            return Address(value="same@fake.test", provider=self.name)
+
+    with pytest.raises(AssertionError, match="fresh_session"):
+        await ProviderContract().test_two_generates_yield_distinct_addresses(Sticky())

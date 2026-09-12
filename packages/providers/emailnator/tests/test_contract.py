@@ -7,7 +7,7 @@ from cowbird.contract import ProviderContract
 from cowbird.errors import MessageLocked, ProviderDown, SchemaDrift
 from cowbird.models import Address
 from cowbird.provider import GenerateOptions
-from cowbird.testing import FakeTransport
+from cowbird.testing import FakeTransport, Responses
 from cowbird_emailnator import Emailnator
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -33,7 +33,13 @@ DEFAULT_ROUTES = {
 class TestEmailnatorContract(ProviderContract):
     @pytest.fixture
     def provider(self):
-        return Emailnator(fake(dict(DEFAULT_ROUTES)))
+        routes = {
+            **DEFAULT_ROUTES,
+            "/api/generate-email": Responses(
+                load("generate.json"), load("generate_second.json")
+            ),
+        }
+        return Emailnator(fake(routes))
 
 
 async def test_generate_requests_the_dot_gmail_option():
