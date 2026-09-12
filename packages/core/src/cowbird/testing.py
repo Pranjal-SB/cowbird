@@ -16,13 +16,14 @@ its own.
 
 from __future__ import annotations
 
+import copy
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
 from urllib.parse import urlencode
 
-from cowbird.errors import SchemaDrift
+from cowbird.errors import ProviderDown, RateLimited, SchemaDrift
 from cowbird.health import HealthStore
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.pool import Pool
@@ -138,6 +139,32 @@ class FakeResponse:
     cookies: dict[str, str]
 
 
+class _CaseInsensitiveHeaders(dict):
+    """A dict that matches header names the way curl_cffi's real response does.
+
+    Keeps `dict(...)`-style construction and equality working for existing
+    tests, but reads and writes are case-insensitive on the key.
+    """
+
+    def __init__(self, headers: dict[str, str]) -> None:
+        super().__init__(headers)
+
+    def __getitem__(self, key: str) -> str:
+        for k, v in self.items():
+            if k.lower() == key.lower():
+                return v
+        raise KeyError(key)
+
+    def __contains__(self, key: object) -> bool:
+        return any(k.lower() == str(key).lower() for k in self.keys())
+
+    def get(self, key: str, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+
 class FakeTransport:
     """Replays recorded upstream responses in place of a `Transport`.
 
@@ -146,7 +173,11 @@ class FakeTransport:
     backend that multiplexes one URL on a query parameter or a GraphQL query can
     still be routed per call. `json()` and `text()` ignore status, as they only
     ever see a response `Transport` let through; route an Exception to model a
-    failure. `send()` is where status, headers and cookies are visible.
+    failure. A route whose status is 429, or >= 500, raises `RateLimited` or
+    `ProviderDown` — exactly what `Transport` raises for those statuses — from
+    `json()`, `text()` and `send()` alike; other failures are modelled by
+    routing an Exception. `send()` is where status, headers and cookies are
+    visible.
     """
 
     def __init__(self, provider: str, routes: dict[str, object], status: int = 200) -> None:
@@ -170,6 +201,14 @@ class FakeTransport:
                 return answer if isinstance(answer, Reply) else Reply(self.status, answer)
         raise AssertionError(f"unexpected request: {target}")
 
+    def _resolve(self, method: str, url: str, kw: dict) -> Reply:
+        reply = self._answer(method, url, kw)
+        if reply.status == 429:
+            raise RateLimited(f"{self.provider}: HTTP 429")
+        if reply.status >= 500:
+            raise ProviderDown(f"{self.provider}: HTTP {reply.status}")
+        return reply
+
     @staticmethod
     def _text(payload: object) -> str:
         if isinstance(payload, str):
@@ -179,23 +218,26 @@ class FakeTransport:
         return json.dumps(payload)
 
     async def json(self, method: str, url: str, **kw) -> object:
-        payload = self._answer(method, url, kw).payload
+        payload = self._resolve(method, url, kw).payload
         if payload is None:
             raise SchemaDrift(self.provider, expected="a JSON body", got="")
         if not isinstance(payload, str):
-            return payload
+            return copy.deepcopy(payload)
         try:
             return json.loads(payload)
         except ValueError as exc:
             raise SchemaDrift(self.provider, expected="a JSON body", got=payload[:200]) from exc
 
     async def text(self, method: str, url: str, **kw) -> str:
-        return self._text(self._answer(method, url, kw).payload)
+        return self._text(self._resolve(method, url, kw).payload)
 
     async def send(self, method: str, url: str, **kw) -> FakeResponse:
-        reply = self._answer(method, url, kw)
+        reply = self._resolve(method, url, kw)
         return FakeResponse(
-            reply.status, self._text(reply.payload), dict(reply.headers), dict(reply.cookies)
+            reply.status,
+            self._text(reply.payload),
+            _CaseInsensitiveHeaders(reply.headers),
+            dict(reply.cookies),
         )
 
     async def aclose(self) -> None:

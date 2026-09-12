@@ -2,9 +2,9 @@
 
 Shipped in `src/`, not `tests/`, because provider packages import it. A
 provider subclasses `ProviderContract`, supplies a `provider` fixture, and
-inherits the whole suite. The same class runs mocked in CI and live against the
-real service on a schedule — the assertions do not change, only the transport
-behind the fixture does.
+inherits the whole suite. This suite runs against a replay transport
+(`FakeTransport`); a provider's own `test_live.py` is what exercises the real
+service.
 """
 
 from __future__ import annotations
@@ -63,16 +63,19 @@ class ProviderContract:
         assert address.provider == provider.name
 
     async def test_two_generates_yield_distinct_addresses(self, provider: Provider) -> None:
-        # A backend that keys the inbox on a session cookie hands every
-        # generate() on a shared cookie jar the same address, and two callers
-        # then read each other's mail. Capabilities.fresh_session is the fix;
-        # this is what catches a provider that needs it and does not set it.
+        # A replay transport has no cookie jar, so this only catches a
+        # generate() that is constant regardless of session state. A backend
+        # that actually keys the inbox on a session cookie is caught live, not
+        # here — that is why cookie-keyed providers assert two distinct
+        # addresses in their own test_live.py.
         first = await provider.generate(GenerateOptions())
         second = await provider.generate(GenerateOptions())
         assert first.value != second.value, (
-            f"{provider.name} issued {first.value} twice. If the backend keys "
-            "inboxes on a session cookie, set Capabilities.fresh_session and "
-            "replay the identity from Address.state."
+            f"{provider.name} issued {first.value} twice. Check whether the "
+            "test fixture returns the same recorded generate() response for "
+            "every call; if the real backend instead keys inboxes on a "
+            "session cookie, set Capabilities.fresh_session and replay the "
+            "identity from Address.state."
         )
 
     async def test_needs_state_providers_actually_issue_state(
