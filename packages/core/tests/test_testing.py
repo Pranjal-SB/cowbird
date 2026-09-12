@@ -1,7 +1,7 @@
 """The shared replay transport every provider suite runs its contract against."""
 
 import pytest
-from cowbird.errors import ProviderDown, SchemaDrift
+from cowbird.errors import ProviderDown, RateLimited, SchemaDrift
 from cowbird.testing import FakeTransport, Reply, Responses
 
 
@@ -84,3 +84,28 @@ async def test_json_on_an_empty_body_is_schema_drift():
     http = FakeTransport("p", {"/x": Reply(200)})
     with pytest.raises(SchemaDrift):
         await http.json("GET", "https://x.test/x")
+
+
+async def test_a_5xx_route_raises_provider_down_as_the_real_transport_does():
+    http = FakeTransport("p", {"/x": Reply(500, {"error": "boom"})})
+    with pytest.raises(ProviderDown):
+        await http.send("GET", "https://x.test/x")
+
+
+async def test_a_429_route_raises_rate_limited():
+    http = FakeTransport("p", {"/x": Reply(429, {"error": "boom"})})
+    with pytest.raises(RateLimited):
+        await http.send("GET", "https://x.test/x")
+
+
+async def test_json_hands_out_a_copy_of_the_fixture():
+    http = FakeTransport("p", {"/x": {"rows": [1, 2]}})
+    result = await http.json("GET", "https://x.test/x")
+    result["rows"].append(3)
+    assert await http.json("GET", "https://x.test/x") == {"rows": [1, 2]}
+
+
+async def test_response_headers_are_case_insensitive():
+    http = FakeTransport("p", {"/x": Reply(200, {}, headers={"Set-Cookie": "a=b"})})
+    resp = await http.send("GET", "https://x.test/x")
+    assert resp.headers["set-cookie"] == "a=b"
