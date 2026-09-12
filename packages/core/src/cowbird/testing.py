@@ -117,6 +117,11 @@ class Responses:
 
     Explicit rather than a plain list, because a list is already a valid JSON
     payload: mail.tm answers its list endpoints with bare arrays.
+
+    Build one inside the test's own fixture, never in a module-level route
+    dict: a shallow `dict(DEFAULT_ROUTES)` copy still shares this instance
+    (and its call counter) across every test in the module, which makes the
+    answer sequence order-dependent.
     """
 
     def __init__(self, *answers: object) -> None:
@@ -190,7 +195,9 @@ class FakeTransport:
         self.seen.append((method, url, kw))
         query = urlencode(kw.get("params") or {})
         body = json.dumps(kw["json"]) if "json" in kw else ""
-        target = f"{method} {url}?{query} {body}"
+        cookies = urlencode(kw.get("cookies") or {})
+        headers = json.dumps(kw.get("headers") or {})
+        target = f"{method} {url}?{query} {body} {cookies} {headers}"
         for key in sorted(self.routes, key=len, reverse=True):
             if key in target:
                 answer = self.routes[key]

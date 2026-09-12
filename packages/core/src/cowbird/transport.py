@@ -25,6 +25,10 @@ class Transport:
     Providers receive one of these and never build a session themselves, so
     impersonation, proxying, retries, and anti-bot detection are fixed in one
     place for every provider at once.
+
+    With `fresh_session`, a handshake spanning more than one request cannot
+    work through this transport — request two has no cookie from request
+    one — so such a backend has to carry its identity explicitly instead.
     """
 
     def __init__(

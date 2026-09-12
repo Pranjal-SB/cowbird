@@ -105,6 +105,26 @@ async def test_json_hands_out_a_copy_of_the_fixture():
     assert await http.json("GET", "https://x.test/x") == {"rows": [1, 2]}
 
 
+async def test_a_route_key_matching_a_cookie_or_header_value_routes_correctly():
+    # 10minutemail replays identity in cookies, temp-mail.org/22.do in an
+    # Authorization header. A route key must be able to match either, or
+    # deleting the cookie from such an adapter would still pass every mocked
+    # test unless cookies/headers take part in routing.
+    http = FakeTransport(
+        "p",
+        {
+            "sid=abc123": {"inbox": "cookie-routed"},
+            "Bearer tok-xyz": {"inbox": "header-routed"},
+        },
+    )
+    assert await http.json(
+        "GET", "https://x.test/inbox", cookies={"sid": "abc123"}
+    ) == {"inbox": "cookie-routed"}
+    assert await http.json(
+        "GET", "https://x.test/inbox", headers={"Authorization": "Bearer tok-xyz"}
+    ) == {"inbox": "header-routed"}
+
+
 async def test_response_headers_are_case_insensitive():
     http = FakeTransport("p", {"/x": Reply(200, {}, headers={"Set-Cookie": "a=b"})})
     resp = await http.send("GET", "https://x.test/x")

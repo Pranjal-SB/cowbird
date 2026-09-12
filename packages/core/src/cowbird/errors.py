@@ -65,6 +65,11 @@ class MessageGone(ProviderError):
     An answer about one message, not about the provider, so it does not reroute
     and is not recorded as a health failure: a stale row whose storage expired
     upstream must not evict a healthy backend from routing.
+
+    Known blind spot: because it records neither success nor failure, a
+    provider whose read path is broken and answers "gone" for every message
+    stays green and keeps being routed to; list() latency is all the health
+    store sees. That gap is carried by the live canary, not by routing.
     """
 
 

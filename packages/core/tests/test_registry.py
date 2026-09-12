@@ -175,10 +175,18 @@ async def test_message_gone_is_not_recorded_as_a_provider_failure():
     registry = Registry(discover=False, health=health, transport_factory=lambda n: None)
     registry.register(provider_class("gone", get=raising(MessageGone("gone: m1"))))
     provider = registry.get("gone")
+
+    addr = Address("a@fake.test", "gone")
+    await provider.list(addr)  # a real success, to prove MessageGone adds nothing
+
     with pytest.raises(MessageGone):
-        await provider.get(Address("a@fake.test", "gone"), "m1")
+        await provider.get(addr, "m1")
+
     assert health.status("gone") is Status.OK
     assert health.snapshot()["gone"].last_failure is None
+    # The only measurement recorded is the list() success above: MessageGone
+    # recorded neither a failure nor a success of its own.
+    assert len(health.snapshot()["gone"].latencies) == 1
 
 
 def test_the_default_transport_honours_fresh_session():
