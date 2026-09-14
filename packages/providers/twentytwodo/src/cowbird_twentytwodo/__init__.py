@@ -56,7 +56,13 @@ class TwentyTwoDo(Provider):
         return {"Authorization": f"Bearer {address.state}"}
 
     async def _post(self, path: str, body: dict, headers: dict | None = None) -> object:
-        payload = await self.http.json("POST", f"{API}{path}", json=body, headers=headers or {})
+        resp = await self.http.send("POST", f"{API}{path}", json=body, headers=headers or {})
+        if resp.status_code >= 400:
+            raise ProviderDown(f"22do: {path} answered HTTP {resp.status_code}")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(self.name, expected="a JSON body", got=resp.text[:200]) from exc
         if not isinstance(payload, dict) or "status" not in payload:
             raise SchemaDrift(self.name, expected=f"'status' from {path}", got=payload)
         if payload["status"] is not True:
@@ -116,8 +122,9 @@ class TwentyTwoDo(Provider):
             raise SchemaDrift(self.name, expected="a list or null under 'data'", got=data)
         out = []
         for row in data:
-            if "messageId" not in row:
-                raise SchemaDrift(self.name, expected="'messageId' in a message row", got=list(row))
+            if not isinstance(row, dict) or "messageId" not in row:
+                got = list(row) if isinstance(row, dict) else type(row).__name__
+                raise SchemaDrift(self.name, expected="'messageId' in a message row", got=got)
             out.append(
                 MessageRow(
                     id=row["messageId"],

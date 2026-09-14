@@ -106,3 +106,20 @@ async def test_a_non_200_on_view_page_raises():
     )
     with pytest.raises(ProviderDown):
         await TwentyTwoDo(http).get(ADDRESS, MESSAGE_ID)
+
+
+async def test_a_non_dict_row_in_messages_raises_schema_drift_not_type_error():
+    # A string row happens to pass "key" not in row; an int does not, and used
+    # to raise a bare TypeError instead of SchemaDrift.
+    bad = {"status": True, "data": [1]}
+    http = FakeTransport("22do", routes(**{"/action/mailbox/message": bad}))
+    with pytest.raises(SchemaDrift):
+        await TwentyTwoDo(http).list(ADDRESS)
+
+
+async def test_a_403_on_generate_does_not_quarantine():
+    http = FakeTransport(
+        "22do", routes(**{"/action/mailbox/create": Reply(403, "<html>blocked</html>")})
+    )
+    with pytest.raises(ProviderDown):
+        await TwentyTwoDo(http).generate()
