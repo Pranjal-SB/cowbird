@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import MessageGone, NotSupported, ProviderDown
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address
 from cowbird.provider import GenerateOptions
 from cowbird.testing import FakeTransport, Reply
@@ -117,3 +117,12 @@ async def test_error_page_is_not_returned_as_message_body():
         msg = await InboxKitten(http).get(ADDRESS, MESSAGE_ID)
         # This should never execute, but if it did, we'd confirm the body is not "Error occurred".
         assert "Error occurred" not in msg.html
+
+
+async def test_non_json_body_from_getInfo_raises_schema_drift():
+    # A 200 from /getInfo with non-JSON body is upstream drift, not a parse error.
+    http = FakeTransport(
+        "inboxkitten", routes(**{"/mail/getInfo": Reply(status=200, payload="<html>Error</html>")})
+    )
+    with pytest.raises(SchemaDrift):
+        await InboxKitten(http).get(ADDRESS, MESSAGE_ID)

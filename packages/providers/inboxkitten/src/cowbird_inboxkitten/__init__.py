@@ -80,23 +80,37 @@ class InboxKitten(Provider):
         if not sep or not key:
             raise NotSupported(f"inboxkitten message ids are region:key, got {id!r}")
         params = {"key": key, "region": region}
+        message_expired = False
+        html = ""
+        info = {}
         try:
             page = await self.http.send("GET", f"{API}/getHtml", params=params)
             if page.status_code >= 400:
-                await self.list(address)
-                raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
-            html = page.text
+                message_expired = True
+            else:
+                html = page.text
 
-            info_page = await self.http.send("GET", f"{API}/getInfo", params=params)
-            if info_page.status_code >= 400:
-                await self.list(address)
-                raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
-            info = json.loads(info_page.text)
+                info_page = await self.http.send("GET", f"{API}/getInfo", params=params)
+                if info_page.status_code >= 400:
+                    message_expired = True
+                else:
+                    try:
+                        info = json.loads(info_page.text)
+                    except ValueError as exc:
+                        raise SchemaDrift(
+                            self.name,
+                            expected="a JSON body from /getInfo",
+                            got=info_page.text[:200],
+                        ) from exc
         except ProviderDown:
             # A genuine 5xx: if list also fails, propagate that failure.
             # If list answers, the backend is fine and this message is gone.
+            message_expired = True
+
+        if message_expired:
             await self.list(address)
             raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
+
         if not isinstance(info, dict):
             raise SchemaDrift(self.name, expected="an object from /getInfo", got=info)
         return Message(
