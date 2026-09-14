@@ -113,10 +113,9 @@ async def test_error_page_is_not_returned_as_message_body():
         "inboxkitten", routes(**{"/mail/getHtml": Reply(status=500, payload="Error occurred")})
     )
     # Should raise MessageGone (after probing list), not return a Message with error text.
-    with pytest.raises(MessageGone):
-        msg = await InboxKitten(http).get(ADDRESS, MESSAGE_ID)
-        # This should never execute, but if it did, we'd confirm the body is not "Error occurred".
-        assert "Error occurred" not in msg.html
+    with pytest.raises(MessageGone) as excinfo:
+        await InboxKitten(http).get(ADDRESS, MESSAGE_ID)
+    assert "Error occurred" not in str(excinfo.value)
 
 
 async def test_non_json_body_from_getInfo_raises_schema_drift():
@@ -126,3 +125,20 @@ async def test_non_json_body_from_getInfo_raises_schema_drift():
     )
     with pytest.raises(SchemaDrift):
         await InboxKitten(http).get(ADDRESS, MESSAGE_ID)
+
+
+async def test_a_non_dict_message_field_does_not_raise_attribute_error():
+    rows = load("list.json")
+    rows[0]["message"] = ["not", "a", "dict"]
+    http = FakeTransport("inboxkitten", routes(**{"/mail/list": rows}))
+    [row] = await InboxKitten(http).list(ADDRESS)
+    assert row.sender == ""
+    assert row.subject == ""
+
+
+async def test_a_non_str_email_address_does_not_raise_attribute_error():
+    info = load("get_info.json")
+    info["emailAddress"] = 12345
+    http = FakeTransport("inboxkitten", routes(**{"/mail/getInfo": info}))
+    message = await InboxKitten(http).get(ADDRESS, MESSAGE_ID)
+    assert message.sender == ""

@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -50,6 +50,8 @@ class TenMinuteMail(Provider):
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
         resp = await self.http.send("GET", f"{BASE}/session/address")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"10minutemail: /session/address answered HTTP {resp.status_code}")
         try:
             payload = json.loads(resp.text)
         except ValueError as exc:
@@ -72,9 +74,17 @@ class TenMinuteMail(Provider):
     async def _rows(self, address: Address) -> list[dict]:
         if not address.state:
             raise NotSupported("10minutemail needs the session issued by generate()")
-        payload = await self.http.json(
+        resp = await self.http.send(
             "GET", f"{BASE}/messages/messagesAfter/0", cookies={_COOKIE: address.state}
         )
+        if resp.status_code >= 400:
+            raise ProviderDown(
+                f"10minutemail: /messages/messagesAfter/0 answered HTTP {resp.status_code}"
+            )
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(self.name, expected="a JSON body", got=resp.text[:200]) from exc
         if not isinstance(payload, list):
             raise SchemaDrift(self.name, expected="a JSON array of messages", got=payload)
         for row in payload:

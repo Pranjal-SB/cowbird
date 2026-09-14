@@ -64,7 +64,8 @@ class InboxKitten(Provider):
                 raise SchemaDrift(
                     self.name, expected="storage.key and storage.region in a row", got=row
                 )
-            headers = (row.get("message") or {}).get("headers") or {}
+            message = row.get("message")
+            headers = message.get("headers") or {} if isinstance(message, dict) else {}
             out.append(
                 MessageRow(
                     id=f"{storage['region']}:{storage['key']}",
@@ -113,9 +114,10 @@ class InboxKitten(Provider):
 
         if not isinstance(info, dict):
             raise SchemaDrift(self.name, expected="an object from /getInfo", got=info)
+        sender = info.get("emailAddress")
         return Message(
             id=id,
-            sender=(info.get("emailAddress") or "").strip(" <>"),
+            sender=sender.strip(" <>") if isinstance(sender, str) else "",
             subject=info.get("subject", ""),
             received_at=None,
             html=html,
