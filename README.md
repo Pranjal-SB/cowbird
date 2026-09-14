@@ -191,11 +191,13 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Three providers ship and are verified against the live services: mail.tm,
-emailnator (Gmail aliases) and inboxes.com. Two more from the seed set are
-parked after recon, with the reasons in `docs/PROVIDERS.md`: smailpro
-needs a solved Cloudflare Turnstile token on every call, and tempr.email's
-message-read endpoint was never observed.
+Eleven providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
+backend), maildrop, inboxkitten, nicemail, mail.cx and 10minutemail. Three
+from the seed set are parked after recon, with the reasons in
+`docs/PROVIDERS.md`: smailpro needs a solved Cloudflare Turnstile token on
+every call, tempr.email's message-read endpoint was never observed, and
+dropmail's free API token path closed.
 
 The deliverable is an HTTP API, and it ships: `cowbird-server` in
 `packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
