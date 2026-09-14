@@ -62,7 +62,17 @@ class Maildrop(Provider):
             )
         # Handle GraphQL errors array: backend answer, not shape change
         if payload.get("errors"):
-            error_msg = payload["errors"][0].get("message", "Unknown error")
+            # Defensively extract error message; never leak bare exceptions
+            errors = payload["errors"]
+            error_msg = "Unknown error"
+            if isinstance(errors, list) and len(errors) > 0:
+                first_error = errors[0]
+                if isinstance(first_error, dict):
+                    error_msg = first_error.get("message", "Unknown error")
+                else:
+                    error_msg = f"malformed error: {repr(first_error)}"
+            else:
+                error_msg = f"malformed errors: {repr(errors)}"
             raise ProviderDown(f"maildrop: {error_msg}")
         # Handle missing data key: shape change
         if "data" not in payload:

@@ -44,8 +44,27 @@ async def test_a_null_message_is_gone():
 
 async def test_graphql_errors_are_provider_down():
     http = FakeTransport("maildrop", routes(**{"inbox(": load("errors.json")}))
-    with pytest.raises(ProviderDown):
+    with pytest.raises(ProviderDown) as exc_info:
         await Maildrop(http).list(ADDRESS)
+    assert "Cannot query field" in str(exc_info.value)
+
+
+async def test_malformed_error_element_string_raises_provider_down():
+    http = FakeTransport(
+        "maildrop", routes(**{"inbox(": {"errors": ["bare string error"], "data": None}})
+    )
+    with pytest.raises(ProviderDown) as exc_info:
+        await Maildrop(http).list(ADDRESS)
+    assert "malformed error" in str(exc_info.value)
+
+
+async def test_malformed_error_element_empty_list_raises_provider_down():
+    http = FakeTransport(
+        "maildrop", routes(**{"inbox(": {"errors": [[]], "data": None}})
+    )
+    with pytest.raises(ProviderDown) as exc_info:
+        await Maildrop(http).list(ADDRESS)
+    assert "malformed error" in str(exc_info.value)
 
 
 async def test_non_dict_row_in_list_raises_schema_drift():
