@@ -7,11 +7,12 @@ content page embeds it in an iframe served from /view/<token>.
 
 from __future__ import annotations
 
+import json
 import re
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -62,6 +63,25 @@ class TwentyTwoDo(Provider):
             raise ProviderDown(f"22do: {path} refused: {payload.get('msg')!r}")
         return payload.get("data")
 
+    async def _post_with_token(self, path: str, body: dict, address: Address) -> object:
+        """POST with token, checking status before parsing JSON to avoid SchemaDrift on 401."""
+        resp = await self.http.send(
+            "POST", f"{API}{path}", json=body, headers=self._auth(address)
+        )
+        if resp.status_code == 401:
+            raise AddressExpired(f"22do: {address.value} is no longer valid")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"22do: {path} answered HTTP {resp.status_code}")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(self.name, expected="a JSON body", got=resp.text[:200]) from exc
+        if not isinstance(payload, dict) or "status" not in payload:
+            raise SchemaDrift(self.name, expected=f"'status' from {path}", got=payload)
+        if payload["status"] is not True:
+            raise ProviderDown(f"22do: {path} refused: {payload.get('msg')!r}")
+        return payload.get("data")
+
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
         want = opts.kind if opts else None
         for _ in range(REROLLS):
@@ -85,10 +105,10 @@ class TwentyTwoDo(Provider):
         )
 
     async def list(self, address: Address) -> list[MessageRow]:
-        data = await self._post(
+        data = await self._post_with_token(
             "/action/mailbox/message",
             {"email": address.value, "lastime": 0},
-            headers=self._auth(address),
+            address,
         )
         if data is None:
             return []
@@ -110,6 +130,8 @@ class TwentyTwoDo(Provider):
 
     async def get(self, address: Address, id: str) -> Message:
         page = await self.http.send("GET", f"{API}/content/{id}", headers=self._auth(address))
+        if page.status_code == 401:
+            raise AddressExpired(f"22do: {address.value} is no longer valid")
         if page.status_code == 404:
             raise MessageGone(f"22do: message {id} is gone")
         if page.status_code >= 400:
@@ -118,7 +140,12 @@ class TwentyTwoDo(Provider):
         if match is None:
             raise SchemaDrift(self.name, expected="an iframe to /view/ on the content page",
                               got=page.text[:200])
-        html = await self.http.text("GET", match.group(1))
+        view = await self.http.send("GET", match.group(1), headers=self._auth(address))
+        if view.status_code == 401:
+            raise AddressExpired(f"22do: {address.value} is no longer valid")
+        if view.status_code >= 400:
+            raise ProviderDown(f"22do: view page answered HTTP {view.status_code}")
+        html = view.text
         row = next((r for r in await self.list(address) if r.id == id), None)
         return Message(
             id=id,
