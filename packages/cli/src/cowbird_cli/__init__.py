@@ -89,7 +89,7 @@ async def _wait(args: argparse.Namespace) -> int:
 
 async def _providers(args: argparse.Namespace) -> int:
     pool = default_pool()
-    print(f"{'PROVIDER':<16}{'STATUS':<14}{'P50':<9}{'KIND':<26}SITES")
+    print(f"{'PROVIDER':<16}{'STATUS':<14}{'P50':<9}{'KIND':<38}SITES")
     for provider in pool.registry.all():
         p50 = pool.health.p50(provider.name)
         print(
@@ -99,7 +99,7 @@ async def _providers(args: argparse.Namespace) -> int:
             # inboxes generates addresses without any HTTP call, so its median
             # is legitimately zero, and `if p50` printed that as "no data".
             f"{(f'{p50:.1f}s' if p50 is not None else '-'):<9}"
-            f"{','.join(sorted(provider.caps.kind)):<26}"
+            f"{','.join(sorted(provider.caps.kind)):<38}"
             f"{','.join(provider.caps.sites)}"
         )
     return 0

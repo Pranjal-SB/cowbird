@@ -70,3 +70,16 @@ def test_unclosed_script_swallows_the_rest_like_a_browser_does():
     # We are keeping this behavior deliberately, not fixing it.
     html = "<script>evil<p>448213</p>"
     assert html_to_text(html) == ""
+
+
+def test_html_to_text_on_non_str_input_returns_empty_instead_of_raising():
+    # Several adapters pass a field straight from an untrusted JSON body
+    # (row.get("html_body") or "") without checking its type; a non-str value
+    # used to raise a bare TypeError out of HTMLParser.feed.
+    assert html_to_text(123) == ""
+    assert html_to_text(None) == ""
+
+
+def test_extract_links_on_non_str_input_returns_empty_instead_of_raising():
+    assert extract_links(123) == ()
+    assert extract_links(None) == ()
