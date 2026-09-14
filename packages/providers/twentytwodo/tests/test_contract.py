@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import MessageGone, ProviderDown, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, ProviderDown, SchemaDrift
 from cowbird.models import Address, Kind
 from cowbird.provider import GenerateOptions
 from cowbird.testing import FakeTransport, Reply, Responses
@@ -84,4 +84,25 @@ async def test_a_404_content_page_is_gone():
 async def test_a_content_page_without_the_iframe_is_drift():
     http = FakeTransport("22do", routes(**{"/content/": Reply(200, "<html>redesigned</html>")}))
     with pytest.raises(SchemaDrift):
+        await TwentyTwoDo(http).get(ADDRESS, MESSAGE_ID)
+
+
+async def test_a_401_on_list_raises_address_expired_not_schema_drift():
+    http = FakeTransport("22do", routes(**{"/action/mailbox/message": Reply(401, "")}))
+    with pytest.raises(AddressExpired):
+        await TwentyTwoDo(http).list(ADDRESS)
+
+
+async def test_a_401_with_html_body_raises_address_expired():
+    html_401 = "<html><body>Unauthorized</body></html>"
+    http = FakeTransport("22do", routes(**{"/action/mailbox/message": Reply(401, html_401)}))
+    with pytest.raises(AddressExpired):
+        await TwentyTwoDo(http).list(ADDRESS)
+
+
+async def test_a_non_200_on_view_page_raises():
+    http = FakeTransport(
+        "22do", routes(**{"/view/": Reply(500, "<html>error</html>")})
+    )
+    with pytest.raises(ProviderDown):
         await TwentyTwoDo(http).get(ADDRESS, MESSAGE_ID)
