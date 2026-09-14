@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import MessageGone, NotSupported
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown
 from cowbird.models import Address
-from cowbird.testing import FakeTransport, Responses
+from cowbird.testing import FakeTransport, Reply, Responses
 from cowbird_guerrillamail import GuerrillaMail
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -76,3 +76,22 @@ async def test_a_list_without_state_is_refused():
         await GuerrillaMail(FakeTransport("guerrillamail", routes())).list(
             Address("x@guerrillamailblock.com", "guerrillamail")
         )
+
+
+async def test_a_403_error_page_on_list_does_not_quarantine():
+    # An error page reaching the JSON parser used to raise SchemaDrift and
+    # permanently quarantine the provider. A stale sid_token is an ordinary
+    # error, not a shape change.
+    http = FakeTransport(
+        "guerrillamail", routes(**{"f=check_email": Reply(403, "<html>blocked</html>")})
+    )
+    with pytest.raises(AddressExpired):
+        await GuerrillaMail(http).list(ADDRESS)
+
+
+async def test_a_503_error_page_on_generate_does_not_quarantine():
+    http = FakeTransport(
+        "guerrillamail", routes(**{"f=get_email_address": Reply(503, "<html>down</html>")})
+    )
+    with pytest.raises(ProviderDown):
+        await GuerrillaMail(http).generate()

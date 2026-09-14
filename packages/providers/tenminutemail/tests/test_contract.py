@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import MessageGone, SchemaDrift
+from cowbird.errors import MessageGone, ProviderDown, SchemaDrift
 from cowbird.models import Address
 from cowbird.testing import FakeTransport, Reply, Responses
 from cowbird_tenminutemail import TenMinuteMail
@@ -72,3 +72,20 @@ async def test_the_body_is_read_from_the_list_row():
 async def test_an_id_no_longer_listed_is_gone():
     with pytest.raises(MessageGone):
         await TenMinuteMail(FakeTransport("10minutemail", routes())).get(ADDRESS, "nope")
+
+
+async def test_a_403_error_page_on_generate_does_not_quarantine():
+    http = FakeTransport(
+        "10minutemail", routes(**{"/session/address": Reply(403, "<html>blocked</html>")})
+    )
+    with pytest.raises(ProviderDown):
+        await TenMinuteMail(http).generate()
+
+
+async def test_a_403_error_page_on_list_does_not_quarantine():
+    http = FakeTransport(
+        "10minutemail",
+        routes(**{"/messages/messagesAfter/0": Reply(403, "<html>blocked</html>")}),
+    )
+    with pytest.raises(ProviderDown):
+        await TenMinuteMail(http).list(ADDRESS)

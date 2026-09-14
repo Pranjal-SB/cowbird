@@ -58,7 +58,10 @@ class NiceMail(Provider):
         self._token: str | None = None
 
     async def _refresh_token(self) -> str:
-        page = await self.http.text("GET", SITE)
+        resp = await self.http.send("GET", SITE)
+        if resp.status_code >= 400:
+            raise ProviderDown(f"nicemail: {SITE} answered HTTP {resp.status_code}")
+        page = resp.text
         match = _JWT.search(page)
         if match is None:
             raise SchemaDrift(

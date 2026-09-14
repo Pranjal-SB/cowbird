@@ -11,9 +11,10 @@ session per request and carries the sid_token in Address.state instead.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -63,7 +64,15 @@ class GuerrillaMail(Provider):
         query = {"f": function, **_CLIENT, **params}
         if sid is not None:
             query["sid_token"] = sid
-        return await self.http.json("GET", API, params=query)
+        resp = await self.http.send("GET", API, params=query)
+        if resp.status_code in (401, 403) and sid is not None:
+            raise AddressExpired(f"guerrillamail: session {sid} is no longer valid")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"guerrillamail: {function} answered HTTP {resp.status_code}")
+        try:
+            return json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(self.name, expected="a JSON body", got=resp.text[:200]) from exc
 
     def _sid(self, address: Address) -> str:
         if not address.state:
