@@ -14,19 +14,41 @@ its listed aliases
 
 ## Shipped
 
-Live, contract-tested, and proven end to end by
-`packages/core/tests/test_delivery.py`. P50 is measured, from a real
-`cowbird providers` run on 2026-09-07, not declared.
+Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
+are additionally proven end to end by `packages/core/tests/test_delivery.py`,
+a `live`-marked suite. The eight newer providers are covered by that same
+suite but it has not been run against them; their read path is proven only
+against recorded fixtures, and their live canaries stop at `generate()` +
+`list()`. P50 is measured, from a real `cowbird providers` run on 2026-09-07,
+not declared.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
 | mail.tm | mail.tm | own-domain | forever | 7d | 1 | 1.4s |
 | emailnator | emailnator.com | gmail-alias | forever | 1d | 6 | 2.3s |
 | inboxes | inboxes.com | own-domain | forever | 7d | 18 | 0.0s |
+| guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | own-domain | 1h | 1h | 11 | — |
+| temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | 1 | — |
+| 22.do | 22.do | gmail-alias, outlook-alias, own-domain | 1d | 1d | 3 | — |
+| maildrop 🔗 | maildrop.cc, trashmail.ws | own-domain | forever | 1d | 1 | — |
+| inboxkitten | inboxkitten.com | own-domain | forever | 1d | 1 | — |
+| nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | — |
+| mail.cx | mail.cx | own-domain | forever | 1h | 3 | — |
+| 10minutemail | 10minutemail.com | own-domain | 10m | 10m | 1 | — |
 
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
 local-part and a domain and returns, which is where the 0.0s comes from. It
-also accepts a custom local-part. emailnator and mail.tm do not.
+also accepts a custom local-part, as do maildrop, inboxkitten, nicemail and
+mail.cx. emailnator and mail.tm do not.
+
+The eight newest have no p50 yet. The median comes from latencies the health
+store records as a process makes calls, and the provider suites build their own
+transports, so no test run can put a number here — only real traffic through
+the CLI or the server can. `addr` and `msg` for these eight are what the
+adapter declares, which is what routing acts on. Two differ from the recon rows
+they replace: mail.cx retains a message for an hour rather than the twelve the
+site suggested, and temp-mail.org issues from one domain, not the unknown count
+recorded earlier.
 
 ## Parked
 
@@ -62,7 +84,6 @@ Next in line once the interface holds.
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
 | ⭐ zemail | zemail.me | gmail-alias | forever | 1d | 7 |
-| ⭐ temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | ? |
 | ⭐ temp-mail.io | temp-mail.io | own-domain | 1d | 1d | 12 |
 
 ## Self-hostable
@@ -83,7 +104,6 @@ is what defeats domain blocklists.
 |---|---|---|---|---|
 | tmail.io | tmail.io | forever | 1d | 4 |
 | temptom | temptom.com | forever | 1d | 15 |
-| 22.do | 22.do (also issues outlook/hotmail and own-domain) | 1d | 1d | 3 |
 | mailticking | mailticking.com | ? | ? | 2 |
 | ghostinbox | ghostinbox.net, temp-gmail.ghostinbox.net | 1d | 1d | 10 |
 
@@ -91,9 +111,7 @@ is what defeats domain blocklists.
 
 | backend | sites | addr | msg | domains |
 |---|---|---|---|---|
-| guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | 1h | 1h | 11 |
 | yopmail | yopmail.com | forever | 8d | 100+ |
-| maildrop 🔗 | maildrop.cc, trashmail.ws | forever | 1d | 1 |
 | mailnesia | mailnesia.com | forever | 2d | 1 |
 | generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ |
 | disposablemail 🔗 | disposablemail.com, fakemail.net | 14d | 14d | 1 |
@@ -107,11 +125,9 @@ is what defeats domain blocklists.
 | 48hr.email | 48hr.email | forever | 2d | 7 |
 | temporarymail | temporarymail.com | forever* | ? | 7 |
 | tempboxpro | tempboxpro.com | session | ? | 6 |
-| mail.cx | mail.cx | 1d | 12h | 5 |
 | mails.org | mails.org | ? | 30m | 5 |
 | spambox | spambox.xyz | forever | 1d | 4 |
 | urtempmail | urtempmail.com | 1d | 1d | 4 |
-| nicemail | nicemail.cc (API: web.mailporary.com) | forever | 1d | 6 |
 | xeramail | xeramail.com | 1d | 1d | 2 |
 | vmail.dev | vmail.dev | 1d | 1d | 2 |
 | re146 | mail.re146.dev | 1d | 1h | 2 |
@@ -133,7 +149,6 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 |---|---|
 | muellmail | muellmail.com |
 | minuteinbox | minuteinbox.com |
-| 10minutemail | 10minutemail.com |
 | linshi | linshi-email.com |
 
 ## .edu tier
@@ -149,7 +164,7 @@ vanishinbox.com · instantedumail.com · etempmail.com
 
 Not yet classified. Source: `rentry.org/i3ozxg6f`.
 
-inboxkitten.com (🔓 `uilicious/inboxkitten`) · dismail.top · m.kuku.lu ·
+m.kuku.lu ·
 anonbox.net · luxusmail.org · eyepaste.com · tempmail.net · mailtemp.dev ·
 tempmailb.com · tempmail4u.com · fake.legal · emailme.at · minmail.app ·
 internxt.com/temporary-email · receivemail.org · fakemailgenerator.com ·
@@ -167,4 +182,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 3 ship.
+That leaves roughly 55 distinct backends, of which 11 ship.
