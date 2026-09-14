@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import AddressExpired, MessageGone, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, ProviderDown, SchemaDrift
 from cowbird.models import Address
 from cowbird.testing import FakeTransport, Reply, Responses
 from cowbird_tempmailorg import TempMailOrg
@@ -74,6 +74,16 @@ async def test_a_410_on_list_is_address_expired():
     )
     with pytest.raises(AddressExpired):
         await TempMailOrg(http).list(ADDRESS)
+
+
+async def test_a_403_on_generate_does_not_quarantine():
+    # The per-IP mailbox limit can come back as an HTML error page; that must
+    # not reach the JSON parser and quarantine a healthy provider.
+    http = FakeTransport(
+        "tempmailorg", routes(**{"/mailbox": Reply(403, "<html>Too many mailboxes</html>")})
+    )
+    with pytest.raises(ProviderDown):
+        await TempMailOrg(http).generate()
 
 
 async def test_a_non_dict_row_in_messages_raises_schema_drift():

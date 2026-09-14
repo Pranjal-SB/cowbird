@@ -75,7 +75,13 @@ class TempMailOrg(Provider):
         return payload
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
-        payload = await self.http.json("POST", f"{API}/mailbox")
+        resp = await self.http.send("POST", f"{API}/mailbox")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"tempmailorg: /mailbox answered HTTP {resp.status_code}")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(self.name, expected="a JSON body", got=resp.text[:200]) from exc
         if not isinstance(payload, dict) or not {"token", "mailbox"} <= payload.keys():
             raise SchemaDrift(
                 self.name, expected="'token' and 'mailbox' from /mailbox", got=payload
