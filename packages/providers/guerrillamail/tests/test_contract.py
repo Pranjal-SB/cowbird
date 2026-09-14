@@ -89,9 +89,12 @@ async def test_a_403_error_page_on_list_does_not_quarantine():
         await GuerrillaMail(http).list(ADDRESS)
 
 
-async def test_a_503_error_page_on_generate_does_not_quarantine():
+async def test_a_403_error_page_on_generate_does_not_quarantine():
+    # 403, not 503: Transport turns a 5xx into ProviderDown before the adapter
+    # sees it, so a 5xx here would pass with the status check removed. A 403
+    # reaches the adapter, and generate() has no sid to call expired.
     http = FakeTransport(
-        "guerrillamail", routes(**{"f=get_email_address": Reply(503, "<html>down</html>")})
+        "guerrillamail", routes(**{"f=get_email_address": Reply(403, "<html>blocked</html>")})
     )
     with pytest.raises(ProviderDown):
         await GuerrillaMail(http).generate()
