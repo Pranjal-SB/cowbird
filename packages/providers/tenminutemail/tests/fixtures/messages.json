@@ -1,0 +1,3 @@
+[
+  {"from": null, "recipient": "cbfixtureaaaa@onldm.net", "attachments": [], "bodyHtmlContent": "<p>Your verification code is <b>482913</b>.</p><a href=\"https://example.test/verify?token=abc\">Verify</a>", "bodyPlainText": "Your verification code is 482913.", "bodyPreview": "Your verification code is 482913.", "contentType": "multipart/alternative", "expanded": false, "forwarded": false, "id": "-1999566867-1570421277", "read": false, "repliedTo": false, "sender": "noreply@example.test", "sentDate": "2026-09-11T10:28:45.000Z", "sentDateFormatted": "Sep 11, 2026, 10:28:45 AM", "subject": "Your verification code"}
+]
