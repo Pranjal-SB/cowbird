@@ -44,10 +44,14 @@ def _parse(html: str) -> _TextExtractor:
 
 
 def html_to_text(html: str) -> str:
+    if not isinstance(html, str):
+        return ""
     return " ".join(_parse(html).chunks)
 
 
 def extract_links(html: str) -> tuple[str, ...]:
+    if not isinstance(html, str):
+        return ()
     return tuple(dict.fromkeys(_parse(html).links))
 
 
