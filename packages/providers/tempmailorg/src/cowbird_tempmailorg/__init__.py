@@ -9,11 +9,15 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
+
+if TYPE_CHECKING:
+    from cowbird.errors import CowbirdError
 
 API = "https://web2.temp-mail.org"
 
@@ -48,12 +52,18 @@ class TempMailOrg(Provider):
             raise NotSupported("tempmailorg needs the token issued by generate()")
         return {"Authorization": f"Bearer {address.state}"}
 
-    async def _get(self, path: str, address: Address, gone: str) -> dict:
+    async def _get(
+        self,
+        path: str,
+        address: Address,
+        gone: str,
+        gone_error: type[CowbirdError] = MessageGone,
+    ) -> dict:
         resp = await self.http.send("GET", f"{API}{path}", headers=self._auth(address))
         if resp.status_code == 401:
             raise AddressExpired(f"tempmailorg: {address.value} is no longer valid")
         if resp.status_code == 410:
-            raise MessageGone(f"tempmailorg: {gone}")
+            raise gone_error(f"tempmailorg: {gone}")
         if resp.status_code >= 400:
             raise ProviderDown(f"tempmailorg: {path} answered HTTP {resp.status_code}")
         try:
@@ -73,14 +83,16 @@ class TempMailOrg(Provider):
         return Address(value=payload["mailbox"], provider=self.name, state=payload["token"])
 
     async def list(self, address: Address) -> list[MessageRow]:
-        payload = await self._get("/messages", address, gone="the mailbox is gone")
+        payload = await self._get(
+            "/messages", address, gone="the mailbox is gone", gone_error=AddressExpired
+        )
         rows = payload.get("messages")
         if not isinstance(rows, list):
             raise SchemaDrift(self.name, expected="a list under 'messages'", got=list(payload))
         out = []
         for row in rows:
-            if "_id" not in row:
-                raise SchemaDrift(self.name, expected="'_id' in a message row", got=list(row))
+            if not isinstance(row, dict) or "_id" not in row:
+                raise SchemaDrift(self.name, expected="'_id' in a message row", got=row)
             out.append(
                 MessageRow(
                     id=row["_id"],

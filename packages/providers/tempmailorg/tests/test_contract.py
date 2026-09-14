@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import AddressExpired, MessageGone
+from cowbird.errors import AddressExpired, MessageGone, SchemaDrift
 from cowbird.models import Address
 from cowbird.testing import FakeTransport, Reply, Responses
 from cowbird_tempmailorg import TempMailOrg
@@ -65,3 +65,20 @@ async def test_the_html_body_is_turned_into_text():
     message = await TempMailOrg(FakeTransport("tempmailorg", routes())).get(ADDRESS, MESSAGE_ID)
     assert "482913" in message.text
     assert message.links == ("https://example.test/verify?token=abc",)
+
+
+async def test_a_410_on_list_is_address_expired():
+    # 410 from /messages means the mailbox is gone, not just a single message.
+    http = FakeTransport(
+        "tempmailorg", routes(**{"/messages": Reply(410, {"errorName": "GoneException"})})
+    )
+    with pytest.raises(AddressExpired):
+        await TempMailOrg(http).list(ADDRESS)
+
+
+async def test_a_non_dict_row_in_messages_raises_schema_drift():
+    # If a row is not a dict, it should raise SchemaDrift, not TypeError.
+    messages_with_bad_row = {"mailbox": "cbfixturea@daugr.com", "messages": ["not a dict"]}
+    http = FakeTransport("tempmailorg", routes(**{"/messages": messages_with_bad_row}))
+    with pytest.raises(SchemaDrift):
+        await TempMailOrg(http).list(ADDRESS)
