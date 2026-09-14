@@ -7,6 +7,7 @@ as "region:key".
 
 from __future__ import annotations
 
+import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -80,12 +81,20 @@ class InboxKitten(Provider):
             raise NotSupported(f"inboxkitten message ids are region:key, got {id!r}")
         params = {"key": key, "region": region}
         try:
-            html = await self.http.text("GET", f"{API}/getHtml", params=params)
-            info = await self.http.json("GET", f"{API}/getInfo", params=params)
+            page = await self.http.send("GET", f"{API}/getHtml", params=params)
+            if page.status_code >= 400:
+                await self.list(address)
+                raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
+            html = page.text
+
+            info_page = await self.http.send("GET", f"{API}/getInfo", params=params)
+            if info_page.status_code >= 400:
+                await self.list(address)
+                raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
+            info = json.loads(info_page.text)
         except ProviderDown:
-            # A read 500s when Mailgun has expired the stored message under a
-            # row that still lists. If the list answers, the backend is fine
-            # and this message is gone; if it does not, this raises instead.
+            # A genuine 5xx: if list also fails, propagate that failure.
+            # If list answers, the backend is fine and this message is gone.
             await self.list(address)
             raise MessageGone(f"inboxkitten: message {id} expired upstream") from None
         if not isinstance(info, dict):
