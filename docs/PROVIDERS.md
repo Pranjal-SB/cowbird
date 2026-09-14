@@ -14,9 +14,13 @@ its listed aliases
 
 ## Shipped
 
-Live, contract-tested, and proven end to end by
-`packages/core/tests/test_delivery.py`. P50 is measured, from a real
-`cowbird providers` run on 2026-09-07, not declared.
+Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
+are additionally proven end to end by `packages/core/tests/test_delivery.py`,
+a `live`-marked suite. The eight newer providers are covered by that same
+suite but it has not been run against them; their read path is proven only
+against recorded fixtures, and their live canaries stop at `generate()` +
+`list()`. P50 is measured, from a real `cowbird providers` run on 2026-09-07,
+not declared.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
@@ -26,9 +30,9 @@ Live, contract-tested, and proven end to end by
 | guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | own-domain | 1h | 1h | 11 | — |
 | temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | 1 | — |
 | 22.do | 22.do | gmail-alias, outlook-alias, own-domain | 1d | 1d | 3 | — |
-| maildrop | maildrop.cc | own-domain | forever | 1d | 1 | — |
+| maildrop 🔗 | maildrop.cc, trashmail.ws | own-domain | forever | 1d | 1 | — |
 | inboxkitten | inboxkitten.com | own-domain | forever | 1d | 1 | — |
-| nicemail | nicemail.cc | own-domain | forever | 1d | 6 | — |
+| nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | — |
 | mail.cx | mail.cx | own-domain | forever | 1h | 3 | — |
 | 10minutemail | 10minutemail.com | own-domain | 10m | 10m | 1 | — |
 
@@ -160,7 +164,7 @@ vanishinbox.com · instantedumail.com · etempmail.com
 
 Not yet classified. Source: `rentry.org/i3ozxg6f`.
 
-dismail.top · m.kuku.lu ·
+m.kuku.lu ·
 anonbox.net · luxusmail.org · eyepaste.com · tempmail.net · mailtemp.dev ·
 tempmailb.com · tempmail4u.com · fake.legal · emailme.at · minmail.app ·
 internxt.com/temporary-email · receivemail.org · fakemailgenerator.com ·
