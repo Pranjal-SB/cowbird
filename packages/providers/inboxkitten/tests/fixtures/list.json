@@ -1,0 +1,3 @@
+[
+  {"storage": {"region": "us-west1", "key": "BAABAQfixturekey0001", "url": "https://storage-us-west1.api.mailgun.net/v3/domains/inboxkitten.com/messages/BAABAQfixturekey0001"}, "message": {"headers": {"from": "Example <noreply@example.test>", "subject": "Your verification code", "message-id": "<fixture@example.test>", "to": "cbfixture@inboxkitten.com"}, "size": 1200, "attachments": []}, "timestamp": 1788800427.99, "id": "fixtureeventid0001", "event": "stored", "recipient": "cbfixture@inboxkitten.com"}
+]
