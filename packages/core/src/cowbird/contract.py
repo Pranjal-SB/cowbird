@@ -2,9 +2,9 @@
 
 Shipped in `src/`, not `tests/`, because provider packages import it. A
 provider subclasses `ProviderContract`, supplies a `provider` fixture, and
-inherits the whole suite. The same class runs mocked in CI and live against the
-real service on a schedule — the assertions do not change, only the transport
-behind the fixture does.
+inherits the whole suite. This suite runs against a replay transport
+(`FakeTransport`); a provider's own `test_live.py` is what exercises the real
+service.
 """
 
 from __future__ import annotations
@@ -42,6 +42,15 @@ class ProviderContract:
             assert (
                 provider.caps.domain_count >= len(provider.caps.domains)
             ), "domain_count must cover all declared domains"
+        # A backend that needs a throwaway session per request keys its inbox
+        # on something the session used to carry, so the adapter has to replay
+        # that identity from Address.state. Without it, list() quietly returns
+        # an empty inbox forever instead of failing.
+        if provider.caps.fresh_session:
+            assert provider.caps.needs_state, (
+                f"{provider.name} sets fresh_session but not needs_state: "
+                "the identity a fresh session drops has to travel in Address.state"
+            )
 
     def test_capability_flags_agree_with_the_implementation(
         self, provider: Provider
@@ -61,6 +70,22 @@ class ProviderContract:
         assert isinstance(address, Address)
         assert "@" in address.value
         assert address.provider == provider.name
+
+    async def test_two_generates_yield_distinct_addresses(self, provider: Provider) -> None:
+        # A replay transport has no cookie jar, so this only catches a
+        # generate() that is constant regardless of session state. A backend
+        # that actually keys the inbox on a session cookie is caught live, not
+        # here — that is why cookie-keyed providers assert two distinct
+        # addresses in their own test_live.py.
+        first = await provider.generate(GenerateOptions())
+        second = await provider.generate(GenerateOptions())
+        assert first.value != second.value, (
+            f"{provider.name} issued {first.value} twice. Check whether the "
+            "test fixture returns the same recorded generate() response for "
+            "every call; if the real backend instead keys inboxes on a "
+            "session cookie, set Capabilities.fresh_session and replay the "
+            "identity from Address.state."
+        )
 
     async def test_needs_state_providers_actually_issue_state(
         self, provider: Provider
