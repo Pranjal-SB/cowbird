@@ -37,6 +37,11 @@ class Capabilities:
     # A 5-second default is nonsense for a backend whose list() takes 6.5s and
     # whose first body read takes 39s. Polling cadence is per-provider too.
     poll_interval: float = 5.0
+    # True for a backend that keys the inbox on a session cookie. On one shared
+    # cookie jar, every generate() then returns the same address and two callers
+    # read each other's mail. Set, the transport runs each request on a
+    # throwaway session and the adapter replays the identity from Address.state.
+    fresh_session: bool = False
 
     def serves(self, kind: Kind) -> bool:
         return kind in self.kind

@@ -33,3 +33,11 @@ def test_schema_drift_carries_what_it_expected():
     err = SchemaDrift("mailtm", expected="hydra:member", got=["items", "total"])
     assert "hydra:member" in str(err)
     assert "items" in str(err)
+
+
+def test_message_gone_is_a_provider_error_that_does_not_reroute():
+    from cowbird.errors import MessageGone, ProviderError
+
+    err = MessageGone("inboxkitten: message us-west1:abc expired upstream")
+    assert isinstance(err, ProviderError)
+    assert err.reroutable is False

@@ -160,3 +160,43 @@ def test_discover_skips_broken_entry_point_but_registers_others(monkeypatch):
     # A retry is not a silent no-op, and does not re-raise or duplicate.
     reg.discover()
     assert reg.get("fake").name == "fake"
+
+
+async def test_message_gone_is_not_recorded_as_a_provider_failure():
+    # A stale row whose storage expired upstream is an answer about one
+    # message. Recording it would evict a healthy provider from routing.
+    from cowbird.errors import MessageGone
+    from cowbird.health import HealthStore, Status
+    from cowbird.models import Address
+    from cowbird.registry import Registry
+    from cowbird.testing import provider_class, raising
+
+    health = HealthStore()
+    registry = Registry(discover=False, health=health, transport_factory=lambda n: None)
+    registry.register(provider_class("gone", get=raising(MessageGone("gone: m1"))))
+    provider = registry.get("gone")
+
+    addr = Address("a@fake.test", "gone")
+    await provider.list(addr)  # a real success, to prove MessageGone adds nothing
+
+    with pytest.raises(MessageGone):
+        await provider.get(addr, "m1")
+
+    assert health.status("gone") is Status.OK
+    assert health.snapshot()["gone"].last_failure is None
+    # The only measurement recorded is the list() success above: MessageGone
+    # recorded neither a failure nor a success of its own.
+    assert len(health.snapshot()["gone"].latencies) == 1
+
+
+def test_the_default_transport_honours_fresh_session():
+    from dataclasses import replace
+
+    from cowbird.registry import Registry
+    from cowbird.testing import CAPS, provider_class
+
+    registry = Registry(discover=False)
+    registry.register(provider_class("sticky", caps=replace(CAPS, fresh_session=True)))
+    registry.register(provider_class("plain"))
+    assert registry.get("sticky").http.fresh_session is True
+    assert registry.get("plain").http.fresh_session is False
