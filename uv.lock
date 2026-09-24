@@ -14,8 +14,11 @@ members = [
     "cowbird-maildrop",
     "cowbird-mailtm",
     "cowbird-nicemail",
+    "cowbird-re146",
     "cowbird-server",
+    "cowbird-tempmailio",
     "cowbird-tempmailorg",
+    "cowbird-temporarymail",
     "cowbird-tenminutemail",
     "cowbird-twentytwodo",
 ]
@@ -316,7 +319,10 @@ dependencies = [
     { name = "cowbird-maildrop" },
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
+    { name = "cowbird-re146" },
+    { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
+    { name = "cowbird-temporarymail" },
     { name = "cowbird-tenminutemail" },
     { name = "cowbird-twentytwodo" },
 ]
@@ -341,7 +347,10 @@ requires-dist = [
     { name = "cowbird-maildrop", editable = "packages/providers/maildrop" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
+    { name = "cowbird-re146", editable = "packages/providers/re146" },
+    { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
+    { name = "cowbird-temporarymail", editable = "packages/providers/temporarymail" },
     { name = "cowbird-tenminutemail", editable = "packages/providers/tenminutemail" },
     { name = "cowbird-twentytwodo", editable = "packages/providers/twentytwodo" },
     { name = "packaging", marker = "extra == 'dev'" },
@@ -467,6 +476,17 @@ dependencies = [
 requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
+name = "cowbird-re146"
+version = "0.1.0"
+source = { editable = "packages/providers/re146" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
 name = "cowbird-server"
 version = "0.1.0"
 source = { editable = "packages/server" }
@@ -481,7 +501,10 @@ dependencies = [
     { name = "cowbird-maildrop" },
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
+    { name = "cowbird-re146" },
+    { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
+    { name = "cowbird-temporarymail" },
     { name = "cowbird-tenminutemail" },
     { name = "cowbird-twentytwodo" },
     { name = "fastapi" },
@@ -511,7 +534,10 @@ requires-dist = [
     { name = "cowbird-maildrop", editable = "packages/providers/maildrop" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
+    { name = "cowbird-re146", editable = "packages/providers/re146" },
+    { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
+    { name = "cowbird-temporarymail", editable = "packages/providers/temporarymail" },
     { name = "cowbird-tenminutemail", editable = "packages/providers/tenminutemail" },
     { name = "cowbird-twentytwodo", editable = "packages/providers/twentytwodo" },
     { name = "fastapi", specifier = ">=0.115,<0.142" },
@@ -527,9 +553,31 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
+name = "cowbird-tempmailio"
+version = "0.1.0"
+source = { editable = "packages/providers/tempmailio" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
 name = "cowbird-tempmailorg"
 version = "0.1.0"
 source = { editable = "packages/providers/tempmailorg" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-temporarymail"
+version = "0.1.0"
+source = { editable = "packages/providers/temporarymail" }
 dependencies = [
     { name = "cowbird-core" },
 ]
