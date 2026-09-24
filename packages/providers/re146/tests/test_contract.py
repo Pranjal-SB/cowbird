@@ -68,6 +68,16 @@ async def test_a_404_from_storage_is_gone():
         await Re146(http).get(ADDRESS, MESSAGE_ID)
 
 
+async def test_a_body_in_a_charset_python_does_not_know_is_drift_not_a_crash():
+    source = (
+        "From: a@b.test\nSubject: x\nContent-Type: text/html; charset=x-no-such-charset\n\n"
+        "<p>hi</p>\n"
+    )
+    http = FakeTransport("re146", routes(**{"/storage/": source}))
+    with pytest.raises(SchemaDrift):
+        await Re146(http).get(ADDRESS, MESSAGE_ID)
+
+
 async def test_a_list_that_is_not_an_array_is_drift():
     http = FakeTransport("re146", routes(**{"/api/messages/": {"changed": True}}))
     with pytest.raises(SchemaDrift):

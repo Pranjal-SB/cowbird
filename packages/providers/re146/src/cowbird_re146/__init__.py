@@ -38,7 +38,14 @@ def _at(value: object) -> datetime | None:
 
 def _body(parsed: email.message.EmailMessage, subtype: str) -> str:
     part = parsed.get_body(preferencelist=(subtype,))
-    return part.get_content() if part is not None else ""
+    if part is None:
+        return ""
+    try:
+        return part.get_content()
+    except LookupError as exc:
+        raise SchemaDrift(
+            "re146", expected="a body in a charset Python knows", got=part.get_content_charset()
+        ) from exc
 
 
 class Re146(Provider):
