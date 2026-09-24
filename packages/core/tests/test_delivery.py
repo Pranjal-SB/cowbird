@@ -13,7 +13,10 @@ Two senders, because they prove different things:
   end to end: generate, deliver, poll, list, body-read, parse, extract links.
   What it cannot prove is OTP extraction, because the message content belongs
   to them. It allows about a dozen sends per network per day, one per
-  provider, so run it once, not in a loop.
+  provider, so run it once, not in a loop. When it cannot send, xeramail's
+  test mail stands in. It is rationed too (a 429 after about seven sends) and
+  carries no link, so that run proves delivery and body-read without link
+  extraction.
 - **SMTP**, when credentials are configured, sends a body we control, which is
   the only way to prove `otp()` returns the code that was actually sent.
 
@@ -36,6 +39,7 @@ import asyncio
 import os
 import secrets
 import smtplib
+from dataclasses import dataclass
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -59,6 +63,8 @@ JOLTMX_SENDS = "https://testemailsender.com/api/tools/test-email/sends"
 JOLTMX_HEADERS = {"referer": "https://testemailsender.com/"}
 JOLTMX_SENDER = "sendtest.joltmx.com"
 
+XERAMAIL_SEND = "https://xeramail.com/api/send-test-email"
+
 _ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
@@ -78,16 +84,28 @@ async def fresh_inbox(provider_name: str) -> tuple[Inbox, Pool]:
 # --------------------------------------------------------------------------
 
 
-async def send_via_joltmx(to: str) -> None:
+@dataclass(frozen=True)
+class Sent:
+    """What the message that was sent looks like on arrival."""
+
+    sender: str
+    phrase: str
+    link: str | None
+
+
+JOLTMX = Sent(
+    JOLTMX_SENDER, "everything is working as expected", "joltmx.com/tools/test-email/opt-out/"
+)
+XERAMAIL = Sent("test@xeramail.com", "your email address is working", None)
+
+
+async def send_via_joltmx(to: str) -> str | None:
     """Ask testemailsender.com to deliver its fixed test message to `to`.
 
     Goes through `Transport` so an anti-bot wall or a 429 surfaces as a typed
-    error. Every way this can fail is about the sender, not the provider, so
-    they all skip: the daily per-network limit (429), JoltMx itself being down,
-    and the receiving server refusing JoltMx outright (maildrop answers
-    `554 Invalid FCRDNS`). A gate that goes red because someone else's quota
-    ran out gets muted within a week, and then it is worth nothing on the day
-    it should have caught something.
+    error. Returns None once JoltMx reports it sent, or why it could not: the
+    daily per-network limit (429), JoltMx itself being down, or the receiving
+    server refusing it outright (maildrop answers `554 Invalid FCRDNS`).
     """
     http = Transport("joltmx")
     try:
@@ -102,11 +120,46 @@ async def send_via_joltmx(to: str) -> None:
                 await asyncio.sleep(5)
                 status = await http.json("GET", status_url, headers=JOLTMX_HEADERS)
         except (RateLimited, ProviderDown, CloudflareChallenge) as exc:
-            pytest.skip(f"JoltMx could not send: {exc!r}")
+            return f"JoltMx could not send: {exc!r}"
         if status["status"] == "Failed":
-            pytest.skip(f"receiving server refused JoltMx: {status.get('responseText')}")
+            return f"receiving server refused JoltMx: {status.get('responseText')}"
+        return None
     finally:
         await http.aclose()
+
+
+async def send_via_xeramail(to: str) -> str | None:
+    """Ask xeramail.com to deliver its fixed test message to `to`. It answers
+    before delivery and reports nothing after, so a refusal shows up only as
+    the message never arriving."""
+    http = Transport("xeramail")
+    try:
+        try:
+            sent = await http.json("POST", XERAMAIL_SEND, json={"to": to})
+        except (RateLimited, ProviderDown, CloudflareChallenge) as exc:
+            return f"xeramail could not send: {exc!r}"
+        if not isinstance(sent, dict) or sent.get("success") is not True:
+            return f"xeramail could not send: {sent!r}"
+        return None
+    finally:
+        await http.aclose()
+
+
+async def send_test_mail(to: str) -> Sent:
+    """JoltMx first, xeramail when JoltMx cannot send.
+
+    Every way both can fail is about the senders, not the provider, so that
+    skips. A gate that goes red because someone else's quota ran out gets
+    muted within a week, and then it is worth nothing on the day it should
+    have caught something.
+    """
+    joltmx_failed = await send_via_joltmx(to)
+    if joltmx_failed is None:
+        return JOLTMX
+    xeramail_failed = await send_via_xeramail(to)
+    if xeramail_failed is None:
+        return XERAMAIL
+    pytest.skip(f"{joltmx_failed}; {xeramail_failed}")
 
 
 @pytest.mark.parametrize("provider_name", installed_providers())
@@ -116,11 +169,11 @@ async def test_a_real_message_arrives_and_can_be_read(provider_name: str) -> Non
         # A fresh address is not an empty one. guerrillamail sends its own
         # welcome mail, and a Gmail alias is shared with whoever used it
         # before. Only a row that is new since this snapshot and comes from
-        # JoltMx is ours.
+        # the sender is ours.
         # The sender is checked on the fetched message, not the list row: a
         # row's sender can be only a display name on some backends.
         seen = {row.id for row in await box.messages()}
-        await send_via_joltmx(box.address.value)
+        sent = await send_test_mail(box.address.value)
 
         deadline = asyncio.get_running_loop().time() + DELIVERY_TIMEOUT
         message = None
@@ -130,25 +183,26 @@ async def test_a_real_message_arrives_and_can_be_read(provider_name: str) -> Non
                     continue
                 seen.add(row.id)
                 candidate = await box.get(row.id)
-                if JOLTMX_SENDER in candidate.sender:
+                if sent.sender in candidate.sender:
                     message = candidate
                     break
             else:
                 await asyncio.sleep(5)
         assert message is not None, (
-            f"{provider_name}: JoltMx reported the message delivered, but it did "
+            f"{provider_name}: {sent.sender} accepted the message, but it did "
             f"not show up within {DELIVERY_TIMEOUT:.0f}s."
         )
 
-        assert "everything is working as expected" in message.text.lower(), (
+        assert sent.phrase in message.text.lower(), (
             f"{provider_name}: body did not survive the read path intact; got "
             f"{message.text[:200]!r}"
         )
         # Every JoltMx message carries a per-recipient opt-out link. Asserting
         # it proves extract_links() ran over a real message, not a fixture.
-        assert any("joltmx.com/tools/test-email/opt-out/" in href for href in message.links), (
-            f"{provider_name}: no opt-out link extracted; got {message.links!r}"
-        )
+        if sent.link:
+            assert any(sent.link in href for href in message.links), (
+                f"{provider_name}: no {sent.link} link extracted; got {message.links!r}"
+            )
     finally:
         await box.aclose()
         await pool.registry.aclose()
