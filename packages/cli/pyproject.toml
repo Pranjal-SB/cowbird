@@ -21,6 +21,10 @@ dependencies = [
 "cowbird-re146",
 "cowbird-tempmailplus",
 "cowbird-mailticking",
+"cowbird-tempmailhub",
+"cowbird-reusableemail",
+"cowbird-disposablemail",
+"cowbird-duckmail",
 ]
 
 [project.optional-dependencies]
@@ -44,6 +48,10 @@ cowbird-temporarymail = { workspace = true }
 cowbird-re146 = { workspace = true }
 cowbird-tempmailplus = { workspace = true }
 cowbird-mailticking = { workspace = true }
+cowbird-tempmailhub = { workspace = true }
+cowbird-reusableemail = { workspace = true }
+cowbird-disposablemail = { workspace = true }
+cowbird-duckmail = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"

@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 members = [
     "cowbird",
     "cowbird-core",
+    "cowbird-disposablemail",
+    "cowbird-duckmail",
     "cowbird-emailnator",
     "cowbird-guerrillamail",
     "cowbird-inboxes",
@@ -16,7 +18,9 @@ members = [
     "cowbird-mailtm",
     "cowbird-nicemail",
     "cowbird-re146",
+    "cowbird-reusableemail",
     "cowbird-server",
+    "cowbird-tempmailhub",
     "cowbird-tempmailio",
     "cowbird-tempmailorg",
     "cowbird-tempmailplus",
@@ -313,6 +317,8 @@ version = "0.1.0"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "cowbird-core" },
+    { name = "cowbird-disposablemail" },
+    { name = "cowbird-duckmail" },
     { name = "cowbird-emailnator" },
     { name = "cowbird-guerrillamail" },
     { name = "cowbird-inboxes" },
@@ -323,6 +329,8 @@ dependencies = [
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
+    { name = "cowbird-reusableemail" },
+    { name = "cowbird-tempmailhub" },
     { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
     { name = "cowbird-tempmailplus" },
@@ -343,6 +351,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cowbird-core", editable = "packages/core" },
+    { name = "cowbird-disposablemail", editable = "packages/providers/disposablemail" },
+    { name = "cowbird-duckmail", editable = "packages/providers/duckmail" },
     { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
     { name = "cowbird-guerrillamail", editable = "packages/providers/guerrillamail" },
     { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
@@ -353,6 +363,8 @@ requires-dist = [
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
+    { name = "cowbird-reusableemail", editable = "packages/providers/reusableemail" },
+    { name = "cowbird-tempmailhub", editable = "packages/providers/tempmailhub" },
     { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
     { name = "cowbird-tempmailplus", editable = "packages/providers/tempmailplus" },
@@ -392,6 +404,32 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-disposablemail"
+version = "0.1.0"
+source = { editable = "packages/providers/disposablemail" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-duckmail"
+version = "0.1.0"
+source = { editable = "packages/providers/duckmail" }
+dependencies = [
+    { name = "cowbird-core" },
+    { name = "cowbird-mailtm" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cowbird-core", editable = "packages/core" },
+    { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
+]
 
 [[package]]
 name = "cowbird-emailnator"
@@ -504,12 +542,25 @@ dependencies = [
 requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
+name = "cowbird-reusableemail"
+version = "0.1.0"
+source = { editable = "packages/providers/reusableemail" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
 name = "cowbird-server"
 version = "0.1.0"
 source = { editable = "packages/server" }
 dependencies = [
     { name = "asyncpg" },
     { name = "cowbird-core" },
+    { name = "cowbird-disposablemail" },
+    { name = "cowbird-duckmail" },
     { name = "cowbird-emailnator" },
     { name = "cowbird-guerrillamail" },
     { name = "cowbird-inboxes" },
@@ -520,6 +571,8 @@ dependencies = [
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
+    { name = "cowbird-reusableemail" },
+    { name = "cowbird-tempmailhub" },
     { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
     { name = "cowbird-tempmailplus" },
@@ -545,6 +598,8 @@ dev = [
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "cowbird-core", editable = "packages/core" },
+    { name = "cowbird-disposablemail", editable = "packages/providers/disposablemail" },
+    { name = "cowbird-duckmail", editable = "packages/providers/duckmail" },
     { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
     { name = "cowbird-guerrillamail", editable = "packages/providers/guerrillamail" },
     { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
@@ -555,6 +610,8 @@ requires-dist = [
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
+    { name = "cowbird-reusableemail", editable = "packages/providers/reusableemail" },
+    { name = "cowbird-tempmailhub", editable = "packages/providers/tempmailhub" },
     { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
     { name = "cowbird-tempmailplus", editable = "packages/providers/tempmailplus" },
@@ -572,6 +629,17 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-tempmailhub"
+version = "0.1.0"
+source = { editable = "packages/providers/tempmailhub" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
 name = "cowbird-tempmailio"
