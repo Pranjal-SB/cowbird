@@ -7,6 +7,7 @@ markers = [
     "live: hits a real provider (skipped by default)",
     "pg: needs a Postgres at DATABASE_URL (skipped when unset)",
     "integration: needs the full compose stack up (skipped when unset)",
+    "solver: needs a Cloudflare solver at COWBIRD_SOLVER_URL (skipped when unset)",
 ]
 # Every provider package has tests/test_contract.py and tests/test_live.py.
 # Under the default import mode those identical basenames collide across
