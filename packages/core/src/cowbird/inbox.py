@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
 
@@ -60,7 +60,14 @@ class Inbox:
             self._issued.append(message.id)
             yield message
 
-    async def _first(self, extract, timeout: float, poll: float) -> str:
+    async def first(
+        self,
+        extract: Callable[[Message], str | None],
+        timeout: float = 120,
+        poll: float | None = None,
+    ) -> str:
+        """The first non-empty `extract(message)` among incoming mail, or
+        TimeoutError after `timeout` seconds."""
         async def loop():
             async for message in self.watch(poll=poll):
                 found = extract(message)
@@ -82,7 +89,7 @@ class Inbox:
     async def otp(
         self, timeout: float = 120, pattern: str | None = None, poll: float | None = None
     ) -> str:
-        return await self._first(lambda m: extract_otp(m.text, pattern), timeout, poll)
+        return await self.first(lambda m: extract_otp(m.text, pattern), timeout, poll)
 
     async def link(
         self, timeout: float = 120, match: str | None = None, poll: float | None = None
@@ -93,7 +100,7 @@ class Inbox:
                     return href
             return None
 
-        return await self._first(pick, timeout, poll)
+        return await self.first(pick, timeout, poll)
 
     async def aclose(self) -> None:
         if not self.provider.caps.delete:

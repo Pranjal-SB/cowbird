@@ -81,7 +81,7 @@ async def _wait(args: argparse.Namespace) -> int:
     if args.otp:
         print(await box.otp(timeout=args.timeout))
     else:
-        print(await box._first(lambda m: f"{m.sender}\t{m.subject}", args.timeout, None))
+        print(await box.first(lambda m: f"{m.sender}\t{m.subject}", args.timeout))
     return 0
 
 
