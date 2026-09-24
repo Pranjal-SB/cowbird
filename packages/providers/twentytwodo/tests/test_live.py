@@ -21,7 +21,9 @@ async def provider():
 async def test_generate_and_list_against_the_real_service(provider):
     address = await provider.generate()
     assert address.state
-    assert await provider.list(address) == []
+    # Not `== []`: Gmail and Outlook aliases are shared, and a fresh one can
+    # already hold mail someone else received.
+    assert isinstance(await provider.list(address), list)
 
 
 async def test_a_gmail_address_can_be_asked_for(provider):
