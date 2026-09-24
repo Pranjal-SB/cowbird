@@ -142,3 +142,21 @@ async def test_an_inbox_that_does_not_exist_yet_is_ensured_before_the_token():
     await ReusableEmail(http).list(Address("cbnew@reusable.email", "reusableemail"))
     assert len(calls(http, "/v1/inbox/ensure")) == 1
     assert len(calls(http, "/token")) == 2
+
+
+async def test_a_token_another_call_already_dropped_is_not_a_crash():
+    # Two concurrent reads of one address can both get a 401 for the same
+    # cached token. Whichever drops it second must not find it gone and crash.
+    class RacingTransport(FakeTransport):
+        async def json(self, method, url, **kw):
+            data = await super().json(method, url, **kw)
+            if method == "GET" and isinstance(data, dict) and "error" in data:
+                provider._tokens.pop(ADDRESS.value, None)
+            return data
+
+    unauthorized = Reply(401, load("unauthorized.json"))
+    http = RacingTransport(
+        "reusableemail", routes(**{LIST: Responses(unauthorized, load("inbox.json"))})
+    )
+    provider = ReusableEmail(http)
+    assert [r.id for r in await provider.list(ADDRESS)] == ["1"]

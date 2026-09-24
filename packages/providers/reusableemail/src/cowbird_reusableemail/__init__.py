@@ -97,7 +97,7 @@ class ReusableEmail(Provider):
             )
             if _status(data) != 401:
                 return data
-            del self._tokens[address.value]
+            self._tokens.pop(address.value, None)
         raise ProviderDown(f"{self.name}: a freshly minted inbox token was rejected")
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
