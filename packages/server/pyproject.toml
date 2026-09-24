@@ -19,6 +19,8 @@ dependencies = [
 "cowbird-tempmailio",
 "cowbird-temporarymail",
 "cowbird-re146",
+"cowbird-tempmailplus",
+"cowbird-mailticking",
     # slowapi reads FastAPI's route internals and has not shipped since 2023.
     # Upper bound stays until the rate-limit tests are re-run against a newer FastAPI.
     "fastapi>=0.115,<0.142",
@@ -47,6 +49,8 @@ cowbird-mailcx = { workspace = true }
 cowbird-tempmailio = { workspace = true }
 cowbird-temporarymail = { workspace = true }
 cowbird-re146 = { workspace = true }
+cowbird-tempmailplus = { workspace = true }
+cowbird-mailticking = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=77"]
