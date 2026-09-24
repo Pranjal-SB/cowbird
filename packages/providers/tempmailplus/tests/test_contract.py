@@ -42,6 +42,13 @@ async def test_the_inbox_is_read_by_address():
     assert any((kw.get("params") or {}).get("email") == ADDRESS.value for _, _, kw in http.seen)
 
 
+async def test_an_empty_inbox_is_an_empty_list():
+    http = FakeTransport(
+        "tempmailplus", routes(**{"GET https://tempmail.plus/api/mails?": load("mails_empty.json")})
+    )
+    assert await TempMailPlus(http).list(ADDRESS) == []
+
+
 async def test_get_reads_the_body_and_the_utc_date():
     message = await TempMailPlus(FakeTransport("tempmailplus", routes())).get(ADDRESS, MESSAGE_ID)
     assert message.sender == "JoltMx Delivery Test <test@sendtest.joltmx.com>"
