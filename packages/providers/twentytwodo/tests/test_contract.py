@@ -62,6 +62,14 @@ async def test_a_null_data_list_is_an_empty_inbox():
     assert await TwentyTwoDo(http).list(ADDRESS) == []
 
 
+async def test_an_empty_outlook_inbox_answers_false_and_is_still_empty():
+    # Recorded 2026-09-24: every empty Outlook inbox sampled answered false,
+    # every empty Gmail and own-domain one answered null.
+    empty = load("messages_empty_outlook.json")
+    http = FakeTransport("22do", routes(**{"/action/mailbox/message": empty}))
+    assert await TwentyTwoDo(http).list(ADDRESS) == []
+
+
 async def test_status_false_on_a_200_is_a_failure():
     refused = {"status": False, "msg": "Authentication required"}
     http = FakeTransport("22do", routes(**{"/action/mailbox/message": refused}))
