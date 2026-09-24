@@ -24,8 +24,9 @@ guerrillamail, temp-mail.org, 22.do, inboxkitten, nicemail and mail.cx within
 machine, so for those two the read path is still proven only against recorded
 fixtures. temp-mail.io, temporarymail and re146 were added the same day and
 passed `test_delivery.py` itself, JoltMx to `get()`, in 31 seconds for all
-three. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
-not declared; the three newest have not seen CLI traffic yet.
+three. tempmail.plus and mailticking followed and passed it in 8 and 38
+seconds. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
+not declared; the five newest have not seen CLI traffic yet.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
@@ -43,6 +44,8 @@ not declared; the three newest have not seen CLI traffic yet.
 | temp-mail.io | temp-mail.io | own-domain | 1d | 1d | 7 | — |
 | temporarymail | temporarymail.com | own-domain | 14d* | ? | 9 | — |
 | re146 | mail.re146.dev | own-domain | 1d | 1h | 13 | — |
+| tempmail.plus | tempmail.plus | own-domain | ? | ? | 9 | — |
+| mailticking | mailticking.com | gmail-alias | ? | ? | 2 | — |
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -120,7 +123,6 @@ is what defeats domain blocklists.
 |---|---|---|---|---|
 | tmail.io | tmail.io | forever | 1d | 4 |
 | temptom | temptom.com | forever | 1d | 15 |
-| mailticking | mailticking.com | ? | ? | 2 |
 | ghostinbox | ghostinbox.net, temp-gmail.ghostinbox.net | 1d | 1d | 10 |
 
 ## Own-domain backends
@@ -194,4 +196,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 14 ship.
+That leaves roughly 55 distinct backends, of which 16 ship.
