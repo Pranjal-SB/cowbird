@@ -53,6 +53,7 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | reusable.email | reusable.email | own-domain | forever | 90d | 1 | — |
 | disposablemail 🔗 | disposablemail.com, fakemail.net, minuteinbox.com | own-domain | 10m-1h | ? | 3 | — |
 | DuckMail 🔗 | duckmail.sbs, freetempmail.com | own-domain | 1d | ? | 19 | — |
+| smailpro 🧩 | smailpro.com | gmail-alias, outlook-alias | ? | ? | 3 | — |
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -71,6 +72,17 @@ from this machine's egress, same as on 2026-09-12, when it answered normally
 over WARP. mail.cx reads slow because its list call is a server-side
 long-poll.
 
+🧩 smailpro needs a Cloudflare solver (`COWBIRD_SOLVER_URL`, see the README):
+creating an alias and reading a body each cost one Turnstile solve, 5 to 10
+seconds each. Without a solver the pool skips it. Its page lists 43 domains,
+but the free tier only issues gmail.com, googlemail.com and outlook.com, and
+its listing gives a sender's display name without the address. It passed
+`test_delivery.py` through the solver in 43 seconds.
+
+The same solver can in principle clear 10minutemail's challenge, but on
+2026-09-25 every clearance it issued was refused on replay, so
+10minutemail still needs an egress Cloudflare does not challenge.
+
 The p50 comes from latencies the health store records as a process makes
 calls. The provider suites build their own transports, so no test run can put
 a number here; only real traffic through the CLI or the server can. `addr` and
@@ -86,7 +98,6 @@ Probed, not built. The reason is in the table.
 
 | backend | why |
 |---|---|
-| smailpro | every call needs a solved Cloudflare Turnstile token in `x-captcha` |
 | tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
 | dropmail | the free API token path closed |
 
@@ -98,12 +109,9 @@ before polling adapters were built on it. No shipped provider uses push today.
 
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
-| ⭐ smailpro | smailpro.com | gmail-alias, outlook-alias | ? | ? | 30 free, 43 total |
 | ⭐ tempr.email | tempr.email | own-domain | ? | 30d | 60 |
 
-Recon corrected both rows. smailpro's 43 domains are 2 Gmail, 9 Outlook and 32
-in the `other` pool, of which 13 are premium: an anonymous caller reaches 30.
-tempr.email serves 60 domains, not the "50+" the source list claimed and not
+Recon corrected the row. tempr.email serves 60 domains, not the "50+" the source list claimed and not
 the "50" its own page says in one place, and its 30 days is message retention,
 with address lifetime still unestablished.
 
@@ -205,4 +213,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 20 ship.
+That leaves roughly 55 distinct backends, of which 21 ship.

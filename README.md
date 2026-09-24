@@ -133,6 +133,21 @@ COWBIRD_SMTP_FROM=you@example.com
 Unset, that second test skips; the first still runs. Both are `live`-marked, so
 the offline suite is unaffected either way.
 
+## Cloudflare solver
+
+Some backends sit behind Cloudflare Turnstile. Point cowbird at a running
+[cloudflare-solver](https://github.com/B00H0O/cloudflare-solver) and they join
+the pool; leave it unset and they are skipped, with nothing else changing:
+
+```
+COWBIRD_SOLVER_URL=http://localhost:407
+```
+
+`compose.yaml` runs one for the servers, bound to loopback: it opens any URL
+it is handed, so never expose it. Tokens are bound to the IP that earned
+them, so the solver and cowbird must share an egress. Solver-backed tests are
+marked `solver` and skip when the variable is unset.
+
 ## HTTP API
 
 `cowbird-server` is a FastAPI app in `packages/server`. Run it locally with:
@@ -208,15 +223,15 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Twenty providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+Twenty-one providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
 guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
 backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
 temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
-reusable.email, disposablemail (three hosts) and DuckMail. Three from the
-seed set are parked, with the reasons
-in `docs/PROVIDERS.md`: smailpro needs a solved Cloudflare Turnstile token on
-every call, tempr.email streams its inbox over Datastar SSE and needs its own
-client, and dropmail's free API token path closed.
+reusable.email, disposablemail (three hosts), DuckMail, and smailpro (Gmail
+and Outlook, through a Cloudflare solver). Two from the seed set are parked,
+with the reasons in `docs/PROVIDERS.md`: tempr.email streams its inbox over
+Datastar SSE and needs its own client, and dropmail's free API token path
+closed.
 
 The deliverable is an HTTP API, and it ships: `cowbird-server` in
 `packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
