@@ -1,0 +1,22 @@
+{
+  "emails": [
+    {
+      "id": "imap-61417",
+      "subject": "Your verification code",
+      "senderName": "Example",
+      "senderEmail": "noreply@example.com",
+      "date": "2026-09-24T12:31:42+00:00",
+      "body": "<p style=\"margin:0; padding-bottom:1em; text-align:center\">Your verification code is 482913.</p><p style=\"margin:0; text-align:center\">It expires in 10 minutes.</p>",
+      "formattedDate": "24-09-2026 12:31:42"
+    },
+    {
+      "id": "imap-61416",
+      "subject": "Confirm your address",
+      "senderName": "Example Team",
+      "senderEmail": "team@example.com",
+      "date": "2026-09-24T12:30:34+00:00",
+      "body": "<a href=\"https://example.com/confirm?t=fixture\" style=\"display: inline-block; background: #0099ff; color: #ffffff;\" target=\"_blank\" rel=\"noopener noreferrer\">\r\n                Confirm your address\r\n              </a>",
+      "formattedDate": "24-09-2026 12:30:34"
+    }
+  ]
+}
