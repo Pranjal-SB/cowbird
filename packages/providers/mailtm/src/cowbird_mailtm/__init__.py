@@ -18,7 +18,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import ClassVar
 
-from cowbird.errors import NotSupported, ProviderDown, SchemaDrift
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -127,7 +127,18 @@ class MailTm(Provider):
         ]
 
     async def get(self, address: Address, id: str) -> Message:
-        row = await self.http.json("GET", f"{self.api}/messages/{id}", headers=self._auth(address))
+        resp = await self.http.send("GET", f"{self.api}/messages/{id}", headers=self._auth(address))
+        # An expired or deleted message is a 404 with a JSON error body.
+        if resp.status_code == 404:
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        try:
+            row = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(
+                self.name, expected="a message document", got=resp.text[:200]
+            ) from exc
+        if not isinstance(row, dict):
+            raise SchemaDrift(self.name, expected="a message document", got=row)
         html = "".join(row.get("html") or [])
         return Message(
             id=_field(row, "id", "a message document"),
