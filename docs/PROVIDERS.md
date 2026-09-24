@@ -16,24 +16,27 @@ its listed aliases
 
 Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
 are additionally proven end to end by `packages/core/tests/test_delivery.py`,
-a `live`-marked suite. The eight newer providers are covered by that same
-suite but it has not been run against them; their read path is proven only
-against recorded fixtures, and their live canaries stop at `generate()` +
-`list()`. P50 is measured, from a real `cowbird providers` run on 2026-09-07,
+a `live`-marked suite. Of the eight newer providers, six were proven by hand on
+2026-09-24: a test mail sent from testemailsender.com (JoltMx) arrived in
+guerrillamail, temp-mail.org, 22.do, inboxkitten, nicemail and mail.cx within
+33 seconds and read back through `get()`. maildrop rejects that sender with
+`554 Invalid FCRDNS`, and 10minutemail could not issue an address from this
+machine, so for those two the read path is still proven only against recorded
+fixtures. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
 not declared.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
-| mail.tm | mail.tm | own-domain | forever | 7d | 1 | 1.4s |
-| emailnator | emailnator.com | gmail-alias | forever | 1d | 6 | 2.3s |
+| mail.tm | mail.tm | own-domain | forever | 7d | 1 | 1.2s |
+| emailnator | emailnator.com | gmail-alias | forever | 1d | 6 | 1.1s |
 | inboxes | inboxes.com | own-domain | forever | 7d | 18 | 0.0s |
-| guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | own-domain | 1h | 1h | 11 | — |
-| temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | 1 | — |
-| 22.do | 22.do | gmail-alias, outlook-alias, own-domain | 1d | 1d | 3 | — |
-| maildrop 🔗 | maildrop.cc, trashmail.ws | own-domain | forever | 1d | 1 | — |
-| inboxkitten | inboxkitten.com | own-domain | forever | 1d | 1 | — |
-| nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | — |
-| mail.cx | mail.cx | own-domain | forever | 1h | 3 | — |
+| guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | own-domain | 1h | 1h | 11 | 0.4s |
+| temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | 1 | 0.4s |
+| 22.do | 22.do | gmail-alias, outlook-alias, own-domain | 1d | 1d | 3 | 0.9s |
+| maildrop 🔗 | maildrop.cc, trashmail.ws | own-domain | forever | 1d | 1 | 0.2s |
+| inboxkitten | inboxkitten.com | own-domain | forever | 1d | 1 | 0.6s |
+| nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | 0.9s |
+| mail.cx | mail.cx | own-domain | forever | 1h | 3 | 13.3s |
 | 10minutemail | 10minutemail.com | own-domain | 10m | 10m | 1 | — |
 
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
@@ -41,10 +44,15 @@ local-part and a domain and returns, which is where the 0.0s comes from. It
 also accepts a custom local-part, as do maildrop, inboxkitten, nicemail and
 mail.cx. emailnator and mail.tm do not.
 
-The eight newest have no p50 yet. The median comes from latencies the health
-store records as a process makes calls, and the provider suites build their own
-transports, so no test run can put a number here — only real traffic through
-the CLI or the server can. `addr` and `msg` for these eight are what the
+10minutemail has no p50. On the 2026-09-24 run it drew a Cloudflare challenge
+from this machine's egress, same as on 2026-09-12, when it answered normally
+over WARP. mail.cx reads slow because its list call is a server-side
+long-poll.
+
+The p50 comes from latencies the health store records as a process makes
+calls. The provider suites build their own transports, so no test run can put
+a number here; only real traffic through the CLI or the server can. `addr` and
+`msg` for the eight newer providers are what the
 adapter declares, which is what routing acts on. Two differ from the recon rows
 they replace: mail.cx retains a message for an hour rather than the twelve the
 site suggested, and temp-mail.org issues from one domain, not the unknown count

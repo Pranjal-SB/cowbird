@@ -38,10 +38,18 @@ $ uv run cowbird new --gmail
 cb.example.two@gmail.com	emailnator	ttl forever
 
 $ uv run cowbird providers
-PROVIDER        STATUS        P50      KIND                      SITES
-emailnator      ok            2.3s     gmail-alias               emailnator.com
-inboxes         ok            0.0s     own-domain                inboxes.com
-mailtm          ok            1.4s     own-domain                mail.tm
+PROVIDER        STATUS        P50      KIND                                  SITES
+10minutemail    ok            -        own-domain                            10minutemail.com
+22do            ok            0.9s     gmail-alias,outlook-alias,own-domain  22.do
+emailnator      ok            1.5s     gmail-alias                           emailnator.com
+guerrillamail   ok            0.5s     own-domain                            guerrillamail.com,sharklasers.com,cs.email,dismail.top
+inboxes         slow          0.2s     own-domain                            inboxes.com
+inboxkitten     ok            0.6s     own-domain                            inboxkitten.com
+mailcx          ok            14.4s    own-domain                            mail.cx
+maildrop        ok            0.2s     own-domain                            maildrop.cc
+mailtm          ok            1.0s     own-domain                            mail.tm
+nicemail        ok            1.3s     own-domain                            nicemail.cc
+tempmailorg     ok            0.5s     own-domain                            temp-mail.org,10minemail.com
 ```
 
 `--json` includes `state`: some providers (mail.tm included) bind an inbox to
@@ -65,10 +73,17 @@ a real user never sees, so only a schema drift turns it red.
 
 ```
 $ uv run cowbird canary
+10minutemail	down
+22do	ok
 emailnator	ok
-inboxes	ok
-mailtm	ok
+guerrillamail	ok
+...
 ```
+
+`down` is the provider being unreachable from here (10minutemail was answering
+with a Cloudflare challenge). `quarantined` means drift: the backend returned
+a shape its adapter does not accept, and the provider stays out of routing
+until someone clears it.
 
 ## Push
 
@@ -141,6 +156,7 @@ POST   /v1/webhooks                    one-shot, SSRF-guarded
 GET    /v1/webhooks
 DELETE /v1/webhooks/{id}
 GET    /v1/providers                   health matrix
+DELETE /v1/providers/{name}/quarantine clear a quarantine by hand
 GET    /health                         liveness, unauthenticated
 ```
 
@@ -186,7 +202,7 @@ to `Address` / `MessageRow` / `Message`. Target size is around 40 lines of
 actual protocol knowledge. If an adapter is doing session handling, backoff,
 or its own HTTP client, that belongs in core instead.
 
-`docs/PROVIDERS.md` has the backlog of ~60 known backends: which ship, which
+`docs/PROVIDERS.md` has the backlog of ~55 known backends: which ship, which
 are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
