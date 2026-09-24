@@ -25,8 +25,11 @@ machine, so for those two the read path is still proven only against recorded
 fixtures. temp-mail.io, temporarymail and re146 were added the same day and
 passed `test_delivery.py` itself, JoltMx to `get()`, in 31 seconds for all
 three. tempmail.plus and mailticking followed and passed it in 8 and 38
-seconds. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
-not declared; the five newest have not seen CLI traffic yet.
+seconds. disposablemail and DuckMail passed it through the xeramail
+fallback after JoltMx's daily quota ran out; tempmailhub and
+reusable.email passed their live read tests against inboxes that already
+held mail. P50 is measured, from a real `cowbird providers` run on
+2026-09-24, not declared; the nine newest have not seen CLI traffic yet.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
@@ -46,10 +49,17 @@ not declared; the five newest have not seen CLI traffic yet.
 | re146 | mail.re146.dev | own-domain | 1d | 1h | 13 | — |
 | tempmail.plus | tempmail.plus | own-domain | ? | ? | 9 | — |
 | mailticking | mailticking.com | gmail-alias | ? | ? | 2 | — |
+| tempmailhub | tempmailhub.org | gmail-alias | 15m | ? | 1 | — |
+| reusable.email | reusable.email | own-domain | forever | 90d | 1 | — |
+| disposablemail 🔗 | disposablemail.com, fakemail.net, minuteinbox.com | own-domain | 10m-1h | ? | 3 | — |
+| DuckMail 🔗 | duckmail.sbs, freetempmail.com | own-domain | 1d | ? | 19 | — |
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
-serves 7 domains today, not the 12 recorded in recon.
+serves 7 domains today, not the 12 recorded in recon. tempmailhub hands out
+whole Gmail accounts from a shared pool, so its inboxes already hold other
+people's mail. reusable.email inboxes are public: use an unguessable local
+part. DuckMail speaks the mail.tm API and reuses that adapter.
 
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
 local-part and a domain and returns, which is where the 0.0s comes from. It
@@ -132,10 +142,11 @@ is what defeats domain blocklists.
 | yopmail | yopmail.com | forever | 8d | 100+ |
 | mailnesia | mailnesia.com | forever | 2d | 1 |
 | generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ |
-| disposablemail 🔗 | disposablemail.com, fakemail.net | 14d | 14d | 1 |
 | mintemail 🔗 | mintemail.com, tempail.com | 1h | 1h | 1 |
 | anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 |
-| emailondeck 🔗 | emailondeck.com, emailtemp.org, haribu.net, tempmaili.com | ? | ? | 1 |
+| emailondeck | emailondeck.com | ? | ? | 1 |
+| tmail (Laravel) 🔗 | emailtemp.org, emailgenerator.org | ? | ? | 1 |
+| haribu | haribu.net | ? | ? | 1 |
 | altaddress | altaddress.org | forever | 3d | 14 |
 | driftz | driftz.net | ? | ? | 23 |
 | moakt | moakt.com | 1h | 1h | 13 |
@@ -149,7 +160,6 @@ is what defeats domain blocklists.
 | vmail.dev | vmail.dev | 1d | 1d | 2 |
 | duckspam | duckspam.com | forever | forever | 1 |
 | tempemail.cc | tempemail.cc | forever | forever | 1 |
-| reusable.email | reusable.email | forever | forever | 1 |
 | mohmal | mohmal.com | 45m | 45m | 1 |
 | adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 |
 | tempmailo | tempmailo.com | 2d | 2d | ? |
@@ -162,7 +172,6 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 | backend | sites |
 |---|---|
 | muellmail | muellmail.com |
-| minuteinbox | minuteinbox.com |
 | linshi | linshi-email.com |
 
 ## .edu tier
@@ -196,4 +205,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 16 ship.
+That leaves roughly 55 distinct backends, of which 20 ship.

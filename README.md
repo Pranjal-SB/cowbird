@@ -208,10 +208,12 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Sixteen providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+Twenty providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
 guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
 backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
-temporarymail, re146, tempmail.plus and mailticking (Gmail aliases). Three from the seed set are parked, with the reasons
+temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
+reusable.email, disposablemail (three hosts) and DuckMail. Three from the
+seed set are parked, with the reasons
 in `docs/PROVIDERS.md`: smailpro needs a solved Cloudflare Turnstile token on
 every call, tempr.email streams its inbox over Datastar SSE and needs its own
 client, and dropmail's free API token path closed.
