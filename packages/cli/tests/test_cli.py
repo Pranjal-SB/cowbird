@@ -195,6 +195,16 @@ def test_wait_timeout_exits_2_and_writes_to_stderr_not_stdout(fake_pool, capsys)
     assert "timeout" in captured.err
 
 
+def test_wait_without_otp_still_honours_timeout(fake_pool, capsys):
+    from cowbird_cli import main
+
+    code = main(["wait", "a@fake.test", "--provider", "fake", "--timeout", "0.05"])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert "timeout" in captured.err
+
+
 def test_wait_cowbird_error_exits_1_and_writes_to_stderr(fake_pool, capsys):
     from cowbird_cli import main
 
