@@ -49,6 +49,7 @@ from cowbird.health import HealthStore
 from cowbird.inbox import Inbox
 from cowbird.pool import Pool, Request
 from cowbird.registry import Registry
+from cowbird.solver import Solver
 from cowbird.transport import Transport
 
 pytestmark = pytest.mark.live
@@ -74,7 +75,10 @@ def installed_providers() -> list[str]:
 
 async def fresh_inbox(provider_name: str) -> tuple[Inbox, Pool]:
     health = HealthStore()
-    pool = Pool(Registry(health=health), health)
+    registry = Registry(health=health, solver=Solver.from_env())
+    if registry.get(provider_name).caps.needs_solver and registry.solver is None:
+        pytest.skip(f"{provider_name} needs COWBIRD_SOLVER_URL")
+    pool = Pool(registry, health)
     provider, address = await pool.acquire(Request(provider=provider_name))
     return Inbox(provider, address), pool
 
@@ -183,7 +187,9 @@ async def test_a_real_message_arrives_and_can_be_read(provider_name: str) -> Non
                     continue
                 seen.add(row.id)
                 candidate = await box.get(row.id)
-                if sent.sender in candidate.sender:
+                # Some backends give only a display name (smailpro drops the
+                # address), so the sender's known body text identifies it too.
+                if sent.sender in candidate.sender or sent.phrase in candidate.text.lower():
                     message = candidate
                     break
             else:

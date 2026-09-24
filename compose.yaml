@@ -19,6 +19,20 @@ services:
       timeout: 3s
       retries: 15
 
+  # Optional Cloudflare solver (MIT, github.com/B00H0O/cloudflare-solver),
+  # pinned to a commit. Loopback only: it drives a browser to any URL it is
+  # handed, so exposing it is an open SSRF. Tokens and cookies it earns are
+  # bound to this host's IP, which the servers share.
+  solver:
+    build: https://github.com/B00H0O/cloudflare-solver.git#ce75d714925eef17f913ad6b4c16252bec090739
+    ports:
+      - "127.0.0.1:407:407"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:407/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   server-1: &server
     build: .
     # WEBHOOK_ALLOW_PRIVATE is on for both servers here and must not be in a
@@ -31,9 +45,13 @@ services:
       INSTANCE_ID: backend-1
       HEALTH_FLUSH_SECONDS: "2"
       WEBHOOK_ALLOW_PRIVATE: "1"
+      COWBIRD_SOLVER_URL: http://solver:407
     depends_on:
       postgres:
         condition: service_healthy
+      # Started, not healthy: a server must still boot with the solver down.
+      solver:
+        condition: service_started
     ports:
       - "8001:8000"
 
@@ -45,6 +63,7 @@ services:
       INSTANCE_ID: backend-2
       HEALTH_FLUSH_SECONDS: "2"
       WEBHOOK_ALLOW_PRIVATE: "1"
+      COWBIRD_SOLVER_URL: http://solver:407
     ports:
       - "8002:8000"
 

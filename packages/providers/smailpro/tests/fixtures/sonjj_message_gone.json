@@ -1,0 +1,8 @@
+{
+  "detail": {
+    "error": {
+      "code": 400,
+      "message": "Message not found!"
+    }
+  }
+}

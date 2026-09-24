@@ -12,6 +12,7 @@ from cowbird.parsing import extract_otp
 from cowbird.pool import Pool, Request
 from cowbird.provider import Provider
 from cowbird.registry import Registry
+from cowbird.solver import Solver
 
 _DEFAULT_POOL: Pool | None = None
 
@@ -22,7 +23,7 @@ def default_pool() -> Pool:
         health = HealthStore()
         # The registry is handed the same store the pool routes on, so every
         # provider call — not just generate() — feeds routing decisions.
-        _DEFAULT_POOL = Pool(Registry(health=health), health)
+        _DEFAULT_POOL = Pool(Registry(health=health, solver=Solver.from_env()), health)
     return _DEFAULT_POOL
 
 
