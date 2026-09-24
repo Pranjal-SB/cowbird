@@ -12,6 +12,7 @@ members = [
     "cowbird-inboxkitten",
     "cowbird-mailcx",
     "cowbird-maildrop",
+    "cowbird-mailticking",
     "cowbird-mailtm",
     "cowbird-nicemail",
     "cowbird-re146",
@@ -318,6 +319,7 @@ dependencies = [
     { name = "cowbird-inboxkitten" },
     { name = "cowbird-mailcx" },
     { name = "cowbird-maildrop" },
+    { name = "cowbird-mailticking" },
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
@@ -347,6 +349,7 @@ requires-dist = [
     { name = "cowbird-inboxkitten", editable = "packages/providers/inboxkitten" },
     { name = "cowbird-mailcx", editable = "packages/providers/mailcx" },
     { name = "cowbird-maildrop", editable = "packages/providers/maildrop" },
+    { name = "cowbird-mailticking", editable = "packages/providers/mailticking" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
@@ -457,6 +460,17 @@ dependencies = [
 requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
+name = "cowbird-mailticking"
+version = "0.1.0"
+source = { editable = "packages/providers/mailticking" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
 name = "cowbird-mailtm"
 version = "0.1.0"
 source = { editable = "packages/providers/mailtm" }
@@ -502,6 +516,7 @@ dependencies = [
     { name = "cowbird-inboxkitten" },
     { name = "cowbird-mailcx" },
     { name = "cowbird-maildrop" },
+    { name = "cowbird-mailticking" },
     { name = "cowbird-mailtm" },
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
@@ -536,6 +551,7 @@ requires-dist = [
     { name = "cowbird-inboxkitten", editable = "packages/providers/inboxkitten" },
     { name = "cowbird-mailcx", editable = "packages/providers/mailcx" },
     { name = "cowbird-maildrop", editable = "packages/providers/maildrop" },
+    { name = "cowbird-mailticking", editable = "packages/providers/mailticking" },
     { name = "cowbird-mailtm", editable = "packages/providers/mailtm" },
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
