@@ -1,0 +1,8 @@
+{
+  "hydra:member": [],
+  "hydra:totalItems": 0,
+  "hydra:view": {
+    "@id": "/messages",
+    "@type": "PartialCollectionView"
+  }
+}

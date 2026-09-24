@@ -1,0 +1,14 @@
+{
+  "inbox": {
+    "address": "cb39171a1b00@reusable.email",
+    "domain": "reusable.email"
+  },
+  "emails": [],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}

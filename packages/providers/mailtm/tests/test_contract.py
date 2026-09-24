@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 from cowbird.contract import ProviderContract
-from cowbird.errors import NotSupported, ProviderDown, SchemaDrift
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.provider import GenerateOptions
-from cowbird.testing import FakeTransport
+from cowbird.testing import FakeTransport, Reply
 from cowbird_mailtm import MailTm
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -125,3 +125,13 @@ async def test_delete_on_500_raises_provider_down_via_retry_path():
 
     with pytest.raises(ProviderDown):
         await MailTm(FailingTransport()).delete(_address_with_token(), "m1")
+
+
+async def test_a_message_that_has_expired_is_gone_not_drift():
+    # mail.tm answers an expired or deleted message with a 404 JSON error.
+    # That is the message's fault, not the backend's, so it must not count
+    # against the provider's health.
+    missing = Reply(404, {"code": 404, "message": "Not Found"})
+    http = fake({**DEFAULT_ROUTES, "/messages/6a1f2c9e4b7d": missing})
+    with pytest.raises(MessageGone):
+        await MailTm(http).get(_address_with_token(), "6a1f2c9e4b7d")

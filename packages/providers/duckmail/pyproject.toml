@@ -1,0 +1,20 @@
+[project]
+name = "cowbird-duckmail"
+version = "0.1.0"
+requires-python = ">=3.12"
+license = "AGPL-3.0-or-later"
+dependencies = ["cowbird-core", "cowbird-mailtm"]
+
+[project.entry-points."cowbird.providers"]
+"duckmail" = "cowbird_duckmail:DuckMail"
+
+[tool.uv.sources]
+cowbird-core = { workspace = true }
+cowbird-mailtm = { workspace = true }
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

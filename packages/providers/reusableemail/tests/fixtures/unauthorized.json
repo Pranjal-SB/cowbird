@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Inbox requires token — obtain one via POST /v1/inbox/:address/token",
+    "code": "UNAUTHORIZED",
+    "status": 401,
+    "auth_type": "captcha"
+  }
+}

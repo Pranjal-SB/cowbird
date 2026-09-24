@@ -1,0 +1,12 @@
+{
+  "source": "smtp",
+  "status": "active",
+  "id": "7d8ff38f5fa88851d8e19b0fb1e33496",
+  "address": "cb287d0098f3@niceground.shop",
+  "isActive": true,
+  "isSilenced": false,
+  "authType": "email",
+  "expiresAt": "2026-09-25T12:42:20.490613Z",
+  "createdAt": "2026-09-24T12:42:20.4908Z",
+  "updatedAt": "2026-09-24T12:42:20.4908Z"
+}

@@ -16,8 +16,9 @@ from __future__ import annotations
 import json
 import secrets
 from datetime import datetime, timedelta
+from typing import ClassVar
 
-from cowbird.errors import NotSupported, ProviderDown, SchemaDrift
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -64,6 +65,7 @@ def _at(row: dict) -> datetime | None:
 
 class MailTm(Provider):
     name = "mailtm"
+    api: ClassVar[str] = API
     caps = Capabilities(
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=("mail.tm",),
@@ -81,34 +83,39 @@ class MailTm(Provider):
 
     async def generate(self, opts: GenerateOptions | None = None) -> Address:
         opts = opts or GenerateOptions()
-        domains_payload = await self.http.json("GET", f"{API}/domains")
-        domains = [d["domain"] for d in _list(domains_payload, "domains")]
+        domains_payload = await self.http.json("GET", f"{self.api}/domains")
+        domains = [d["domain"] for d in self._rows(domains_payload, "domains")]
         if opts.domain and opts.domain not in domains:
             # A caller asking for a domain this backend does not serve is a caller
             # error, not upstream drift. Raising SchemaDrift here would quarantine
             # a perfectly healthy provider because someone passed a typo.
-            raise NotSupported(f"mailtm does not serve {opts.domain}; has {domains}")
+            raise NotSupported(f"{self.name} does not serve {opts.domain}; has {domains}")
         local = opts.local or f"cb{secrets.token_hex(5)}"
         value = f"{local}@{opts.domain or domains[0]}"
         password = secrets.token_urlsafe(16)
 
         await self.http.json(
-            "POST", f"{API}/accounts", json={"address": value, "password": password}
+            "POST", f"{self.api}/accounts", json={"address": value, "password": password}
         )
         auth = await self.http.json(
-            "POST", f"{API}/token", json={"address": value, "password": password}
+            "POST", f"{self.api}/token", json={"address": value, "password": password}
         )
         if "token" not in auth:
-            raise SchemaDrift("mailtm", expected="token in /token", got=list(auth))
+            raise SchemaDrift(self.name, expected="token in /token", got=list(auth))
         state = _pack(value, password, auth["token"])
         return Address(value=value, provider=self.name, state=state)
+
+    def _rows(self, payload: object, where: str) -> list:
+        """The rows of a list endpoint. A hook so a mail.tm clone that wraps
+        them in an envelope can unwrap it."""
+        return _list(payload, where)
 
     def _auth(self, address: Address) -> dict[str, str]:
         return {"Authorization": f"Bearer {_unpack(address.state)['token']}"}
 
     async def list(self, address: Address) -> list[MessageRow]:
-        payload = await self.http.json("GET", f"{API}/messages", headers=self._auth(address))
-        rows = _list(payload, "messages")
+        payload = await self.http.json("GET", f"{self.api}/messages", headers=self._auth(address))
+        rows = self._rows(payload, "messages")
         return [
             MessageRow(
                 id=_field(row, "id", "a message row"),
@@ -120,7 +127,18 @@ class MailTm(Provider):
         ]
 
     async def get(self, address: Address, id: str) -> Message:
-        row = await self.http.json("GET", f"{API}/messages/{id}", headers=self._auth(address))
+        resp = await self.http.send("GET", f"{self.api}/messages/{id}", headers=self._auth(address))
+        # An expired or deleted message is a 404 with a JSON error body.
+        if resp.status_code == 404:
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        try:
+            row = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(
+                self.name, expected="a message document", got=resp.text[:200]
+            ) from exc
+        if not isinstance(row, dict):
+            raise SchemaDrift(self.name, expected="a message document", got=row)
         html = "".join(row.get("html") or [])
         return Message(
             id=_field(row, "id", "a message document"),
@@ -137,7 +155,7 @@ class MailTm(Provider):
         # self.http.json() would try json.loads("") and raise SchemaDrift on
         # the success path, so use send() to see the status instead.
         resp = await self.http.send(
-            "DELETE", f"{API}/messages/{id}", headers=self._auth(address)
+            "DELETE", f"{self.api}/messages/{id}", headers=self._auth(address)
         )
         if resp.status_code < 300:
             return
@@ -151,4 +169,4 @@ class MailTm(Provider):
         # message; any other 4xx is unexpected. Both are ProviderDown
         # (reroutable) rather than surfaced to the caller as though the
         # message itself were the problem.
-        raise ProviderDown(f"mailtm: delete failed, HTTP {resp.status_code}")
+        raise ProviderDown(f"{self.name}: delete failed, HTTP {resp.status_code}")

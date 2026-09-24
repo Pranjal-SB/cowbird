@@ -1,0 +1,35 @@
+{
+  "inbox": {
+    "address": "cb4e5581de14@reusable.email",
+    "domain": "reusable.email"
+  },
+  "emails": [
+    {
+      "id": 1,
+      "from": {
+        "address": "test@sendtest.joltmx.com",
+        "name": "JoltMx Delivery Test"
+      },
+      "to": [
+        {
+          "address": "cb4e5581de14@reusable.email",
+          "name": ""
+        }
+      ],
+      "subject": "JoltMx test email (ref 01a0d377706d)",
+      "date": "2026-09-24T12:50:15.000Z",
+      "intro": "THIS IS A TEST EMAIL FROM JOLTMX Someone — most likely you, or a person checking email delivery to this address — used the free…",
+      "hasAttachments": false,
+      "seen": false,
+      "views": 0,
+      "thread": "6ab51c8b1ed4c79a473b1723"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
