@@ -38,6 +38,11 @@ async def run_canary(registry: Registry, health: HealthStore) -> dict[str, str]:
     """
     results: dict[str, str] = {}
     for provider in registry.all():
+        # Never equipped to reach it: reporting "down" would be a lie that
+        # sticks to the provider's health.
+        if provider.caps.needs_solver and registry.solver is None:
+            results[provider.name] = "skipped"
+            continue
         try:
             address = await provider.generate(GenerateOptions())
             await provider.list(address)

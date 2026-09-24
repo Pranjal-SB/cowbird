@@ -8,7 +8,7 @@ from cowbird.health import HealthStore, Status
 from cowbird.models import Address, Kind
 from cowbird.pool import Pool, Request
 from cowbird.registry import Registry
-from cowbird.testing import CAPS, FakeProvider
+from cowbird.testing import CAPS, FakeProvider, FakeSolver
 
 
 def provider_class(name, caps=CAPS, fails=None, returns=None):
@@ -196,3 +196,26 @@ async def test_blocked_domain_match_is_case_insensitive():
     pool = build(provider, provider_class("clean"))
     result_provider, _ = await pool.acquire(Request(domain_not_in=("spam.test",)))
     assert result_provider.name == "clean"
+
+
+def _pool_with(cls, solver=None) -> Pool:
+    health = HealthStore()
+    registry = Registry(
+        discover=False, health=health, transport_factory=lambda n: None, solver=solver
+    )
+    registry.register(cls)
+    return Pool(registry, health)
+
+
+async def test_a_provider_that_needs_a_solver_is_skipped_without_one():
+    pool = _pool_with(provider_class("walled", caps=replace(CAPS, needs_solver=True)))
+    with pytest.raises(NoProviderAvailable):
+        await pool.acquire(Request())
+
+
+async def test_a_provider_that_needs_a_solver_is_eligible_with_one():
+    pool = _pool_with(
+        provider_class("walled", caps=replace(CAPS, needs_solver=True)), solver=FakeSolver()
+    )
+    provider, _ = await pool.acquire(Request())
+    assert provider.name == "walled"

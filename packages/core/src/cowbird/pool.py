@@ -46,6 +46,8 @@ class Pool:
         caps = provider.caps
         if self.health.status(provider.name) not in ROUTABLE:
             return False
+        if caps.needs_solver and self.registry.solver is None:
+            return False
         if req.kind is not None and not caps.serves(req.kind):
             return False
         if req.push is not None and caps.push != req.push:
