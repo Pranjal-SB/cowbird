@@ -13,7 +13,7 @@ from cowbird_tempmailhub import TempMailHub
 FIXTURES = Path(__file__).parent / "fixtures"
 API = "https://api.tempmailhub.org"
 MESSAGE_ID = "imap-61417"
-ADDRESS = Address("Josephgrant651@gmail.com", "tempmailhub")
+ADDRESS = Address("pool.account.two@gmail.com", "tempmailhub")
 
 
 # messages.json keeps the recorded row shape, but its content is synthetic:
@@ -40,7 +40,7 @@ class TestTempMailHubContract(ProviderContract):
 
 async def test_generate_hands_out_a_gmail_address():
     address = await TempMailHub(FakeTransport("tempmailhub", routes())).generate()
-    assert address.value == "cobbroy42@gmail.com"
+    assert address.value == "pool.account.one@gmail.com"
     assert address.state is None
 
 
