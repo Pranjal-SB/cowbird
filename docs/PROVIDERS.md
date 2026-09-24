@@ -22,8 +22,10 @@ guerrillamail, temp-mail.org, 22.do, inboxkitten, nicemail and mail.cx within
 33 seconds and read back through `get()`. maildrop rejects that sender with
 `554 Invalid FCRDNS`, and 10minutemail could not issue an address from this
 machine, so for those two the read path is still proven only against recorded
-fixtures. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
-not declared.
+fixtures. temp-mail.io, temporarymail and re146 were added the same day and
+passed `test_delivery.py` itself, JoltMx to `get()`, in 31 seconds for all
+three. P50 is measured, from a real `cowbird providers` run on 2026-09-24,
+not declared; the three newest have not seen CLI traffic yet.
 
 | backend | sites | kind | addr | msg | domains | p50 |
 |---|---|---|---|---|---|---|
@@ -38,6 +40,13 @@ not declared.
 | nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | 0.9s |
 | mail.cx | mail.cx | own-domain | forever | 1h | 3 | 13.3s |
 | 10minutemail | 10minutemail.com | own-domain | 10m | 10m | 1 | — |
+| temp-mail.io | temp-mail.io | own-domain | 1d | 1d | 7 | — |
+| temporarymail | temporarymail.com | own-domain | 14d* | ? | 9 | — |
+| re146 | mail.re146.dev | own-domain | 1d | 1h | 13 | — |
+
+`temporarymail` addresses persist only if used once every 14 days. re146's
+domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
+serves 7 domains today, not the 12 recorded in recon.
 
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
 local-part and a domain and returns, which is where the 0.0s comes from. It
@@ -65,7 +74,7 @@ Probed, not built. The reason is in the table.
 | backend | why |
 |---|---|
 | smailpro | every call needs a solved Cloudflare Turnstile token in `x-captcha` |
-| tempr.email | the message-read endpoint was never observed, only list |
+| tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
 | dropmail | the free API token path closed |
 
 dropmail was in the seed set only because it was the one known push
@@ -92,7 +101,6 @@ Next in line once the interface holds.
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
 | ⭐ zemail | zemail.me | gmail-alias | forever | 1d | 7 |
-| ⭐ temp-mail.io | temp-mail.io | own-domain | 1d | 1d | 12 |
 
 ## Self-hostable
 
@@ -131,14 +139,12 @@ is what defeats domain blocklists.
 | moakt | moakt.com | 1h | 1h | 13 |
 | temporary-mail | temporary-mail.net | forever | ? | 11 |
 | 48hr.email | 48hr.email | forever | 2d | 7 |
-| temporarymail | temporarymail.com | forever* | ? | 7 |
 | tempboxpro | tempboxpro.com | session | ? | 6 |
 | mails.org | mails.org | ? | 30m | 5 |
 | spambox | spambox.xyz | forever | 1d | 4 |
 | urtempmail | urtempmail.com | 1d | 1d | 4 |
 | xeramail | xeramail.com | 1d | 1d | 2 |
 | vmail.dev | vmail.dev | 1d | 1d | 2 |
-| re146 | mail.re146.dev | 1d | 1h | 2 |
 | duckspam | duckspam.com | forever | forever | 1 |
 | tempemail.cc | tempemail.cc | forever | forever | 1 |
 | reusable.email | reusable.email | forever | forever | 1 |
@@ -146,8 +152,6 @@ is what defeats domain blocklists.
 | adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 |
 | tempmailo | tempmailo.com | 2d | 2d | ? |
 | tmail.link | tmail.link | ? | ? | ? |
-
-`temporarymail` addresses persist only if used once every 14 days.
 
 ## Ten-minute tier
 
@@ -190,4 +194,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 11 ship.
+That leaves roughly 55 distinct backends, of which 14 ship.

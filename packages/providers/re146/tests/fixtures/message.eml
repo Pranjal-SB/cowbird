@@ -1,0 +1,71 @@
+X-JoltMx-Message-Id: 01a0d2f6-b1f7-7e30-8cfc-7d7167da5f6c
+X-JoltMx-Loop: v=2; id=01a0d2f6-b1f7-7e30-8cfc-7d7167da5f6c; hop=1; path=sendtest.joltmx.com; sig=64F07B580F0A3A0C3F2BEFEA0F0D90CB05ADBE34758D1213BF481C44B8B8E515
+X-JoltMx-Traceparent: 00-11cfd5d350ba6cb512e1c909de0c5b4c-6ec423b2c6338f82-01
+X-JoltMx-Sent-By: JoltMx.Bolter
+DKIM-Signature: v=1; a=rsa-sha256; d=sendtest.joltmx.com; s=s1;
+	c=relaxed/relaxed; t=1790245777;
+	h=from:to:subject:date:message-id:list-unsubscribe:list-unsubscribe-post;
+	bh=wHz2/1itCyQJuUqPrEKeOwXd9gwGU/NPFuNo+YSZNw0=;
+	b=okJQdphwOKJsOqFcN5Konb4SqUzXDCDbFS4M1iNwUvzWJM5C9Nu9ZBMJyS1+Kh+/4nApoUvbXwl
+	bTaQ9+ysK6ZW86wB1dtYbULMK6QCKhhorkYw7lpWPimyH1tdqbwru4wREi+GDCpGEooN1r5at1Hm4
+	nhuVwh2zMTalZZgTfVCQhvPPnRkWqyqp8s7PU78AI2iSuU6c22ZxlroXoVsEM5QCIMdHF8CcZUEQQ
+	1Hwp2sIx9kcPu1X0+DwqHNodnYUp1Q1E10+SnUh8q4+3RYpzX84EWMTig5L0FTBoPSm8Fdkhtao07
+	WaUGaX2IdDNlsdxatAhS2FvAxHsBEeLAFU2Q==
+From: JoltMx Delivery Test <test@sendtest.joltmx.com>
+Date: Thu, 24 Sep 2026 10:29:37 +0000
+Subject: JoltMx test email (ref 01a0d2f6b1f7)
+Message-Id: <01a0d2f6b1f77e308cfc7d7167da5f6c@sendtest.joltmx.com>
+To: cbbe51e1e579@zenvixsmp.xyz
+Auto-Submitted: auto-generated
+X-JoltMx-Tool: test-email
+List-Unsubscribe:
+ <https://joltmx.com/tools/test-email/opt-out/Y2JiZTUxZTFlNTc5QHplbnZpeHNtcC54eXo.18A21alrSsuHQ43VLk30r8mjaMGHY6lAeTbcyqYtm4s>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="=-ZND7MNMPbHWEOkIef4XE3A=="
+
+--=-ZND7MNMPbHWEOkIef4XE3A==
+Content-Type: text/plain; charset=utf-8
+
+This is a test email from JoltMx.
+
+Someone... most likely you, or a person checking email delivery to this
+address - used the "Send a test email" tool on joltmx.com / testemailsender.com and
+entered this address as the recipient.
+
+There is nothing to act on. This message exists only to confirm that
+email can reach this mailbox.  So if you're reading this, everything is working as expected.
+
+Reference: 01a0d2f6b1f7
+Sent: 2026-09-24 10:29:37 UTC
+
+Never want to receive a test email from this tool again? Opt out
+permanently here:
+
+https://joltmx.com/tools/test-email/opt-out/Y2JiZTUxZTFlNTc5QHplbnZpeHNtcC54eXo.18A21alrSsuHQ43VLk30r8mjaMGHY6lAeTbcyqYtm4s
+
+JoltMx — email routing and delivery
+https://joltmx.com
+--=-ZND7MNMPbHWEOkIef4XE3A==
+Content-Type: text/html; charset=utf-8
+
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, -apple-system, sans-serif; color: #1e293b; max-width: 540px; margin: 0 auto; padding: 24px;">
+  <h2 style="margin: 0 0 16px;">This is a test email from JoltMx</h2>
+  <p>Someone &mdash; most likely you, or a person checking email delivery to this
+     address &mdash; used the free <strong>&ldquo;Send a test email&rdquo;</strong> tool on
+     <a href="https://joltmx.com">joltmx.com</a> or <a href="https://testemailsender.com">testemailsender.com</a> and entered this address as the recipient.</p>
+  <p>There is nothing to act on. This message exists only to confirm that
+     email can reach this mailbox.  So if you're reading this, everything is working as expected.</p>
+  <p style="color: #64748b; font-size: 14px;">
+     Reference: 01a0d2f6b1f7<br>
+     Sent: 2026-09-24 10:29:37 UTC</p>
+  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+  <p style="font-size: 14px;">Never want to receive a test email from this tool again?
+     <a href="https://joltmx.com/tools/test-email/opt-out/Y2JiZTUxZTFlNTc5QHplbnZpeHNtcC54eXo.18A21alrSsuHQ43VLk30r8mjaMGHY6lAeTbcyqYtm4s">Opt out permanently</a>.</p>
+  <p style="color: #94a3b8; font-size: 12px;">JoltMx &mdash; email routing and delivery &middot;
+     <a href="https://joltmx.com" style="color: #94a3b8;">joltmx.com</a></p>
+</body>
+</html>
+--=-ZND7MNMPbHWEOkIef4XE3A==--

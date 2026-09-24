@@ -16,6 +16,9 @@ dependencies = [
 "cowbird-maildrop",
 "cowbird-nicemail",
 "cowbird-mailcx",
+"cowbird-tempmailio",
+"cowbird-temporarymail",
+"cowbird-re146",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +37,9 @@ cowbird-inboxkitten = { workspace = true }
 cowbird-maildrop = { workspace = true }
 cowbird-nicemail = { workspace = true }
 cowbird-mailcx = { workspace = true }
+cowbird-tempmailio = { workspace = true }
+cowbird-temporarymail = { workspace = true }
+cowbird-re146 = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"

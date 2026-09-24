@@ -1,0 +1,46 @@
+{
+ "domains": [
+  {
+   "name": "ozsaip.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7772400
+  },
+  {
+   "name": "yzcalo.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7772400
+  },
+  {
+   "name": "lnovic.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7772400
+  },
+  {
+   "name": "ruutukf.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7776000
+  },
+  {
+   "name": "gmeenramy.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7776000
+  },
+  {
+   "name": "olipii.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7776000
+  },
+  {
+   "name": "ooynib.com",
+   "type": "public",
+   "forward_available": true,
+   "forward_max_seconds": 7776000
+  }
+ ]
+}
