@@ -116,7 +116,8 @@ class TwentyTwoDo(Provider):
             {"email": address.value, "lastime": 0},
             address,
         )
-        if data is None:
+        # An empty inbox is null, except an empty Outlook one, which is false.
+        if data is None or data is False:
             return []
         if not isinstance(data, list):
             raise SchemaDrift(self.name, expected="a list or null under 'data'", got=data)
