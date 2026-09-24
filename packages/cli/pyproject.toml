@@ -25,6 +25,7 @@ dependencies = [
 "cowbird-reusableemail",
 "cowbird-disposablemail",
 "cowbird-duckmail",
+"cowbird-smailpro",
 ]
 
 [project.optional-dependencies]
@@ -52,6 +53,7 @@ cowbird-tempmailhub = { workspace = true }
 cowbird-reusableemail = { workspace = true }
 cowbird-disposablemail = { workspace = true }
 cowbird-duckmail = { workspace = true }
+cowbird-smailpro = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"
