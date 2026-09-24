@@ -109,12 +109,13 @@ never sees.
 `packages/core/tests/test_delivery.py` proves mail actually arrives. Everything
 else stops at `list()`.
 
-It asks `sendtestemail.com` to deliver a message to every installed provider,
-then reads it back: generate, deliver, poll, body-read, parse, extract links.
-No account and no key, so `uv run pytest -m live` runs it as-is. The catch is
-that sendtestemail rations its form token per IP, and the test skips rather
-than fails when it does not get one, which is often. A skip there means the
-sender was unavailable, not that a provider is broken.
+It asks testemailsender.com (JoltMx) to deliver a message to every installed
+provider, then reads it back: generate, deliver, poll, body-read, parse,
+extract links. No account and no key, so `uv run pytest -m live` runs it
+as-is. JoltMx allows about a dozen sends per network per day, which is one
+run. Past that, or when a receiving server refuses JoltMx (maildrop does), the
+test skips rather than fails. A skip there means the sender was unavailable,
+not that a provider is broken.
 
 A second test proves `otp()` returns the code that was actually sent, which
 needs a body under our control and therefore a sender we own. Any credentialed

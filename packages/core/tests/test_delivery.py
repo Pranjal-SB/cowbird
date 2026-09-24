@@ -8,10 +8,12 @@ recorded fixtures.
 
 Two senders, because they prove different things:
 
-- **sendtestemail.com** needs no credentials and no setup, so this gate runs for
-  anyone who clones the repo. It proves the whole delivery path end to end:
-  generate, deliver, poll, list, body-read, parse, extract links. What it cannot
-  prove is OTP extraction, because the message content belongs to them.
+- **testemailsender.com** (JoltMx) needs no credentials and no setup, so this
+  gate runs for anyone who clones the repo. It proves the whole delivery path
+  end to end: generate, deliver, poll, list, body-read, parse, extract links.
+  What it cannot prove is OTP extraction, because the message content belongs
+  to them. It allows about a dozen sends per network per day, one per
+  provider, so run it once, not in a loop.
 - **SMTP**, when credentials are configured, sends a body we control, which is
   the only way to prove `otp()` returns the code that was actually sent.
 
@@ -32,13 +34,13 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 import secrets
 import smtplib
 from email.message import EmailMessage
 from pathlib import Path
 
 import pytest
+from cowbird.errors import CloudflareChallenge, ProviderDown, RateLimited
 from cowbird.health import HealthStore
 from cowbird.inbox import Inbox
 from cowbird.pool import Pool, Request
@@ -53,11 +55,9 @@ pytestmark = pytest.mark.live
 # test at all.
 DELIVERY_TIMEOUT = 180.0
 
-SENDTESTEMAIL_FORM = "https://sendtestemail.com/"
-SENDTESTEMAIL_POST = "https://sendtestemail.com/?act=send-test-email"
-# The form carries a rotating hidden token. Unquoted attribute, hence the loose
-# character class.
-_TOKEN = re.compile(r"name=us value=([^\s>]+)")
+JOLTMX_SENDS = "https://testemailsender.com/api/tools/test-email/sends"
+JOLTMX_HEADERS = {"referer": "https://testemailsender.com/"}
+JOLTMX_SENDER = "sendtest.joltmx.com"
 
 _ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
@@ -78,37 +78,33 @@ async def fresh_inbox(provider_name: str) -> tuple[Inbox, Pool]:
 # --------------------------------------------------------------------------
 
 
-async def send_via_sendtestemail(to: str) -> None:
-    """Ask sendtestemail.com to deliver a message to `to`.
+async def send_via_joltmx(to: str) -> None:
+    """Ask testemailsender.com to deliver its fixed test message to `to`.
 
-    Goes through `Transport` rather than a bare client so the request gets the
-    same impersonation, retry and challenge detection every provider call does —
-    and so an anti-bot wall here surfaces as `CloudflareChallenge` rather than a
-    confusing assertion failure.
-
-    The form carries a hidden `us` token which is required: posting without it
-    returns the page as normal and silently sends nothing (verified 2026-09-07).
-    The token is also **not always offered** — after a couple of sends from one
-    IP the field disappears, which reads as a per-IP quota. That is a property of
-    their service, not a defect here, so it skips rather than fails. A gate that
-    goes red because someone else's quota ran out gets muted within a week, and
-    then it is worth nothing on the day it should have caught something.
+    Goes through `Transport` so an anti-bot wall or a 429 surfaces as a typed
+    error. Every way this can fail is about the sender, not the provider, so
+    they all skip: the daily per-network limit (429), JoltMx itself being down,
+    and the receiving server refusing JoltMx outright (maildrop answers
+    `554 Invalid FCRDNS`). A gate that goes red because someone else's quota
+    ran out gets muted within a week, and then it is worth nothing on the day
+    it should have caught something.
     """
-    http = Transport("sendtestemail")
+    http = Transport("joltmx")
     try:
-        page = await http.text("GET", SENDTESTEMAIL_FORM)
-        match = _TOKEN.search(page)
-        if not match:
-            pytest.skip(
-                "sendtestemail.com is not offering its form token right now "
-                "(per-IP quota, most likely). Configure COWBIRD_SMTP_* for a "
-                "sender that does not depend on someone else's rate limit."
+        try:
+            sent = await http.json(
+                "POST", JOLTMX_SENDS, json={"recipientEmail": to}, headers=JOLTMX_HEADERS
             )
-        await http.text(
-            "POST",
-            SENDTESTEMAIL_POST,
-            data={"email_address": to, "us": match.group(1).strip('"')},
-        )
+            status_url = f"{JOLTMX_SENDS}/{sent['id']}?token={sent['token']}"
+            deadline = asyncio.get_running_loop().time() + DELIVERY_TIMEOUT
+            status = sent
+            while status["status"] == "Queued" and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(5)
+                status = await http.json("GET", status_url, headers=JOLTMX_HEADERS)
+        except (RateLimited, ProviderDown, CloudflareChallenge) as exc:
+            pytest.skip(f"JoltMx could not send: {exc!r}")
+        if status["status"] == "Failed":
+            pytest.skip(f"receiving server refused JoltMx: {status.get('responseText')}")
     finally:
         await http.aclose()
 
@@ -117,37 +113,41 @@ async def send_via_sendtestemail(to: str) -> None:
 async def test_a_real_message_arrives_and_can_be_read(provider_name: str) -> None:
     box, pool = await fresh_inbox(provider_name)
     try:
-        await send_via_sendtestemail(box.address.value)
+        # A fresh address is not an empty one. guerrillamail sends its own
+        # welcome mail, and a Gmail alias is shared with whoever used it
+        # before. Only a row that is new since this snapshot and comes from
+        # JoltMx is ours.
+        # The sender is checked on the fetched message, not the list row: a
+        # row's sender can be only a display name on some backends.
+        seen = {row.id for row in await box.messages()}
+        await send_via_joltmx(box.address.value)
 
-        # The address was generated seconds ago, so anything in it came from
-        # this run. No correlation token is needed to know the message is ours.
-        #
-        # Locked rows are skipped rather than read: emailnator seeds every fresh
-        # address with its own paywalled promo message, so rows[0] is routinely
-        # not the message we are waiting for. Reading it raises MessageLocked
-        # and the test fails against a backend that is working fine.
         deadline = asyncio.get_running_loop().time() + DELIVERY_TIMEOUT
-        rows: list = []
-        while not rows and asyncio.get_running_loop().time() < deadline:
-            rows = [row for row in await box.messages() if not row.locked]
-            if not rows:
+        message = None
+        while message is None and asyncio.get_running_loop().time() < deadline:
+            for row in await box.messages():
+                if row.id in seen or row.locked:
+                    continue
+                seen.add(row.id)
+                candidate = await box.get(row.id)
+                if JOLTMX_SENDER in candidate.sender:
+                    message = candidate
+                    break
+            else:
                 await asyncio.sleep(5)
-        assert rows, (
-            f"{provider_name}: no readable message arrived within "
-            f"{DELIVERY_TIMEOUT:.0f}s. Either the provider is not receiving, or "
-            "sendtestemail.com is down or refusing this domain."
+        assert message is not None, (
+            f"{provider_name}: JoltMx reported the message delivered, but it did "
+            f"not show up within {DELIVERY_TIMEOUT:.0f}s."
         )
 
-        message = await box.get(rows[0].id)
-        assert message.text.strip(), f"{provider_name}: message body read back empty"
-        assert "email address is working" in message.text.lower(), (
+        assert "everything is working as expected" in message.text.lower(), (
             f"{provider_name}: body did not survive the read path intact; got "
             f"{message.text[:200]!r}"
         )
-        # sendtestemail's body carries exactly one link. Asserting it proves
-        # extract_links() ran over a real message rather than a fixture.
-        assert any("sendtestemail.com" in href for href in message.links), (
-            f"{provider_name}: no link extracted; got {message.links!r}"
+        # Every JoltMx message carries a per-recipient opt-out link. Asserting
+        # it proves extract_links() ran over a real message, not a fixture.
+        assert any("joltmx.com/tools/test-email/opt-out/" in href for href in message.links), (
+            f"{provider_name}: no opt-out link extracted; got {message.links!r}"
         )
     finally:
         await box.aclose()
