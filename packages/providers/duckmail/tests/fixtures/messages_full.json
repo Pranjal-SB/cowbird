@@ -1,0 +1,14 @@
+{
+  "hydra:member": [
+    {
+      "id": "6a1f2c9e4b7d",
+      "from": { "address": "noreply@example.test", "name": "Example" },
+      "subject": "Verify your account",
+      "intro": "Your code is 448213",
+      "createdAt": "2026-09-24T12:45:03.120000Z",
+      "seen": false
+    }
+  ],
+  "hydra:totalItems": 1,
+  "hydra:view": { "@id": "/messages", "@type": "PartialCollectionView" }
+}

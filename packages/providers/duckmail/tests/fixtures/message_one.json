@@ -1,0 +1,8 @@
+{
+  "id": "6a1f2c9e4b7d",
+  "from": { "address": "noreply@example.test", "name": "Example" },
+  "subject": "Verify your account",
+  "createdAt": "2026-09-24T12:45:03.120000Z",
+  "text": "Your code is 448213",
+  "html": ["<p>Your code is 448213</p><a href=\"https://verify.example.test/go\">Verify</a>"]
+}

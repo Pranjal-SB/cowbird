@@ -1,0 +1,144 @@
+{
+  "hydra:member": [
+    {
+      "id": "e3dc2b6f768cf7566c3b011c38311682",
+      "domain": "niceground.shop",
+      "isVerified": true,
+      "createdAt": "2026-08-02T02:00:36.543798Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "ef731ce5bd8e66c3536aa70d13656fb4",
+      "domain": "stoneground.shop",
+      "isVerified": true,
+      "createdAt": "2026-08-02T01:59:31.415742Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "95e9b45bf11df620ff7ca00ae8b0010d",
+      "domain": "lakeground.shop",
+      "isVerified": true,
+      "createdAt": "2026-08-02T01:58:29.796494Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "c2b68c9b01f546c2fe067927de1f68a1",
+      "domain": "canvaspace.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-26T17:05:44.70676Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "fbcdb0229b0e89d6f5eea4b449f91262",
+      "domain": "vercelspace.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-26T17:04:59.419764Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "2398f6548e8d7625ec337f93f7055d3a",
+      "domain": "seedancespace.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-26T17:04:26.012646Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "be5817ff812537beefa0b6c4f8057a11",
+      "domain": "happyhorsespace.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-26T17:03:52.788605Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "14e1d8adb4ed4ae42223c58d74e111a1",
+      "domain": "bananaspace.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-26T17:03:07.617939Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "7f81e0ad2d983eca8493afbc715d98c9",
+      "domain": "sunstarmoon.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-24T16:38:06.425367Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "2fb2240a7b31726386d7ffc38bef8729",
+      "domain": "moonstarsun.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-24T16:37:30.877529Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "1cd690cd4d559154183ed7ca6261be6d",
+      "domain": "sunmoonlight.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-24T16:36:42.416155Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "f3e081e1eebb93c3202ec6874e93fcba",
+      "domain": "makesomestone.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-23T04:24:26.632498Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "30aeee3b779864e7c701fd7db4f63c18",
+      "domain": "mikesomelike.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-23T04:21:41.486393Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "7fa95c2fa451a93ce37af3a5b0c3b8cb",
+      "domain": "somestoneair.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-23T04:20:52.219277Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "11e22290e6611640466dab82a307ac22",
+      "domain": "hubaiclass.org",
+      "isVerified": true,
+      "createdAt": "2026-07-17T08:17:57.563391Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "8adb947a3d708acf5fa403cc78544ec7",
+      "domain": "markaihub.shop",
+      "isVerified": true,
+      "createdAt": "2026-07-17T01:10:06.492251Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "f797329d0f7d51294e68f77b921fdd68",
+      "domain": "markstonehub.org",
+      "isVerified": true,
+      "createdAt": "2026-07-16T08:16:54.957152Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "c14e483a36c26dd2f1ae788f1b36c82c",
+      "domain": "glasswhitehub.com",
+      "isVerified": true,
+      "createdAt": "2026-07-15T11:18:38.718367Z",
+      "updatedAt": "2026-08-02T12:44:36.235936Z"
+    },
+    {
+      "id": "22e6891d63060d7c2314197e010cc178",
+      "domain": "duckmail.sbs",
+      "isVerified": true,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "updatedAt": "0001-01-01T00:00:00Z"
+    }
+  ],
+  "hydra:totalItems": 19,
+  "hydra:view": {
+    "@id": "/domains",
+    "@type": "PartialCollectionView",
+    "hydra:first": "/domains?page=1",
+    "hydra:last": "/domains?page=1"
+  }
+}
