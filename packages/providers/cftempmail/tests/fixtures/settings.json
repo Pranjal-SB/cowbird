@@ -1,0 +1,21 @@
+{
+  "prefix": "tmp",
+  "domains": [
+    "awsl.uk",
+    "kksk.uk",
+    "misaka.boo"
+  ],
+  "defaultDomains": [
+    "awsl.uk",
+    "kksk.uk",
+    "misaka.boo"
+  ],
+  "needAuth": false,
+  "enableUserCreateEmail": true,
+  "disableAnonymousUserCreateEmail": false,
+  "disableCustomAddressName": false,
+  "enableUserDeleteEmail": true,
+  "cfTurnstileSiteKey": "0x4AAAAAAAZSO_9yWmz_-itl",
+  "version": "v1.13.0",
+  "enableGlobalTurnstileCheck": false
+}

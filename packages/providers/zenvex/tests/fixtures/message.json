@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "result": {
+    "id": "h7439esj8qgjdgwj2t5avopt",
+    "from_address": "test@sendtest.joltmx.com",
+    "to_address": "cbb15c6d7c@souss.dev",
+    "subject": "JoltMx test email (ref 01a0d65c6e06)",
+    "received_at": 1790302778,
+    "html_content": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: system-ui, -apple-system, sans-serif; color: #1e293b; max-width: 540px; margin: 0 auto; padding: 24px;\">\n  <h2 style=\"margin: 0 0 16px;\">This is a test email from JoltMx</h2>\n  <p>Someone &mdash; most likely you, or a person checking email delivery to this\n     address &mdash; used the free <strong>&ldquo;Send a test email&rdquo;</strong> tool on\n     <a href=\"https://joltmx.com\">joltmx.com</a> or <a href=\"https://testemailsender.com\">testemailsender.com</a> and entered this address as the recipient.</p>\n  <p>There is nothing to act on. This message exists only to confirm that\n     email can reach this mailbox.  So if you're reading this, everything is working as expected.</p>\n  <p style=\"color: #64748b; font-size: 14px;\">\n     Reference: 01a0d65c6e06<br>\n     Sent: 2026-09-25 02:19:36 UTC</p>\n  <hr style=\"border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;\">\n  <p style=\"font-size: 14px;\">Never want to receive a test email from this tool again?\n     <a href=\"https://joltmx.com/tools/test-email/opt-out/Y2JiMTVjNmQ3Y0Bzb3Vzcy5kZXY.o_gcvYZyPDlIhlpSe-tgqrJbOIZ3z8_XogqMkLDdPXc\">Opt out permanently</a>.</p>\n  <p style=\"color: #94a3b8; font-size: 12px;\">JoltMx &mdash; email routing and delivery &middot;\n     <a href=\"https://joltmx.com\" style=\"color: #94a3b8;\">joltmx.com</a></p>\n</body>\n</html>\n",
+    "text_content": "This is a test email from JoltMx.\n\nSomeone... most likely you, or a person checking email delivery to this\naddress - used the \"Send a test email\" tool on joltmx.com / testemailsender.com and\nentered this address as the recipient.\n\nThere is nothing to act on. This message exists only to confirm that\nemail can reach this mailbox.  So if you're reading this, everything is working as expected.\n\nReference: 01a0d65c6e06\nSent: 2026-09-25 02:19:36 UTC\n\nNever want to receive a test email from this tool again? Opt out\npermanently here:\n\nhttps://joltmx.com/tools/test-email/opt-out/Y2JiMTVjNmQ3Y0Bzb3Vzcy5kZXY.o_gcvYZyPDlIhlpSe-tgqrJbOIZ3z8_XogqMkLDdPXc\n\nJoltMx \u2014 email routing and delivery\nhttps://joltmx.com\n",
+    "verification_code": null,
+    "verification_link": null,
+    "has_attachments": 0,
+    "attachment_count": 0,
+    "raw_r2_key": "raw/h7439esj8qgjdgwj2t5avopt",
+    "attachments_json": null
+  }
+}

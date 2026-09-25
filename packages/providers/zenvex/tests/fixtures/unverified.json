@@ -1,0 +1,7 @@
+{
+  "success": false,
+  "error": {
+    "name": "ProxyError",
+    "message": "Use the Zenvex website at https://zenvex.dev"
+  }
+}
