@@ -1,0 +1,8 @@
+[
+  {
+    "subject": "JoltMx test email (ref 01a0d68f70c2)",
+    "from": "JoltMx Delivery Test <test@sendtest.joltmx.com>",
+    "date": "25/09/2026 06:15:19",
+    "body": "<!DOCTYPE html>\r\n<html>\r\n<body style=\"font-family: system-ui, -apple-system, sans-serif; color: #1e293b; max-width: 540px; margin: 0 auto; padding: 24px;\">\r\n <h2 style=\"margin: 0 0 16px;\">This is a test email from JoltMx</h2>\r\n <p>Someone &mdash; most likely you, or a person checking email delivery to this\r\n address &mdash; used the free <strong>&ldquo;Send a test email&rdquo;</strong> tool on\r\n <a href=\"https://joltmx.com\">joltmx.com</a> or <a href=\"https://testemailsender.com\">testemailsender.com</a> and entered this address as the recipient.</p>\r\n <p>There is nothing to act on. This message exists only to confirm that\r\n email can reach this mailbox. So if you're reading this, everything is working as expected.</p>\r\n <p style=\"color: #64748b; font-size: 14px;\">\r\n Reference: 01a0d68f70c2<br>\r\n Sent: 2026-09-25 03:15:19 UTC</p>\r\n <hr style=\"border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;\">\r\n <p style=\"font-size: 14px;\">Never want to receive a test email from this tool again?\r\n <a href=\"https://joltmx.com/tools/test-email/opt-out/OPT-OUT-TOKEN-PLACEHOLDER\">Opt out permanently</a>.</p>\r\n <p style=\"color: #94a3b8; font-size: 12px;\">JoltMx &mdash; email routing and delivery &middot;\r\n <a href=\"https://joltmx.com\" style=\"color: #94a3b8;\">joltmx.com</a></p>\r\n</body>\r\n</html>"
+  }
+]
