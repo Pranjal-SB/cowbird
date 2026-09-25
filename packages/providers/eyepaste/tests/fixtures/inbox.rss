@@ -1,0 +1,56 @@
+<rss version='2.0'>
+<channel>
+<title>
+cb3635adc9019e@eyepaste.com
+mailbox feed on
+www.eyepaste.com
+</title>
+<link>
+https://www.eyepaste.com
+</link>
+<description>
+this is a feed of email coming into the mailbox
+cb3635adc9019e@eyepaste.com
+on
+www.eyepaste.com
+it's a disposable email system, so these emails will drop off after 1 hours. it's also very public, as you can see.
+</description>
+<language>en-us</language>
+<pubdate>
+Fri, 25 Sep 2026 03:31:34 -0000
+</pubdate>
+<lastbuilddate>
+Fri, 25 Sep 2026 03:31:34 -0000
+</lastbuilddate>
+<item>
+<title>
+<![CDATA[
+    JoltMx Delivery Test <test@sendtest.joltmx.com>: JoltMx test email (ref 01a0d69e20c2)
+]]>
+</title>
+<link>
+https://www.eyepaste.com/inbox/cb3635adc9019e@eyepaste.com
+</link>
+<description>
+<![CDATA[
+    <p>
+      From: JoltMx Delivery Test <test@sendtest.joltmx.com>
+      <br/>
+      To: cb3635adc9019e@eyepaste.com
+      <br/>
+      Subject: JoltMx test email (ref 01a0d69e20c2)
+      <br/>
+      Date: Fri, 25 Sep 2026 03:31:22 +0000
+      <br/>
+    </p>
+    <p>
+      --=-FrvJovfGBvCMEpu5j759lg==<br/>Content-Type: text/plain; charset=utf-8<br/><br/>This is a test email from JoltMx.<br/><br/>Someone... most likely you, or a person checking email delivery to this<br/>address - used the "Send a test email" tool on joltmx.com / testemailsender.com and<br/>entered this address as the recipient.<br/><br/>There is nothing to act on. This message exists only to confirm that<br/>email can reach this mailbox.  So if you're reading this, everything is working as expected.<br/><br/>Reference: 01a0d69e20c2<br/>Sent: 2026-09-25 03:31:22 UTC<br/><br/>Never want to receive a test email from this tool again? Opt out<br/>permanently here:<br/><br/>https://joltmx.com/tools/test-email/opt-out/Y2IzNjM1YWRjOTAxOWVAZXllcGFzdGUuY29t.lRAIC5Jl0YGahtlZ9cH4TrRlX1vXYjahz9rZBuIhfJ0<br/><br/>JoltMx â email routing and delivery<br/>https://joltmx.com<br/>--=-FrvJovfGBvCMEpu5j759lg==<br/>Content-Type: text/html; charset=utf-8<br/><br/><!DOCTYPE html><br/><html><br/><body style="font-family: system-ui, -apple-system, sans-serif; color: #1e293b; max-width: 540px; margin: 0 auto; padding: 24px;"><br/>  <h2 style="margin: 0 0 16px;">This is a test email from JoltMx</h2><br/>  <p>Someone &mdash; most likely you, or a person checking email delivery to this<br/>     address &mdash; used the free <strong>&ldquo;Send a test email&rdquo;</strong> tool on<br/>     <a href="https://joltmx.com">joltmx.com</a> or <a href="https://testemailsender.com">testemailsender.com</a> and entered this address as the recipient.</p><br/>  <p>There is nothing to act on. This message exists only to confirm that<br/>     email can reach this mailbox.  So if you're reading this, everything is working as expected.</p><br/>  <p style="color: #64748b; font-size: 14px;"><br/>     Reference: 01a0d69e20c2<br><br/>     Sent: 2026-09-25 03:31:22 UTC</p><br/>  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;"><br/>  <p style="font-size: 14px;">Never want to receive a test email from this tool again?<br/>     <a href="https://joltmx.com/tools/test-email/opt-out/Y2IzNjM1YWRjOTAxOWVAZXllcGFzdGUuY29t.lRAIC5Jl0YGahtlZ9cH4TrRlX1vXYjahz9rZBuIhfJ0">Opt out permanently</a>.</p><br/>  <p style="color: #94a3b8; font-size: 12px;">JoltMx &mdash; email routing and delivery &middot;<br/>     <a href="https://joltmx.com" style="color: #94a3b8;">joltmx.com</a></p><br/></body><br/></html><br/>--=-FrvJovfGBvCMEpu5j759lg==--
+    </p>
+]]>
+</description>
+<pubdate>
+Fri, 25 Sep 2026 03:31:22 +0000
+</pubdate>
+</item>
+</channel>
+</rss>
