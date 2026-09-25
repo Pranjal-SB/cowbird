@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "result": {
+    "domains": [
+      "encg.edu.pl",
+      "ensam.edu.pl",
+      "ofppt.edu.pl",
+      "souss.dev",
+      "zenvex.edu.pl",
+      "znvx.me"
+    ],
+    "default": "souss.dev"
+  }
+}
