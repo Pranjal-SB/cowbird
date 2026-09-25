@@ -223,12 +223,13 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Twenty-one providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+Twenty-six providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
 guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
 backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
 temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
-reusable.email, disposablemail (three hosts), DuckMail, and smailpro (Gmail
-and Outlook, through a Cloudflare solver). Two from the seed set are parked,
+reusable.email, disposablemail (three hosts) and DuckMail. Six more need the
+Cloudflare solver: smailpro (Gmail and Outlook), cftempmail, xeramail,
+vanishinbox, zenvex and etempmail. Two from the seed set are parked,
 with the reasons in `docs/PROVIDERS.md`: tempr.email streams its inbox over
 Datastar SSE and needs its own client, and dropmail's free API token path
 closed.
