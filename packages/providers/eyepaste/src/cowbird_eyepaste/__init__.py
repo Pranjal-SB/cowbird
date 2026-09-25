@@ -124,6 +124,13 @@ class Eyepaste(Provider):
 
     async def _items(self, address: Address) -> list[_Item]:
         feed = _repair(await self.http.text("GET", f"{SITE}/inbox/{address.value}.rss"))
+        # RSS never needs a DTD, and a DTD is the only way entity expansion
+        # reaches the parser. Refuse it rather than trust the parser's limits.
+        # Only the prolog counts: a mail body in CDATA may carry its own
+        # <!DOCTYPE html>.
+        prolog = feed.partition("<rss")[0].lower()
+        if "<!doctype" in prolog or "<!entity" in prolog:
+            raise SchemaDrift(self.name, expected="an RSS feed without a DTD", got=feed[:200])
         try:
             channel = ET.fromstring(feed).find("channel")
         except ET.ParseError as exc:

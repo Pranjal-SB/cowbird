@@ -144,3 +144,15 @@ async def test_a_generated_local_part_is_long_enough_to_be_unguessable():
 async def test_a_domain_it_does_not_serve_is_refused():
     with pytest.raises(NotSupported):
         await eyepaste().generate(GenerateOptions(domain="gmail.com"))
+
+
+async def test_a_feed_that_declares_a_dtd_is_refused_before_parsing():
+    # RSS never needs a DTD; one is the only way to smuggle entity expansion
+    # into the parser, so it is refused outright.
+    bomb = (
+        '<?xml version="1.0"?><!DOCTYPE rss [<!ENTITY a "aaaaaaaaaa">'
+        '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">]>'
+        "<rss><channel><item><title>&b;</title></item></channel></rss>"
+    )
+    with pytest.raises(SchemaDrift):
+        await eyepaste(**{"GET https://www.eyepaste.com/inbox/": bomb}).list(ADDRESS)
