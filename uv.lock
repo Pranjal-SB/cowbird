@@ -5,10 +5,12 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "cowbird",
+    "cowbird-cftempmail",
     "cowbird-core",
     "cowbird-disposablemail",
     "cowbird-duckmail",
     "cowbird-emailnator",
+    "cowbird-etempmail",
     "cowbird-guerrillamail",
     "cowbird-inboxes",
     "cowbird-inboxkitten",
@@ -28,6 +30,9 @@ members = [
     "cowbird-temporarymail",
     "cowbird-tenminutemail",
     "cowbird-twentytwodo",
+    "cowbird-vanishinbox",
+    "cowbird-xeramail",
+    "cowbird-zenvex",
 ]
 
 [[package]]
@@ -317,10 +322,12 @@ name = "cowbird"
 version = "0.1.0"
 source = { editable = "packages/cli" }
 dependencies = [
+    { name = "cowbird-cftempmail" },
     { name = "cowbird-core" },
     { name = "cowbird-disposablemail" },
     { name = "cowbird-duckmail" },
     { name = "cowbird-emailnator" },
+    { name = "cowbird-etempmail" },
     { name = "cowbird-guerrillamail" },
     { name = "cowbird-inboxes" },
     { name = "cowbird-inboxkitten" },
@@ -339,6 +346,9 @@ dependencies = [
     { name = "cowbird-temporarymail" },
     { name = "cowbird-tenminutemail" },
     { name = "cowbird-twentytwodo" },
+    { name = "cowbird-vanishinbox" },
+    { name = "cowbird-xeramail" },
+    { name = "cowbird-zenvex" },
 ]
 
 [package.optional-dependencies]
@@ -352,10 +362,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cowbird-cftempmail", editable = "packages/providers/cftempmail" },
     { name = "cowbird-core", editable = "packages/core" },
     { name = "cowbird-disposablemail", editable = "packages/providers/disposablemail" },
     { name = "cowbird-duckmail", editable = "packages/providers/duckmail" },
     { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
+    { name = "cowbird-etempmail", editable = "packages/providers/etempmail" },
     { name = "cowbird-guerrillamail", editable = "packages/providers/guerrillamail" },
     { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
     { name = "cowbird-inboxkitten", editable = "packages/providers/inboxkitten" },
@@ -374,6 +386,9 @@ requires-dist = [
     { name = "cowbird-temporarymail", editable = "packages/providers/temporarymail" },
     { name = "cowbird-tenminutemail", editable = "packages/providers/tenminutemail" },
     { name = "cowbird-twentytwodo", editable = "packages/providers/twentytwodo" },
+    { name = "cowbird-vanishinbox", editable = "packages/providers/vanishinbox" },
+    { name = "cowbird-xeramail", editable = "packages/providers/xeramail" },
+    { name = "cowbird-zenvex", editable = "packages/providers/zenvex" },
     { name = "packaging", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
@@ -381,6 +396,17 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-cftempmail"
+version = "0.1.0"
+source = { editable = "packages/providers/cftempmail" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
 name = "cowbird-core"
@@ -438,6 +464,17 @@ requires-dist = [
 name = "cowbird-emailnator"
 version = "0.1.0"
 source = { editable = "packages/providers/emailnator" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-etempmail"
+version = "0.1.0"
+source = { editable = "packages/providers/etempmail" }
 dependencies = [
     { name = "cowbird-core" },
 ]
@@ -561,10 +598,12 @@ version = "0.1.0"
 source = { editable = "packages/server" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "cowbird-cftempmail" },
     { name = "cowbird-core" },
     { name = "cowbird-disposablemail" },
     { name = "cowbird-duckmail" },
     { name = "cowbird-emailnator" },
+    { name = "cowbird-etempmail" },
     { name = "cowbird-guerrillamail" },
     { name = "cowbird-inboxes" },
     { name = "cowbird-inboxkitten" },
@@ -583,6 +622,9 @@ dependencies = [
     { name = "cowbird-temporarymail" },
     { name = "cowbird-tenminutemail" },
     { name = "cowbird-twentytwodo" },
+    { name = "cowbird-vanishinbox" },
+    { name = "cowbird-xeramail" },
+    { name = "cowbird-zenvex" },
     { name = "fastapi" },
     { name = "pydantic-settings" },
     { name = "slowapi" },
@@ -601,10 +643,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.29" },
+    { name = "cowbird-cftempmail", editable = "packages/providers/cftempmail" },
     { name = "cowbird-core", editable = "packages/core" },
     { name = "cowbird-disposablemail", editable = "packages/providers/disposablemail" },
     { name = "cowbird-duckmail", editable = "packages/providers/duckmail" },
     { name = "cowbird-emailnator", editable = "packages/providers/emailnator" },
+    { name = "cowbird-etempmail", editable = "packages/providers/etempmail" },
     { name = "cowbird-guerrillamail", editable = "packages/providers/guerrillamail" },
     { name = "cowbird-inboxes", editable = "packages/providers/inboxes" },
     { name = "cowbird-inboxkitten", editable = "packages/providers/inboxkitten" },
@@ -623,6 +667,9 @@ requires-dist = [
     { name = "cowbird-temporarymail", editable = "packages/providers/temporarymail" },
     { name = "cowbird-tenminutemail", editable = "packages/providers/tenminutemail" },
     { name = "cowbird-twentytwodo", editable = "packages/providers/twentytwodo" },
+    { name = "cowbird-vanishinbox", editable = "packages/providers/vanishinbox" },
+    { name = "cowbird-xeramail", editable = "packages/providers/xeramail" },
+    { name = "cowbird-zenvex", editable = "packages/providers/zenvex" },
     { name = "fastapi", specifier = ">=0.115,<0.142" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
     { name = "pydantic-settings", specifier = ">=2.4" },
@@ -716,6 +763,39 @@ requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 name = "cowbird-twentytwodo"
 version = "0.1.0"
 source = { editable = "packages/providers/twentytwodo" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-vanishinbox"
+version = "0.1.0"
+source = { editable = "packages/providers/vanishinbox" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-xeramail"
+version = "0.1.0"
+source = { editable = "packages/providers/xeramail" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
+
+[[package]]
+name = "cowbird-zenvex"
+version = "0.1.0"
+source = { editable = "packages/providers/zenvex" }
 dependencies = [
     { name = "cowbird-core" },
 ]

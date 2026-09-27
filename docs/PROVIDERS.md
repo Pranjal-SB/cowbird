@@ -54,6 +54,11 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | disposablemail 🔗 | disposablemail.com, fakemail.net, minuteinbox.com | own-domain | 10m-1h | ? | 3 | — |
 | DuckMail 🔗 | duckmail.sbs, freetempmail.com | own-domain | 1d | ? | 19 | — |
 | smailpro 🧩 | smailpro.com | gmail-alias, outlook-alias | ? | ? | 3 | — |
+| cftempmail 🧩🔓 | mail.awsl.uk | own-domain | 100d | ? | 3 | — |
+| xeramail 🧩 | xeramail.com | own-domain | 1d | 1d | 2 | — |
+| vanishinbox 🧩 | vanishinbox.com | own-domain, edu | ? | 10m | 9 | — |
+| zenvex 🧩 | zenvex.dev | own-domain, edu | ? | ? | 6 | — |
+| etempmail 🧩 | etempmail.com | edu | 20m | ? | 3 | — |
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -78,6 +83,16 @@ seconds each. Without a solver the pool skips it. Its page lists 43 domains,
 but the free tier only issues gmail.com, googlemail.com and outlook.com, and
 its listing gives a sender's display name without the address. It passed
 `test_delivery.py` through the solver in 43 seconds.
+
+The other 🧩 providers pay for a solve less often. cftempmail and xeramail solve
+once per address and then read with the token that returns. zenvex and
+vanishinbox solve once for a pass cookie (12 hours and 2 hours) that reads
+every address. etempmail solves once per address and replays its session
+cookie. All five passed `test_delivery.py` through the solver on 2026-09-25,
+in 13 to 24 seconds. The edu providers hand out `.edu.pl` addresses, which
+anyone can register: they are not US university mail. zenvex and vanishinbox
+inboxes are public by address. cftempmail is the public instance of an
+open-source worker; another instance is a subclass overriding `api`.
 
 The same solver can in principle clear 10minutemail's challenge, but on
 2026-09-25 every clearance it issued was refused on replay, so
@@ -129,7 +144,6 @@ Own the backend, and it cannot rot. These are the floor under the pool.
 
 | backend | sites | source | domains |
 |---|---|---|---|
-| 🔓 cloudflare_temp_email | mail.awsl.uk | `dreamhunter2333/cloudflare_temp_email` | 5 |
 | 🔓 sunls-tmail | mail.sunls.de | `sunls24/tmail` | 3 |
 
 ## Gmail / Outlook alias backends
@@ -164,7 +178,6 @@ is what defeats domain blocklists.
 | mails.org | mails.org | ? | 30m | 5 |
 | spambox | spambox.xyz | forever | 1d | 4 |
 | urtempmail | urtempmail.com | 1d | 1d | 4 |
-| xeramail | xeramail.com | 1d | 1d | 2 |
 | vmail.dev | vmail.dev | 1d | 1d | 2 |
 | duckspam | duckspam.com | forever | forever | 1 |
 | tempemail.cc | tempemail.cc | forever | forever | 1 |
@@ -187,9 +200,9 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 Separate capability kind. Unverified, several likely paid or dead. Lowest
 priority; investigate before committing to any.
 
-edumailfree.com · zenvex.dev · tempsmail.org · emailgenerator.org · edumail.su ·
+edumailfree.com · tempsmail.org · emailgenerator.org · edumail.su ·
 run2mail.com · getedumail.com · mtempmail.com · freetempmail.com · imail.edu.vn ·
-vanishinbox.com · instantedumail.com · etempmail.com
+instantedumail.com
 
 ## From the secondary list
 
@@ -213,4 +226,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 21 ship.
+That leaves roughly 55 distinct backends, of which 26 ship.

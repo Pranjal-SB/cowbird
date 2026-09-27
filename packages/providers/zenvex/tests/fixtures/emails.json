@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "result": [
+    {
+      "id": "h7439esj8qgjdgwj2t5avopt",
+      "from_address": "test@sendtest.joltmx.com",
+      "to_address": "cbb15c6d7c@souss.dev",
+      "subject": "JoltMx test email (ref 01a0d65c6e06)",
+      "received_at": 1790302778,
+      "has_attachments": 0,
+      "attachment_count": 0
+    }
+  ]
+}

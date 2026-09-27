@@ -26,6 +26,11 @@ dependencies = [
 "cowbird-disposablemail",
 "cowbird-duckmail",
 "cowbird-smailpro",
+"cowbird-vanishinbox",
+"cowbird-xeramail",
+"cowbird-zenvex",
+"cowbird-etempmail",
+"cowbird-cftempmail",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +59,11 @@ cowbird-reusableemail = { workspace = true }
 cowbird-disposablemail = { workspace = true }
 cowbird-duckmail = { workspace = true }
 cowbird-smailpro = { workspace = true }
+cowbird-vanishinbox = { workspace = true }
+cowbird-xeramail = { workspace = true }
+cowbird-zenvex = { workspace = true }
+cowbird-etempmail = { workspace = true }
+cowbird-cftempmail = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"
