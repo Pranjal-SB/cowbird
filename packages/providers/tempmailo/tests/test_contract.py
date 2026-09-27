@@ -162,3 +162,10 @@ async def test_a_row_with_a_body_that_is_not_text_is_drift():
     row = {"id": "1", "html": {"x": 1}, "text": None}
     with pytest.raises(SchemaDrift):
         await provider(**{LIST: json.dumps([row])}).get(FULL, "1")
+
+
+async def test_an_address_answered_as_a_json_string_is_unquoted():
+    # The transport asks for JSON, and then /changemail answers "x@y.com"
+    # with the quotes. Mail to the quoted form goes nowhere.
+    address = await provider(**{f"GET {BASE}/changemail": '"kaketyfi@fxzig.com"'}).generate()
+    assert address.value == "kaketyfi@fxzig.com"

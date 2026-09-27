@@ -28,7 +28,7 @@ from cowbird.provider import GenerateOptions, Provider
 
 BASE = "https://tempmailo.com"
 _TOKEN = re.compile(r'name="__RequestVerificationToken" type="hidden" value="([^"]+)"')
-_ADDRESS = re.compile(r"[^@\s]+@[^@\s]+")
+_ADDRESS = re.compile(r"[^@\s\"]+@[^@\s\"]+")
 
 
 class TempMailo(Provider):
@@ -85,6 +85,12 @@ class TempMailo(Provider):
         value = (
             await self._call("GET", f"{BASE}/changemail", params={"_r": str(random.random())})
         ).strip()
+        # Asked for JSON, the site answers the address as a JSON string.
+        if value.startswith('"'):
+            try:
+                value = json.loads(value)
+            except ValueError as exc:
+                raise SchemaDrift(self.name, expected="an address", got=value[:200]) from exc
         if not _ADDRESS.fullmatch(value):
             raise SchemaDrift(self.name, expected="an address from /changemail", got=value[:200])
         return Address(value=value, provider=self.name)
