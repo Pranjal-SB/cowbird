@@ -59,6 +59,12 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | vanishinbox 🧩 | vanishinbox.com | own-domain, edu | ? | 10m | 9 | — |
 | zenvex 🧩 | zenvex.dev | own-domain, edu | ? | ? | 6 | — |
 | etempmail 🧩 | etempmail.com | edu | 20m | ? | 3 | — |
+| eyepaste | eyepaste.com | own-domain | ? | ? | 1 | — |
+| receivemail | receivemail.org | own-domain | ? | 3d* | 3 | — |
+| emailtemp 🔗 | emailtemp.org, emailgenerator.org | own-domain, edu | ? | ? | 7 | — |
+| mtempmail | mtempmail.com | own-domain, edu | 1d | 1d | 3 | — |
+| tempmailo | tempmailo.com | own-domain | ? | 2d | 4 | — |
+| instantedumail | instantedumail.com | own-domain, edu | 1h | ? | 4 | — |
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -93,6 +99,15 @@ in 13 to 24 seconds. The edu providers hand out `.edu.pl` addresses, which
 anyone can register: they are not US university mail. zenvex and vanishinbox
 inboxes are public by address. cftempmail is the public instance of an
 open-source worker; another instance is a subclass overriding `api`.
+
+Six more need no solver and passed `test_delivery.py` on 2026-09-28 in 8 to
+20 seconds: eyepaste, receivemail, emailtemp, mtempmail, tempmailo and
+instantedumail. All but instantedumail are public by address, so use an
+unguessable local part; instantedumail's Supabase row-level security keeps
+each inbox to its own anonymous user. eyepaste's feed claims a one-hour drop
+but held mail 35 hours old, and receivemail's 3 days is a floor, not a
+measurement. The edu domains here are `.edu.pl` or look-alikes, never a
+university's.
 
 The same solver can in principle clear 10minutemail's challenge, but on
 2026-09-25 every clearance it issued was refused on replay, so
@@ -167,7 +182,6 @@ is what defeats domain blocklists.
 | mintemail 🔗 | mintemail.com, tempail.com | 1h | 1h | 1 |
 | anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 |
 | emailondeck | emailondeck.com | ? | ? | 1 |
-| tmail (Laravel) 🔗 | emailtemp.org, emailgenerator.org | ? | ? | 1 |
 | haribu | haribu.net | ? | ? | 1 |
 | altaddress | altaddress.org | forever | 3d | 14 |
 | driftz | driftz.net | ? | ? | 23 |
@@ -183,7 +197,6 @@ is what defeats domain blocklists.
 | tempemail.cc | tempemail.cc | forever | forever | 1 |
 | mohmal | mohmal.com | 45m | 45m | 1 |
 | adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 |
-| tempmailo | tempmailo.com | 2d | 2d | ? |
 | tmail.link | tmail.link | ? | ? | ? |
 
 ## Ten-minute tier
@@ -200,18 +213,17 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 Separate capability kind. Unverified, several likely paid or dead. Lowest
 priority; investigate before committing to any.
 
-edumailfree.com · tempsmail.org · emailgenerator.org · edumail.su ·
-run2mail.com · getedumail.com · mtempmail.com · freetempmail.com · imail.edu.vn ·
-instantedumail.com
+edumailfree.com · tempsmail.org · edumail.su · run2mail.com · getedumail.com ·
+freetempmail.com · imail.edu.vn
 
 ## From the secondary list
 
 Not yet classified. Source: `rentry.org/i3ozxg6f`.
 
 m.kuku.lu ·
-anonbox.net · luxusmail.org · eyepaste.com · tempmail.net · mailtemp.dev ·
+anonbox.net · luxusmail.org · tempmail.net · mailtemp.dev ·
 tempmailb.com · tempmail4u.com · fake.legal · emailme.at · minmail.app ·
-internxt.com/temporary-email · receivemail.org · fakemailgenerator.com ·
+internxt.com/temporary-email · fakemailgenerator.com ·
 tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 
 ## Out of scope
@@ -226,4 +238,4 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 Roughly 90 front doors. A probe of every host
 folded four rows into backends already listed: cs.email and dismail.top are
 guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 26 ship.
+That leaves roughly 55 distinct backends, of which 32 ship.
