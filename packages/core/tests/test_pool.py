@@ -219,3 +219,11 @@ async def test_a_provider_that_needs_a_solver_is_eligible_with_one():
     )
     provider, _ = await pool.acquire(Request())
     assert provider.name == "walled"
+
+
+def test_a_request_with_an_unusable_local_part_is_refused_before_routing():
+    # Refused on its own terms, whichever providers happen to be installed.
+    from cowbird.errors import NotSupported
+
+    with pytest.raises(NotSupported):
+        Request(local="x/../admin")

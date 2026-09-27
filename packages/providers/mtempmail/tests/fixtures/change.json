@@ -1,0 +1,12 @@
+{
+ "mailbox": "cowbirdprobe9051@zub.edu.pl",
+ "email_token": "EMAIL-TOKEN-PLACEHOLDER",
+ "messages": [],
+ "histories": [
+  {
+   "email": "cowbirdprobe9051@zub.edu.pl",
+   "current": true,
+   "time": "2026-09-25T08:14:57.000000Z"
+  }
+ ]
+}

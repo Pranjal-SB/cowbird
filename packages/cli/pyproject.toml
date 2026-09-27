@@ -31,6 +31,12 @@ dependencies = [
 "cowbird-zenvex",
 "cowbird-etempmail",
 "cowbird-cftempmail",
+"cowbird-emailtemp",
+"cowbird-mtempmail",
+"cowbird-tempmailo",
+"cowbird-instantedumail",
+"cowbird-eyepaste",
+"cowbird-receivemail",
 ]
 
 [project.optional-dependencies]
@@ -64,6 +70,12 @@ cowbird-xeramail = { workspace = true }
 cowbird-zenvex = { workspace = true }
 cowbird-etempmail = { workspace = true }
 cowbird-cftempmail = { workspace = true }
+cowbird-emailtemp = { workspace = true }
+cowbird-mtempmail = { workspace = true }
+cowbird-tempmailo = { workspace = true }
+cowbird-instantedumail = { workspace = true }
+cowbird-eyepaste = { workspace = true }
+cowbird-receivemail = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"

@@ -56,3 +56,24 @@ async def test_default_watch_survives_a_message_that_expires_mid_stream():
 def test_generate_options_default_to_no_constraints():
     opts = GenerateOptions()
     assert opts.kind is None and opts.local is None and opts.domain is None
+
+
+@pytest.mark.parametrize(
+    "local", ["a/b", "x?y=1", "a#b", "a\r\nHost: evil", "a b", "", "a@b", "x" * 65]
+)
+def test_a_local_part_that_could_reshape_a_request_is_refused(local):
+    # Adapters build paths and queries from the address; a caller's local part
+    # must never be able to add a path segment, a query, or a header.
+    with pytest.raises(NotSupported):
+        GenerateOptions(local=local)
+
+
+@pytest.mark.parametrize("domain", ["evil.test/x", "a b.test", "a.test?x", ""])
+def test_a_domain_that_could_reshape_a_request_is_refused(domain):
+    with pytest.raises(NotSupported):
+        GenerateOptions(domain=domain)
+
+
+@pytest.mark.parametrize("local", ["cb12ab", "first.last", "a+tag", "under_score", "dash-ed"])
+def test_ordinary_local_parts_are_accepted(local):
+    assert GenerateOptions(local=local, domain="mail-edu.eu").local == local

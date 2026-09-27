@@ -1,0 +1,15 @@
+{
+  "access_token": "PLACEHOLDER-ACCESS-TOKEN-1",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "expires_at": 1790328597,
+  "refresh_token": "PLACEHOLDER-REFRESH-TOKEN-1",
+  "user": {
+    "id": "512cd289-3255-458c-aa16-aea3af33daa6",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "is_anonymous": true,
+    "app_metadata": {},
+    "user_metadata": {}
+  }
+}

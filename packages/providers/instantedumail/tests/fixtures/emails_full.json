@@ -1,0 +1,20 @@
+[
+  {
+    "id": "4fe6f6fe-3196-40fe-9816-03a976c64647",
+    "user_id": "512cd289-3255-458c-aa16-aea3af33daa6",
+    "mailbox_id": "4f2310e8-4ad1-44a0-90c3-7d630a5190a7",
+    "from_name": "JoltMx Delivery Test",
+    "from_address": "test@sendtest.joltmx.com",
+    "subject": "JoltMx test email (ref 01a0d7b1130c)",
+    "preview": "This is a test email from JoltMx. Someone... most likely you, or a person checking email delivery to this address",
+    "body": "This is a test email from JoltMx.\n\nSomeone... most likely you, or a person checking email delivery to this\naddress - used the \"Send a test email\" tool on joltmx.com / testemailsender.com and\nentered this address as the recipient.\n\nThere is nothing to act on. This message exists only to confirm that\nemail can reach this mailbox.  So if you're reading this, everything is working as expected.\n\nReference: 01a0d7b1130c\nSent: 2026-09-25 08:31:41 UTC\n\nNever want to receive a test email from this tool again? Opt out\npermanently here:\n\nhttps://joltmx.com/tools/test-email/opt-out/PLACEHOLDER-OPTOUT\n\nJoltMx — email routing and delivery\nhttps://joltmx.com\n",
+    "is_read": false,
+    "is_favorite": false,
+    "size_bytes": 1496,
+    "received_at": "2026-09-25T08:31:42.671+00:00",
+    "created_at": "2026-09-25T08:31:44.708722+00:00",
+    "updated_at": "2026-09-25T08:31:44.708722+00:00",
+    "folder": "inbox",
+    "html_body": "<html>\n<body style=\"font-family:system-ui\">\n  <h2>This is a test email from JoltMx</h2>\n  <p>Someone — most likely you — used the free <strong>“Send a test email”</strong> tool on\n     <a href=\"https://joltmx.com\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">joltmx.com</a> or <a href=\"https://testemailsender.com\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">testemailsender.com</a> and entered this address as the recipient.</p>\n  <p>There is nothing to act on. If you're reading this, everything is working as expected.</p>\n  <p><a href=\"https://joltmx.com/tools/test-email/opt-out/PLACEHOLDER-OPTOUT\">Opt out permanently</a></p>\n</body>\n</html>"
+  }
+]

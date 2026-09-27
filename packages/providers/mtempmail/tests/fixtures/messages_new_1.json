@@ -1,0 +1,13 @@
+{
+ "status": true,
+ "mailbox": "huuul41@mtempmail.com",
+ "email_token": "EMAIL-TOKEN-PLACEHOLDER",
+ "messages": [],
+ "histories": [
+  {
+   "email": "huuul41@mtempmail.com",
+   "current": true,
+   "time": "2026-09-25T08:16:22.000000Z"
+  }
+ ]
+}

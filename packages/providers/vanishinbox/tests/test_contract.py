@@ -215,7 +215,6 @@ async def test_a_chosen_local_part_and_domain_are_kept():
         GenerateOptions(domain="gmail.com"),
         GenerateOptions(kind=Kind.GMAIL_ALIAS),
         GenerateOptions(kind=Kind.EDU, domain="fommie.com"),
-        GenerateOptions(local="bad/local"),
     ],
 )
 async def test_what_the_site_cannot_do_is_refused_before_a_solve(opts):

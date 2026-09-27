@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -10,12 +11,25 @@ from cowbird.errors import MessageGone, NotSupported
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.transport import Transport
 
+# RFC 5321 allows more, but no backend here needs it.
+_LOCAL = re.compile(r"[A-Za-z0-9._+-]{1,64}")
+_DOMAIN = re.compile(r"[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+")
+
 
 @dataclass(frozen=True, slots=True)
 class GenerateOptions:
     kind: Kind | None = None
     local: str | None = None
     domain: str | None = None
+
+    def __post_init__(self) -> None:
+        # Adapters build URL paths and queries from the address, so a chosen
+        # local part or domain must not be able to add a path segment, a
+        # query, or a header line. Checked here, once, for every adapter.
+        if self.local is not None and not _LOCAL.fullmatch(self.local):
+            raise NotSupported(f"not a usable local part: {self.local!r}")
+        if self.domain is not None and not _DOMAIN.fullmatch(self.domain):
+            raise NotSupported(f"not a usable domain: {self.domain!r}")
 
 
 class Provider(ABC):

@@ -1,0 +1,13 @@
+{
+ "status": true,
+ "mailbox": "zhdxr63@zub.edu.pl",
+ "email_token": "EMAIL-TOKEN-PLACEHOLDER",
+ "messages": [],
+ "histories": [
+  {
+   "email": "zhdxr63@zub.edu.pl",
+   "current": true,
+   "time": "2026-09-25T08:16:23.000000Z"
+  }
+ ]
+}
