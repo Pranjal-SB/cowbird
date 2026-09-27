@@ -9,6 +9,7 @@ from cowbird.errors import (
     NotSupported,
     ProviderError,
     RateLimited,
+    SolverUnavailable,
 )
 
 # Ordered most specific first: the first isinstance match wins, so a subclass
@@ -22,6 +23,7 @@ _MAPPING: tuple[tuple[type[CowbirdError], int, str], ...] = (
     (NoProviderAvailable, 503, "no provider available for that request"),
     (NotSupported, 422, "no provider supports that combination of options"),
     (AddressExpired, 410, "that address has expired"),
+    (SolverUnavailable, 503, "cloudflare solver unavailable"),
     (ProviderError, 502, "upstream provider error"),
 )
 

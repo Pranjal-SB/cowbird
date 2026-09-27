@@ -16,14 +16,15 @@ from cowbird.health import HealthStore, Status
 from cowbird.models import Kind
 from cowbird.pool import Pool, Request
 from cowbird.registry import Registry
+from cowbird.testing import FakeSolver
 
 
-def real_pool() -> tuple[Pool, HealthStore]:
+def real_pool(solver=None) -> tuple[Pool, HealthStore]:
     health = HealthStore()
     # One store shared by registry and pool, matching default_pool() in
     # production. Wiring them to separate stores would test a configuration
     # that does not exist.
-    return Pool(Registry(health=health), health), health
+    return Pool(Registry(health=health, solver=solver), health), health
 
 
 def installed() -> list[str]:
@@ -144,5 +145,10 @@ def test_the_whole_fleet_being_down_leaves_no_candidates():
 
 @pytest.mark.parametrize("name", installed())
 def test_every_provider_is_individually_routable_when_healthy(name):
-    pool, _ = real_pool()
+    # With a solver, so a needs_solver provider is routable too; without
+    # one the pool skips it by design.
+    pool, _ = real_pool(solver=FakeSolver())
     assert name in [p.name for p in pool.candidates(Request())]
+    pool, _ = real_pool()
+    routed = name in [p.name for p in pool.candidates(Request())]
+    assert routed is not Registry().get(name).caps.needs_solver

@@ -29,6 +29,7 @@ from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.pool import Pool
 from cowbird.provider import GenerateOptions, Provider
 from cowbird.registry import Registry
+from cowbird.solver import Clearance
 from cowbird.transport import Transport
 
 CAPS = Capabilities(
@@ -136,6 +137,49 @@ class Responses:
         return answer
 
 
+class FakeSolver:
+    """Stands in for `cowbird.solver.Solver`. Duck-typed like FakeTransport.
+
+    Each answer may be a value, an Exception (raised), or a `Responses(...)`
+    sequence. `calls` records (method, url, sitekey-or-None).
+    """
+
+    def __init__(
+        self,
+        *,
+        clearance: object = None,
+        token: object = "fake-token",
+        proxy: str | None = None,
+    ) -> None:
+        self._clearance = clearance or Clearance(
+            cookies={"cf_clearance": "fake-clearance"}, user_agent="FakeSolver/1.0"
+        )
+        self._token = token
+        self.proxy = proxy
+        self.calls: list[tuple[str, str, str | None]] = []
+
+    @staticmethod
+    def _give(answer: object) -> object:
+        if isinstance(answer, Responses):
+            answer = answer.next()
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    def with_proxy(self, proxy: str | None) -> FakeSolver:
+        # Returns itself, unlike Solver, so a test keeps sight of `calls`.
+        self.proxy = proxy
+        return self
+
+    async def turnstile(self, url: str, sitekey: str, **_: object) -> str:
+        self.calls.append(("turnstile", url, sitekey))
+        return self._give(self._token)
+
+    async def clearance(self, url: str) -> Clearance:
+        self.calls.append(("clearance", url, None))
+        return self._give(self._clearance)
+
+
 @dataclass
 class FakeResponse:
     status_code: int
@@ -185,10 +229,17 @@ class FakeTransport:
     visible.
     """
 
-    def __init__(self, provider: str, routes: dict[str, object], status: int = 200) -> None:
+    def __init__(
+        self,
+        provider: str,
+        routes: dict[str, object],
+        status: int = 200,
+        solver: FakeSolver | None = None,
+    ) -> None:
         self.provider = provider
         self.routes = routes
         self.status = status
+        self.solver = solver
         self.seen: list[tuple[str, str, dict]] = []
 
     def _answer(self, method: str, url: str, kw: dict) -> Reply:

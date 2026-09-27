@@ -1,7 +1,14 @@
 import asyncio
 
 import pytest
-from cowbird.errors import CloudflareChallenge, ProviderDown, RateLimited, SchemaDrift
+from cowbird.errors import (
+    CloudflareChallenge,
+    ProviderDown,
+    RateLimited,
+    SchemaDrift,
+    SolverUnavailable,
+)
+from cowbird.testing import FakeSolver
 from cowbird.transport import Transport
 
 
@@ -48,9 +55,7 @@ async def test_non_json_body_raises_schema_drift_not_a_value_error():
 
 
 async def test_cloudflare_interstitial_is_recognised():
-    t = transport_with(
-        FakeResponse(status_code=403, text="<title>Just a moment...</title>")
-    )
+    t = transport_with(FakeResponse(status_code=403, text="<title>Just a moment...</title>"))
     with pytest.raises(CloudflareChallenge):
         await t.json("GET", "https://x.test")
 
@@ -163,3 +168,117 @@ async def test_default_transport_reuses_one_session():
     await t.json("GET", "https://x.test/b")
     assert t._session is first
     assert first.calls == 2
+
+
+# --------------------------------------------------------------------------
+# Cloudflare clearance through a solver
+# --------------------------------------------------------------------------
+
+CHALLENGE = {"status_code": 403, "text": "<title>Just a moment...</title>"}
+
+
+class RecordingSession(FakeSession):
+    def __init__(self, *responses):
+        super().__init__(*responses)
+        self.kwargs: list[dict] = []
+
+    async def request(self, method, url, **kw):
+        # Yield like a real network call, so concurrent requests interleave.
+        await asyncio.sleep(0)
+        self.kwargs.append(kw)
+        return await super().request(method, url, **kw)
+
+
+def solved_transport(*responses, solver=None, **kw):
+    t = Transport("fake", solver=solver if solver is not None else FakeSolver(), **kw)
+    t._session = RecordingSession(*responses)
+    return t
+
+
+async def test_a_challenge_is_solved_once_and_retried_with_cookie_and_user_agent():
+    solver = FakeSolver()
+    t = solved_transport(FakeResponse(**CHALLENGE), FakeResponse(), solver=solver)
+    assert await t.json("POST", "https://x.test/api/thing") == {"ok": True}
+    assert solver.calls == [("clearance", "https://x.test/", None)]
+    retry = t._session.kwargs[1]
+    assert retry["cookies"]["cf_clearance"] == "fake-clearance"
+    assert retry["headers"]["User-Agent"] == "FakeSolver/1.0"
+
+
+async def test_a_second_challenge_after_solving_raises_and_forgets_the_clearance():
+    solver = FakeSolver()
+    t = solved_transport(FakeResponse(**CHALLENGE), FakeResponse(**CHALLENGE), solver=solver)
+    with pytest.raises(CloudflareChallenge):
+        await t.json("GET", "https://x.test/")
+    assert len(solver.calls) == 1
+    assert t._clearances == {}
+
+
+async def test_a_cached_clearance_is_sent_before_any_challenge():
+    solver = FakeSolver()
+    t = solved_transport(FakeResponse(**CHALLENGE), FakeResponse(), FakeResponse(), solver=solver)
+    await t.json("GET", "https://X.test/a")
+    await t.json("GET", "https://x.test/b")
+    assert len(solver.calls) == 1
+    assert t._session.kwargs[2]["cookies"]["cf_clearance"] == "fake-clearance"
+
+
+async def test_the_callers_cookies_survive_and_are_not_mutated():
+    t = solved_transport(FakeResponse(**CHALLENGE), FakeResponse())
+    mine = {"JSESSIONID": "abc"}
+    await t.json("GET", "https://x.test/", cookies=mine)
+    assert t._session.kwargs[1]["cookies"] == {
+        "JSESSIONID": "abc",
+        "cf_clearance": "fake-clearance",
+    }
+    assert mine == {"JSESSIONID": "abc"}
+
+
+async def test_without_a_solver_a_challenge_raises_as_before():
+    t = transport_with(FakeResponse(**CHALLENGE))
+    assert t.solver is None
+    with pytest.raises(CloudflareChallenge):
+        await t.json("GET", "https://x.test/")
+
+
+async def test_a_failing_solver_surfaces_as_solver_unavailable():
+    solver = FakeSolver(clearance=SolverUnavailable("down"))
+    t = solved_transport(FakeResponse(**CHALLENGE), solver=solver)
+    with pytest.raises(SolverUnavailable):
+        await t.json("GET", "https://x.test/")
+
+
+async def test_concurrent_challenged_requests_cost_one_solve():
+    solver = FakeSolver()
+    t = solved_transport(
+        FakeResponse(**CHALLENGE),
+        FakeResponse(**CHALLENGE),
+        FakeResponse(),
+        FakeResponse(),
+        solver=solver,
+    )
+    await asyncio.gather(t.json("GET", "https://x.test/a"), t.json("GET", "https://x.test/b"))
+    assert len(solver.calls) == 1
+
+
+async def test_a_fresh_session_transport_still_carries_the_clearance():
+    sessions = []
+
+    t = Transport("fake", solver=FakeSolver(), fresh_session=True)
+
+    def new_session():
+        session = RecordingSession(
+            *([FakeResponse(**CHALLENGE)] if not sessions else [FakeResponse()])
+        )
+        sessions.append(session)
+        return session
+
+    t._new_session = new_session
+    await t.json("GET", "https://x.test/")
+    assert sessions[1].kwargs[0]["cookies"]["cf_clearance"] == "fake-clearance"
+
+
+def test_a_proxied_transport_hands_its_proxy_to_the_solver():
+    solver = FakeSolver()
+    Transport("fake", solver=solver, proxy="http://proxy.test:8080")
+    assert solver.proxy == "http://proxy.test:8080"

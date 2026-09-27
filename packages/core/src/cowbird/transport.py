@@ -3,11 +3,21 @@ from __future__ import annotations
 import asyncio
 import json as jsonlib
 import random
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 from curl_cffi.requests import AsyncSession
 
-from cowbird.errors import CloudflareChallenge, ProviderDown, RateLimited, SchemaDrift
+from cowbird.errors import (
+    CloudflareChallenge,
+    ProviderDown,
+    RateLimited,
+    SchemaDrift,
+    SolverUnavailable,
+)
+
+if TYPE_CHECKING:
+    from cowbird.solver import Clearance, Solver
 
 # Cloudflare's interstitial is an HTML page served with a 403 or 503. These are
 # the stable markers across its variants.
@@ -41,6 +51,7 @@ class Transport:
         retries: int = 2,
         max_concurrency: int = 4,
         fresh_session: bool = False,
+        solver: Solver | None = None,
     ) -> None:
         self.provider = provider
         self.impersonate = impersonate
@@ -52,6 +63,13 @@ class Transport:
         # concurrency can exceed what the backend tolerates.
         self._gate = asyncio.Semaphore(max_concurrency)
         self._session: Any | None = None
+        # A clearance is bound to the egress, so the solver must leave through
+        # this transport's proxy too.
+        self.solver = solver.with_proxy(proxy) if solver is not None and proxy else solver
+        # Keyed by lowercased hostname. One clearance serves every address on
+        # a host: it certifies the egress, not the inbox.
+        self._clearances: dict[str, Clearance] = {}
+        self._clearance_locks: dict[str, asyncio.Lock] = {}
 
     def _new_session(self) -> Any:
         return AsyncSession(
@@ -78,7 +96,41 @@ class Transport:
 
     async def _request(self, method: str, url: str, **kw: Any) -> Any:
         async with self._gate:
-            return await self._request_unthrottled(method, url, **kw)
+            parts = urlsplit(url)
+            host = (parts.hostname or "").lower()
+            used = self._clearances.get(host)
+            try:
+                return await self._request_unthrottled(method, url, **_cleared(kw, used))
+            except CloudflareChallenge as challenge:
+                if self.solver is None:
+                    raise
+                fresh = await self._refresh_clearance(parts.scheme, host, used, challenge)
+            try:
+                return await self._request_unthrottled(method, url, **_cleared(kw, fresh))
+            except CloudflareChallenge:
+                # Solved and still challenged: the clearance does not work from
+                # here. At most one solve per request; no loop.
+                if self._clearances.get(host) is fresh:
+                    del self._clearances[host]
+                raise
+
+    async def _refresh_clearance(
+        self, scheme: str, host: str, used: Clearance | None, challenge: Exception
+    ) -> Clearance:
+        lock = self._clearance_locks.setdefault(host, asyncio.Lock())
+        async with lock:
+            current = self._clearances.get(host)
+            if current is not None and current is not used:
+                return current  # a concurrent request already re-solved
+            self._clearances.pop(host, None)
+            # The origin, not the request URL: the solver's browser must not
+            # GET a POST-only API route.
+            try:
+                fresh = await self.solver.clearance(f"{scheme}://{host}/")
+            except SolverUnavailable as exc:
+                raise exc from challenge
+            self._clearances[host] = fresh
+            return fresh
 
     async def _request_unthrottled(self, method: str, url: str, **kw: Any) -> Any:
         last: Exception | None = None
@@ -123,9 +175,7 @@ class Transport:
         try:
             return jsonlib.loads(resp.text)
         except ValueError as exc:
-            raise SchemaDrift(
-                self.provider, expected="a JSON body", got=resp.text[:200]
-            ) from exc
+            raise SchemaDrift(self.provider, expected="a JSON body", got=resp.text[:200]) from exc
 
     async def text(self, method: str, url: str, **kw: Any) -> str:
         resp = await self._request(method, url, **kw)
@@ -150,3 +200,15 @@ class Transport:
         if self._session is not None:
             await self._session.close()
             self._session = None
+
+
+def _cleared(kw: dict[str, Any], clearance: Clearance | None) -> dict[str, Any]:
+    """The request kwargs with the clearance merged in, as a new dict. Its
+    User-Agent wins over the caller's: the cookie is void under any other."""
+    if clearance is None:
+        return kw
+    return {
+        **kw,
+        "cookies": {**(kw.get("cookies") or {}), **clearance.cookies},
+        "headers": {**(kw.get("headers") or {}), "User-Agent": clearance.user_agent},
+    }

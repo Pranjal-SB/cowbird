@@ -42,6 +42,9 @@ class Capabilities:
     # read each other's mail. Set, the transport runs each request on a
     # throwaway session and the adapter replays the identity from Address.state.
     fresh_session: bool = False
+    # True for a backend that cannot be used at all without a Cloudflare
+    # solver. The pool skips it when none is configured.
+    needs_solver: bool = False
 
     def serves(self, kind: Kind) -> bool:
         return kind in self.kind

@@ -5,12 +5,13 @@ from cowbird.errors import (
     NotSupported,
     ProviderDown,
     SchemaDrift,
+    SolverUnavailable,
 )
 from cowbird.health import HealthStore, Status
 from cowbird.models import Address
 from cowbird.provider import Provider
 from cowbird.registry import HealthTracked, Registry
-from cowbird.testing import CAPS, FakeProvider
+from cowbird.testing import CAPS, FakeProvider, FakeSolver
 
 
 def test_registered_provider_is_returned_by_name():
@@ -200,3 +201,30 @@ def test_the_default_transport_honours_fresh_session():
     registry.register(provider_class("plain"))
     assert registry.get("sticky").http.fresh_session is True
     assert registry.get("plain").http.fresh_session is False
+
+
+async def test_a_solver_failure_does_not_mark_provider_down():
+    class SolverDownGet(FakeProvider):
+        async def get(self, address, id):
+            raise SolverUnavailable("solver refused the connection")
+
+    health = HealthStore()
+    wrapped = HealthTracked(SolverDownGet(None), health)
+    with pytest.raises(SolverUnavailable):
+        await wrapped.get(Address(value="a@fake.test", provider="fake"), "1")
+    assert health.status("fake") == Status.OK
+
+
+def test_the_registry_hands_its_solver_to_every_transport():
+    solver = FakeSolver()
+    registry = Registry(discover=False, solver=solver)
+    registry.register(FakeProvider)
+    assert registry.solver is solver
+    assert registry.get(FakeProvider.name).http.solver is solver
+
+
+def test_a_registry_without_a_solver_builds_transports_without_one():
+    registry = Registry(discover=False)
+    registry.register(FakeProvider)
+    assert registry.solver is None
+    assert registry.get(FakeProvider.name).http.solver is None

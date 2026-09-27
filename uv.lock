@@ -20,6 +20,7 @@ members = [
     "cowbird-re146",
     "cowbird-reusableemail",
     "cowbird-server",
+    "cowbird-smailpro",
     "cowbird-tempmailhub",
     "cowbird-tempmailio",
     "cowbird-tempmailorg",
@@ -330,6 +331,7 @@ dependencies = [
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
     { name = "cowbird-reusableemail" },
+    { name = "cowbird-smailpro" },
     { name = "cowbird-tempmailhub" },
     { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
@@ -364,6 +366,7 @@ requires-dist = [
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
     { name = "cowbird-reusableemail", editable = "packages/providers/reusableemail" },
+    { name = "cowbird-smailpro", editable = "packages/providers/smailpro" },
     { name = "cowbird-tempmailhub", editable = "packages/providers/tempmailhub" },
     { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
@@ -572,6 +575,7 @@ dependencies = [
     { name = "cowbird-nicemail" },
     { name = "cowbird-re146" },
     { name = "cowbird-reusableemail" },
+    { name = "cowbird-smailpro" },
     { name = "cowbird-tempmailhub" },
     { name = "cowbird-tempmailio" },
     { name = "cowbird-tempmailorg" },
@@ -611,6 +615,7 @@ requires-dist = [
     { name = "cowbird-nicemail", editable = "packages/providers/nicemail" },
     { name = "cowbird-re146", editable = "packages/providers/re146" },
     { name = "cowbird-reusableemail", editable = "packages/providers/reusableemail" },
+    { name = "cowbird-smailpro", editable = "packages/providers/smailpro" },
     { name = "cowbird-tempmailhub", editable = "packages/providers/tempmailhub" },
     { name = "cowbird-tempmailio", editable = "packages/providers/tempmailio" },
     { name = "cowbird-tempmailorg", editable = "packages/providers/tempmailorg" },
@@ -629,6 +634,17 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
 provides-extras = ["dev"]
+
+[[package]]
+name = "cowbird-smailpro"
+version = "0.1.0"
+source = { editable = "packages/providers/smailpro" }
+dependencies = [
+    { name = "cowbird-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cowbird-core", editable = "packages/core" }]
 
 [[package]]
 name = "cowbird-tempmailhub"

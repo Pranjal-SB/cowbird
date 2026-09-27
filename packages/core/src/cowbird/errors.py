@@ -33,6 +33,16 @@ class CloudflareChallenge(ProviderDown):
     reroutable = True
 
 
+class SolverUnavailable(CowbirdError):
+    """The Cloudflare solver failed: refused, timed out, or answered nonsense.
+
+    Not a ProviderError: the provider did nothing wrong, so this must never
+    count against its health. Reroutable, so the pool tries another backend.
+    """
+
+    reroutable = True
+
+
 class RateLimited(ProviderError):
     """Upstream throttled us."""
 

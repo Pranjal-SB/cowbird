@@ -146,3 +146,10 @@ def test_message_gone_maps_to_410_with_a_fixed_message():
         410,
         "that message is no longer available",
     )
+
+
+def test_a_solver_failure_maps_to_503_not_an_upstream_error():
+    from cowbird.errors import SolverUnavailable
+    from cowbird_server.errors import status_for
+
+    assert status_for(SolverUnavailable("refused")) == (503, "cloudflare solver unavailable")

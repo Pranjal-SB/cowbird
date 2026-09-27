@@ -146,3 +146,24 @@ def test_canary_json_detail_is_null_for_a_healthy_provider(monkeypatch, capsys):
     _seeded_pool(provider_class("good"), monkeypatch=monkeypatch)
     main(["canary", "--json"])
     assert json.loads(capsys.readouterr().out)["good"]["detail"] is None
+
+
+async def test_a_provider_that_needs_a_solver_is_skipped_without_one():
+    from dataclasses import replace
+
+    called = []
+
+    async def generate(self, opts=None):
+        called.append(True)
+        raise AssertionError("must not be probed")
+
+    walled = type(
+        "WALLED",
+        (FakeProvider,),
+        {"name": "walled", "caps": replace(CAPS, needs_solver=True), "generate": generate},
+    )
+    health = HealthStore()
+    reg = build(walled, health=health)
+    assert await run_canary(reg, health) == {"walled": "skipped"}
+    assert called == []
+    assert health.status("walled") is Status.OK

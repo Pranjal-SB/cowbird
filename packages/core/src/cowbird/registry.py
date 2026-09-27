@@ -4,9 +4,10 @@ import time
 from collections.abc import Callable
 from importlib.metadata import entry_points
 
-from cowbird.errors import CowbirdError, NoProviderAvailable, ProviderDown
+from cowbird.errors import CowbirdError, NoProviderAvailable, ProviderDown, SolverUnavailable
 from cowbird.health import HealthStore
 from cowbird.provider import Provider
+from cowbird.solver import Solver
 from cowbird.transport import Transport
 
 ENTRY_POINT_GROUP = "cowbird.providers"
@@ -44,7 +45,9 @@ class HealthTracked(Provider):
             # failures would evict a healthy provider for doing its job
             # correctly. Nothing is learned about health either way, so no
             # record_success on this path.
-            if exc.reroutable:
+            # A solver failure is not the provider's fault either: it still
+            # reroutes, but leaves this provider's health alone.
+            if exc.reroutable and not isinstance(exc, SolverUnavailable):
                 self._health.record_failure(self.name, exc)
             raise
         except Exception as exc:
@@ -107,8 +110,12 @@ class Registry:
         transport_factory: Callable[[str], Transport] | None = None,
         discover: bool = True,
         health: HealthStore | None = None,
+        solver: Solver | None = None,
     ) -> None:
         self._health = health
+        # Handed to every default transport, which uses it on a Cloudflare
+        # challenge and exposes it to adapters that need a Turnstile token.
+        self.solver = solver
         self._classes: dict[str, type[Provider]] = {}
         self._instances: dict[str, Provider] = {}
         # discover=False builds a registry holding only what is registered by
@@ -134,11 +141,12 @@ class Registry:
         # get() with a name that was just looked up in _classes and confirmed
         # present. The None branch is unreachable today, not an unhandled bug.
         if cls is None:
-            return Transport(name)
+            return Transport(name, solver=self.solver)
         return Transport(
             name,
             max_concurrency=cls.caps.max_concurrency,
             fresh_session=cls.caps.fresh_session,
+            solver=self.solver,
         )
 
     def register(self, cls: type[Provider]) -> None:

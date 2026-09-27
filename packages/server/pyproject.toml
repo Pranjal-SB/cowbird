@@ -25,6 +25,7 @@ dependencies = [
 "cowbird-reusableemail",
 "cowbird-disposablemail",
 "cowbird-duckmail",
+"cowbird-smailpro",
     # slowapi reads FastAPI's route internals and has not shipped since 2023.
     # Upper bound stays until the rate-limit tests are re-run against a newer FastAPI.
     "fastapi>=0.115,<0.142",
@@ -59,6 +60,7 @@ cowbird-tempmailhub = { workspace = true }
 cowbird-reusableemail = { workspace = true }
 cowbird-disposablemail = { workspace = true }
 cowbird-duckmail = { workspace = true }
+cowbird-smailpro = { workspace = true }
 
 [build-system]
 requires = ["setuptools>=77"]
