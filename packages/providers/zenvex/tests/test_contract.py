@@ -199,7 +199,6 @@ async def test_the_edu_kind_picks_an_edu_pl_domain():
         GenerateOptions(domain="gmail.com"),
         GenerateOptions(kind=Kind.GMAIL_ALIAS),
         GenerateOptions(kind=Kind.EDU, domain="souss.dev"),
-        GenerateOptions(local="Not Allowed!"),
     ],
 )
 async def test_what_zenvex_cannot_serve_is_refused(opts):

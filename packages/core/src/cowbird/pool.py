@@ -24,6 +24,11 @@ class Request:
     delete: bool | None = None
     self_hosted: bool | None = None
 
+    def __post_init__(self) -> None:
+        # GenerateOptions checks the local part and domain; building one here
+        # refuses a bad request before any provider is chosen.
+        self.to_options()
+
     def to_options(self) -> GenerateOptions:
         return GenerateOptions(kind=self.kind, local=self.local, domain=self.domain)
 

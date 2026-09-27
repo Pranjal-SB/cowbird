@@ -62,3 +62,8 @@ def test_a_capability_request_is_passed_through_to_routing(client, auth):
     # NoProviderAvailable.
     response = client.post("/v1/inboxes", headers=auth, json={"kind": "gmail-alias"})
     assert response.status_code == 503
+
+
+def test_a_local_part_that_could_reshape_an_upstream_request_is_a_422(client, auth):
+    response = client.post("/v1/inboxes", headers=auth, json={"local": "x/../admin?y=1"})
+    assert response.status_code == 422
