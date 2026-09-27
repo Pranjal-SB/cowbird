@@ -1,0 +1,16 @@
+[
+  {
+    "id": "4f2310e8-4ad1-44a0-90c3-7d630a5190a7",
+    "user_id": "512cd289-3255-458c-aa16-aea3af33daa6",
+    "address": "cbca8f76042f@mail-edu.eu",
+    "label": null,
+    "is_active": true,
+    "storage_used_bytes": 0,
+    "emails_received": 0,
+    "created_at": "2026-09-25T08:29:59.098491+00:00",
+    "updated_at": "2026-09-25T08:29:59.098491+00:00",
+    "is_favorite": false,
+    "expires_at": "2026-09-25T10:29:57.597022+00:00",
+    "mailbox_type": "random"
+  }
+]
