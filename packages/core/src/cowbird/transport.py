@@ -148,15 +148,17 @@ class Transport:
             except Exception as exc:  # curl_cffi raises its own transport errors
                 last = ProviderDown(f"{self.provider}: {exc}")
             else:
+                # An explicit allow_status means the caller takes the raw
+                # response and interprets it: generator-email's PoW
+                # interstitial imitates Cloudflare's title, so this check
+                # must precede the challenge detection or the opted-in
+                # body could never reach the adapter.
+                if resp.status_code in allow_status:
+                    return resp
                 if self._is_challenge(resp):
                     raise CloudflareChallenge(
                         f"{self.provider}: anti-bot challenge (HTTP {resp.status_code})"
                     )
-                # A caller that opts a status in gets the response itself —
-                # e.g. an anti-bot 503 whose body carries the next step —
-                # instead of a retry.
-                if resp.status_code in allow_status:
-                    return resp
                 if resp.status_code == 429:
                     raise RateLimited(f"{self.provider}: HTTP 429")
                 if resp.status_code < 500:

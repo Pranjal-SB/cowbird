@@ -100,11 +100,15 @@ async def test_allow_status_returns_503_without_retrying():
     assert t._session.calls == 1
 
 
-async def test_allow_status_still_raises_on_challenge():
-    # Allowing a 5xx must not swallow a real Cloudflare challenge body.
+async def test_allow_status_hands_back_a_mimicked_challenge_body():
+    # generator-email's PoW interstitial imitates Cloudflare's "Just a
+    # moment" title. A caller that opted the status in asked for the raw
+    # body and takes responsibility for telling the mimic from the real
+    # thing; the challenge check must not eat it first.
     t = transport_with(FakeResponse(status_code=503, text="<title>Just a moment...</title>"))
-    with pytest.raises(CloudflareChallenge):
-        await t.send("GET", "https://x.test", allow_status=(503,))
+    resp = await t.send("GET", "https://x.test", allow_status=(503,))
+    assert resp.status_code == 503
+    assert "Just a moment" in resp.text
 
 
 async def test_default_503_still_raises():
