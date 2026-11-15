@@ -132,6 +132,7 @@ Probed, not built. The reason is in the table.
 |---|---|
 | tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
 | dropmail | the free API token path closed; the site itself is still up (2026-11-15) |
+| yopmail | Turnstile since at least 2026-11-15; the solver's tokens were rejected on replay (same fingerprint wall as 10minutemail) — unreachable from any realistic egress, so its 100+ domains buy nothing |
 
 dropmail was in the seed set only because it was the one known push
 (WebSocket) backend, so `watch()` could be proven against a real push provider
@@ -187,26 +188,28 @@ is what defeats domain blocklists.
 
 | backend | sites | addr | msg | domains | verdict (2026-11-15) |
 |---|---|---|---|---|---|
-| yopmail | yopmail.com | forever | 8d | 100+ | alive, untraced (public inbox, provable without a sender) |
-| mailnesia | mailnesia.com | forever | 2d | 1 | alive, untraced (server-rendered HTML) |
-| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ | alive, untraced (PoW interstitial on the API) |
-| trashmail.ws | trashmail.ws | ? | ? | 1 | untraced (own MX `mail.trashmail.ws`; not a maildrop front door) |
-| anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 | untraced (trace `/messages`, `/messages/<id>/source`) |
-| haribu | haribu.net | ? | ? | 1 | alive, untraced (medium) |
-| driftz | driftz.net | ? | ? | 23 | alive, untraced |
-| moakt | moakt.com | 1h | 1h | 13 | alive, untraced (public, provable today) |
-| 48hr.email | 48hr.email | forever | 2d | 7 | alive, untraced |
+| mailnesia | mailnesia.com | forever | 2d | 1 | easy: zero-auth; read proven live on a busy mailbox + RSS endpoint; quirk: common names are aliased and refuse to show mail |
+| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com, email-fake.com | ? | ? | 52 | shipped as `generatoremail`; email-fake.com folded in 2026-11-15 (same IP, MX `mx.add5000.com`, same `api-token` schema) |
+| trashmail.ws | trashmail.ws | ? | ? | 1 | walled: hCaptcha + reCAPTCHA v3 enforced server-side (Livewire calls 500 regardless); own MX `mail.trashmail.ws`, not a maildrop front door |
+| anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 | easy: CodeIgniter JSON API (`/api/create`, `/api/getDomains`, `/api/get`), CSRF from page HTML; live-proven |
+| haribu | haribu.net | ? | ? | 1 | medium: session-bound, form-encoded POSTs returning HTML fragments |
+| driftz | driftz.net | ? | ? | 37 | easy: React SPA over a public JSON API (api.driftz.net, OpenAPI at /openapi/json); 22 public domains; live-proved generate+list |
+| moakt | moakt.com | 1h | 1h | 14 | medium: session-bound (tm_session cookie); create+list proven; public read unproven (busy names reserved, read route unknown) |
+| 48hr.email | 48hr.email | forever | 2d | 15 | easy: zero-auth server-rendered; read proven live (list, rendered message, /raw); 15 domains, 48h purge; open source |
 | spambox | spambox.xyz | forever | 1d | 4 | walled: reCAPTCHA |
-| vmail.dev | vmail.dev | 1d | 1d | 2 | untraced (no longer walled; ships `/api-docs` and `/mailboxes`) |
-| tempemail.cc | tempemail.cc | forever | forever | 1 | alive, untraced |
-| mohmal | mohmal.com | 45m | 45m | 1 | alive, untraced (HTML, 45 min) |
-| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | untraced (never probed; not in the 2026-11-15 sweep) |
-| tmail.link | tmail.link | ? | ? | ? | alive, untraced |
-| tempmail.cloud | tempmail.cloud | forever* | forever* | 21 | untraced (added from FMHY 2026-11-15; retention is account-gated) |
-| meowmail.in | meowmail.in | 1h* | 1h* | 4 | untraced (added from FMHY 2026-11-15) |
+| vmail.dev | vmail.dev | 1d | 1d | 2 | walled (2026-11-15 survey: `/api/verify` demands a live Turnstile token; API keys need dashboard login — supersedes "no longer walled") |
+| tempemail.cc | tempemail.cc | forever | forever | 1 | easy: same-origin JSON REST, JWT per account, single domain icmans.com; live-proven |
+| mohmal | mohmal.com | 45m | 45m | 6 | quick-medium: connect.sid session on create; /en/extend renews the 45m TTL; 6 domains |
+| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | hard: cap.js PoW solvable but /captcha/redeem needs an obfuscated instrumentation blob; not buildable today |
+| tmail.link | tmail.link | ? | ? | ? | easy: Django, GET /inbox/<addr>/ opens, POST with csrftoken lists (JSON), public; body page unverified |
+| tempmail.cloud | tempmail.cloud | forever* | forever* | 21 | skipped: retention is account-gated; account minting is out of scope (decided 2026-11-15) |
+| meowmail.in | meowmail.in | 1h* | 1h* | 4 | easy: public OpenAPI (api.meowmail.in), keyless REST, custom local part, 1h TTL confirmed |
 
 Two rows removed 2026-11-15 as duplicates of shipped adapters:
-temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin.
+temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin. A third
+fold from the 2026-11-15 survey: email-fake.com is the same backend as the
+shipped generator-email family (same IP 91.196.52.205, MX mx.add5000.com, same
+api-token schema).
 
 ## Ten-minute tier
 
@@ -236,17 +239,19 @@ sits in the shipped table.)
 
 ## From the secondary list
 
-Not yet classified. Source: `rentry.org/i3ozxg6f`. cryptogmail.com and
+Source: `rentry.org/i3ozxg6f`. cryptogmail.com and
 internxt.com/temporary-email removed 2026-11-15: both are mail.tm duplicates,
-covered by the shipped mail.tm adapter.
+covered by the shipped mail.tm adapter. email-fake.com folded 2026-11-15: see
+the duplicates note under Own-domain backends.
 
-Untraced: anonbox.net (easy: private mbox link, decoy spans, 1-day validity) ·
-tempmail4u.com · tempinbox.xyz · tmailor.com (Datastar SSE) ·
-minmail.app (redirects to temp-mail.app — alive again 2026-11-15; the earlier
-"502 dead" verdict is superseded) ·
-10minutemail.net (alive; no doc equates it with the shipped 10minutemail.com —
-kept distinct) · email-fake.com (TLS reset on every impersonation; possibly the
-generator-email family, unresolved).
+Surveyed 2026-11-15:
+
+- tmailor.com — easy: JSON API mapped (POST /api/webapp-newemail → address + JWT; /api/webapp-listinbox with per-mailbox token map); the Datastar/SSE premise in the old recon is dead — no SSE in its current stack
+- anonbox.net — easy: GET /en returns address + secret mbox link; caveats: mbox format, fetched mailboxes are deleted by cron
+- tempmail4u.com — quick-medium: one unauthenticated GET (api.tempmail4u.com/api/fakeemails/?email=), catch-all @jsontoexcel.net; ~25s cold latency
+- 10minutemail.net — easy: cookie PHP session, address @zefvo.com; generate+list+read proven via its own welcome mail; NOT related to the shipped 10minutemail.com
+- tempinbox.xyz — parked until a browser trace: replicated Livewire calls 500
+- minmail.app — walled: redirects to temp-mail.app — invite-gated premium product, no anonymous API
 
 Walled: emailme.at (reCAPTCHA) · m.kuku.lu · tempmail.net (all CF-challenged;
 IUAM candidates).
@@ -289,4 +294,4 @@ shipped, 2 parked, 52 unbuilt — of the unbuilt, 9 dead, 4 dead-or-slow,
 12 walled, 27 untraced. The 32 shipped adapters expose 40
 front doors between them, all unique. Two entry-point names differ from their
 directory: `tenminutemail/` registers as `10minutemail`, `twentytwodo/` as
-`22do`.
+`22do`. (Survey of 2026-11-15 pending full recount.)
