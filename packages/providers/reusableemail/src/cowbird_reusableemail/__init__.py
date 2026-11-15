@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 from cowbird.transport import Transport
@@ -49,6 +49,7 @@ def _sender(row: dict) -> str:
 class ReusableEmail(Provider):
     name = "reusableemail"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=("reusable.email",),
         domains=(DOMAIN,),

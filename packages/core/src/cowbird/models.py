@@ -23,6 +23,7 @@ class Capabilities:
     kind: frozenset[Kind]
     sites: tuple[str, ...]
     domains: tuple[str, ...]
+    # number of domains the backend may issue; for dynamic discovery, the last observed count; 0 = unknown
     domain_count: int
     address_ttl: timedelta | None
     message_ttl: timedelta | None

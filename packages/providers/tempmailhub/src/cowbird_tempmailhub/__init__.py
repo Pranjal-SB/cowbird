@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from cowbird.errors import MessageGone, NotSupported, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -37,6 +37,7 @@ def _sender(row: dict) -> str:
 class TempMailHub(Provider):
     name = "tempmailhub"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.SHARED,
         kind=frozenset({Kind.GMAIL_ALIAS}),
         sites=("tempmailhub.org",),
         domains=("gmail.com",),

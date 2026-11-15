@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from typing import NamedTuple
 
 from cowbird.errors import AddressExpired, MessageGone, NotSupported, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -75,6 +75,7 @@ def _local() -> str:
 class EmailTemp(Provider):
     name = "emailtemp"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=tuple(SITES),
         domains=tuple(d for s in SITES.values() for d in s.domains),

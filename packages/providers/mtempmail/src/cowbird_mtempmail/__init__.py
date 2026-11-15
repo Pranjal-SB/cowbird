@@ -30,7 +30,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 from cowbird.errors import AddressExpired, MessageGone, NotSupported, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -73,6 +73,7 @@ def _received(row: dict) -> datetime | None:
 class MTempMail(Provider):
     name = "mtempmail"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset(KINDS),
         sites=("mtempmail.com",),
         domains=DOMAINS,

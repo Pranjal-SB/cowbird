@@ -22,7 +22,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from cowbird.errors import MessageGone, NotSupported, RateLimited, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -34,6 +34,7 @@ _ADDRESS = re.compile(r"[^@\s\"]+@[^@\s\"]+")
 class TempMailo(Provider):
     name = "tempmailo"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=("tempmailo.com",),
         # Sampled 20 addresses: forexzig.com, denipl.com, fxzig.com, denipl.net.
