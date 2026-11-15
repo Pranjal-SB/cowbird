@@ -202,6 +202,8 @@ is what defeats domain blocklists.
 | mohmal | mohmal.com | 45m | 45m | 1 | alive, untraced (HTML, 45 min) |
 | adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | untraced (never probed; not in the 2026-11-15 sweep) |
 | tmail.link | tmail.link | ? | ? | ? | alive, untraced |
+| tempmail.cloud | tempmail.cloud | forever* | forever* | 21 | untraced (added from FMHY 2026-11-15; retention is account-gated) |
+| meowmail.in | meowmail.in | 1h* | 1h* | 4 | untraced (added from FMHY 2026-11-15) |
 
 Two rows removed 2026-11-15 as duplicates of shipped adapters:
 temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin.
@@ -281,9 +283,10 @@ re-probe before writing any of these off, but do not build against them.
 
 ## Counts
 
-84 distinct known backends (names folded by MX/API evidence; liveness probed
-2026-11-15): 32 shipped, 2 parked, 50 unbuilt — of the unbuilt, 9 dead,
-4 dead-or-slow, 12 walled, 25 untraced. The 32 shipped adapters expose 40
+86 distinct known backends (names folded by MX/API evidence; liveness probed
+2026-11-15; two added from the FMHY temp-mail section the same day): 32
+shipped, 2 parked, 52 unbuilt — of the unbuilt, 9 dead, 4 dead-or-slow,
+12 walled, 27 untraced. The 32 shipped adapters expose 40
 front doors between them, all unique. Two entry-point names differ from their
 directory: `tenminutemail/` registers as `10minutemail`, `twentytwodo/` as
 `22do`.
