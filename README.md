@@ -224,16 +224,19 @@ are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Thirty-two providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+Thirty-four providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
 guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
 backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
 temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
 reusable.email, disposablemail (three hosts), DuckMail, eyepaste, receivemail,
-emailtemp (two hosts), mtempmail, tempmailo and instantedumail. Six more need the
+emailtemp (two hosts), mtempmail, tempmailo, instantedumail, generatoremail
+(the generator.email family behind one proof-of-work gate) and tempr.email —
+the first provider whose `watch()` is a real push transport (its inbox streams
+over Datastar SSE) rather than the polling default. Six more need the
 Cloudflare solver: smailpro (Gmail and Outlook), cftempmail, xeramail,
-vanishinbox, zenvex and etempmail. Two from the seed set are parked,
-with the reasons in `docs/PROVIDERS.md`: tempr.email streams its inbox over
-Datastar SSE and needs its own client, and dropmail's free API token path
+vanishinbox, zenvex and etempmail. Two backends are parked,
+with the reasons in `docs/PROVIDERS.md`: yopmail fronts Turnstile whose
+solver clearances are rejected on replay, and dropmail's free API token path
 closed.
 
 The deliverable is an HTTP API, and it ships: `cowbird-server` in

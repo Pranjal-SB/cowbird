@@ -15,8 +15,10 @@ its listed aliases
 
 ## Shipped
 
-Thirty-two adapters ship. They expose 40 front doors between them, all
-unique. Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
+Thirty-four adapters ship. They expose 42 front doors between them, all
+unique. Live and contract-tested. tempr.email is the first adapter whose
+`watch()` is a real push transport (Datastar SSE) rather than the polling
+default. The original three (mail.tm, emailnator, inboxes)
 are additionally proven end to end by `packages/core/tests/test_delivery.py`,
 a `live`-marked suite. Of the eight newer providers, six were proven by hand on
 2026-09-24: a test mail sent from testemailsender.com (JoltMx) arrived in
@@ -67,6 +69,16 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | mtempmail | mtempmail.com | own-domain, edu | 1d | 1d | 3 | — |
 | tempmailo | tempmailo.com | own-domain | ? | 2d | 4 | — |
 | instantedumail | instantedumail.com | own-domain, edu | 1h | ? | 4 | — |
+| generatoremail 🔗 | emailfake.com (family: generator.email, tempm.com, mail-temp.com, email-fake.com) | own-domain | ? | ? | 52 | — |
+| tempr | tempr.email | own-domain | ? | 30d | 60 | — |
+
+`generatoremail` speaks for the whole generator.email family behind one PoW
+gate; the family row in the backlog tables folds into it. `tempr` is the first
+push adapter: its `watch()` consumes the Datastar SSE stream on
+`mta.trashmailr.com:81` directly instead of polling. Its delivery proof is
+pending a working sender (all three free senders failed during its build
+window); generate, list, get and MessageGone were live-proved against its
+public inboxes, and 123 real row frames were captured.
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -78,7 +90,11 @@ part. DuckMail speaks the mail.tm API and reuses that adapter.
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
 local-part and a domain and returns, which is where the 0.0s comes from. It
 also accepts a custom local-part, as do maildrop, inboxkitten, nicemail and
-mail.cx. emailnator and mail.tm do not.
+mail.cx. emailnator and mail.tm do not. On 2026-11-15 its read path looked
+broken from here — the MX accepted a probe mail but the inbox API stayed
+empty for minutes while the same mail landed on guerrillamail and
+tempmail.plus — so treat its 0.0s p50 with suspicion until the weekly canary
+re-checks it.
 
 10minutemail has no p50. On the 2026-09-24 run it drew a Cloudflare challenge
 from this machine's egress, same as on 2026-09-12, when it answered normally
@@ -130,7 +146,6 @@ Probed, not built. The reason is in the table.
 
 | backend | why |
 |---|---|
-| tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
 | dropmail | the free API token path closed; the site itself is still up (2026-11-15) |
 | yopmail | Turnstile since at least 2026-11-15; the solver's tokens were rejected on replay (same fingerprint wall as 10minutemail) — unreachable from any realistic egress, so its 100+ domains buy nothing |
 
@@ -140,13 +155,9 @@ before polling adapters were built on it. No shipped provider uses push today.
 
 ## Seed set, remaining
 
-| backend | sites | kind | addr | msg | domains |
-|---|---|---|---|---|---|
-| ⭐ tempr.email | tempr.email | own-domain | ? | 30d | 60 |
-
-Recon corrected the row. tempr.email serves 60 domains, not the "50+" the source list claimed and not
-the "50" its own page says in one place, and its 30 days is message retention,
-with address lifetime still unestablished.
+None. tempr.email — the last seed-set item — shipped on 2026-11-15 as
+`tempr`, with the push `watch()` override the seed set existed to prove.
+dropmail, the other seed option, stays parked (free API token path closed).
 
 ## Starred, not seeded
 
@@ -189,7 +200,6 @@ is what defeats domain blocklists.
 | backend | sites | addr | msg | domains | verdict (2026-11-15) |
 |---|---|---|---|---|---|
 | mailnesia | mailnesia.com | forever | 2d | 1 | easy: zero-auth; read proven live on a busy mailbox + RSS endpoint; quirk: common names are aliased and refuse to show mail |
-| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com, email-fake.com | ? | ? | 52 | shipped as `generatoremail`; email-fake.com folded in 2026-11-15 (same IP, MX `mx.add5000.com`, same `api-token` schema) |
 | trashmail.ws | trashmail.ws | ? | ? | 1 | walled: hCaptcha + reCAPTCHA v3 enforced server-side (Livewire calls 500 regardless); own MX `mail.trashmail.ws`, not a maildrop front door |
 | anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 | easy: CodeIgniter JSON API (`/api/create`, `/api/getDomains`, `/api/get`), CSRF from page HTML; live-proven |
 | haribu | haribu.net | ? | ? | 1 | medium: session-bound, form-encoded POSTs returning HTML fragments |
@@ -225,9 +235,10 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 Separate capability kind. Lowest priority; investigate before committing to
 any. Verdicts from the 2026-11-15 probe:
 
-- edumailfree.com — untraced-medium: create+list ran through Transport on
-  2026-09-24 (captcha off); plain curl drew a Cloudflare challenge on
-  2026-11-15, curl_cffi may still pass.
+- edumailfree.com — medium: headless WebKit earns a `cf_clearance` that works
+  replayed through `curl_cffi` (`impersonate="safari184"`); Livewire v3 TMail,
+  same shape as ghostinbox; 20 domains (5× `.edu.pl`); a live create was proved
+  on 2026-11-15.
 - tempsmail.org — walled: reCAPTCHA v2 server-side.
 - edumail.su — walled: IUAM; redirects to edumail.bz.
 - run2mail.com — walled: IUAM.
@@ -288,10 +299,14 @@ re-probe before writing any of these off, but do not build against them.
 
 ## Counts
 
-86 distinct known backends (names folded by MX/API evidence; liveness probed
-2026-11-15; two added from the FMHY temp-mail section the same day): 32
-shipped, 2 parked, 52 unbuilt — of the unbuilt, 9 dead, 4 dead-or-slow,
-12 walled, 27 untraced. The 32 shipped adapters expose 40
-front doors between them, all unique. Two entry-point names differ from their
+85 distinct known backends (names folded by MX/API evidence; every unshipped
+backend surveyed and classified 2026-11-15): 34 shipped, 2
+parked, 49 unbuilt. Of the unbuilt: 9 dead, 4 dead-or-slow, 16 walled (4
+reCAPTCHA, 2 Turnstile, 1 login, 9 challenge/IUAM), and 20 with a buildable
+verdict — 10 easy, 5 medium, ghostinbox and zemail reconned, tempinbox pending
+a browser trace, adguard hard, one skipped (tempmail.cloud, account-gated).
+The 34 shipped adapters expose 42
+front doors between them, all unique, and tempr's `watch()` is the first real
+push transport. Two entry-point names differ from their
 directory: `tenminutemail/` registers as `10minutemail`, `twentytwodo/` as
-`22do`. (Survey of 2026-11-15 pending full recount.)
+`22do`.
