@@ -10,3 +10,5 @@ dist/
 # Local working notes and maintainer docs, kept out of the repo.
 docs/recon/
 docs/superpowers/
+AGENTS.md
+CLAUDE.md
