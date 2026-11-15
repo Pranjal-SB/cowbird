@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from cowbird.health import Status
-from cowbird.models import Kind
+from cowbird.models import InboxPrivacy, Kind
 from cowbird.pool import Pool
 from cowbird.pool import Request as PoolRequest
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -101,6 +101,10 @@ class CreateInbox(BaseModel):
     domain_not_in: tuple[str, ...] = ()
     address_ttl_seconds: int | None = Field(default=None, ge=1)
     message_ttl_seconds: int | None = Field(default=None, ge=1)
+    push: bool | None = None
+    delete: bool | None = None
+    self_hosted: bool | None = None
+    inbox_privacy: InboxPrivacy | None = None
 
     def to_request(self) -> PoolRequest:
         return PoolRequest(
@@ -111,6 +115,10 @@ class CreateInbox(BaseModel):
             domain_not_in=self.domain_not_in,
             address_ttl=_seconds(self.address_ttl_seconds),
             message_ttl=_seconds(self.message_ttl_seconds),
+            push=self.push,
+            delete=self.delete,
+            self_hosted=self.self_hosted,
+            inbox_privacy=self.inbox_privacy,
         )
 
 
