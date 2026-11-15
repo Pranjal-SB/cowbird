@@ -1,0 +1,25 @@
+<rss version="2.0">
+  <channel>
+    <link>https://mailnesia.com</link>
+    <title>cbprobe @ Mailnesia</title>
+    <description>Anonymous Email in Seconds</description>
+
+
+    <item>
+      <title>Your verification code is 482913. &#8211; Sender One &#x3c;noreply@example.test&#x3e;</title>
+      <link>https://mailnesia.com/mailbox/cbprobe/1299827515</link>
+      <guid>https://mailnesia.com/mailbox/cbprobe/1299827515</guid>
+      <description><![CDATA[ <p>Your verification code is 482913.</p> ]]></description>
+      <pubDate>Sun, 15 Nov 2026 06:12:33 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Your verification code is 482913. &#8211; noreply@example.test</title>
+      <link>https://mailnesia.com/mailbox/cbprobe/1299533678</link>
+      <guid>https://mailnesia.com/mailbox/cbprobe/1299533678</guid>
+      <description><![CDATA[ <p>Your verification code is 482913.</p> ]]></description>
+      <pubDate>Sat, 14 Nov 2026 14:54:52 +0000</pubDate>
+    </item>
+
+  </channel>
+</rss>
