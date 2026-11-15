@@ -37,6 +37,18 @@ dependencies = [
 "cowbird-instantedumail",
 "cowbird-eyepaste",
 "cowbird-receivemail",
+"cowbird-generatoremail",
+"cowbird-anonbox",
+"cowbird-tmaillink",
+"cowbird-tenminutemailnet",
+"cowbird-tmailor",
+"cowbird-mailnesia",
+"cowbird-fortyeighthr",
+"cowbird-driftz",
+"cowbird-meowmail",
+"cowbird-tempemailcc",
+"cowbird-tempr",
+"cowbird-anonymmail",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +88,18 @@ cowbird-tempmailo = { workspace = true }
 cowbird-instantedumail = { workspace = true }
 cowbird-eyepaste = { workspace = true }
 cowbird-receivemail = { workspace = true }
+cowbird-generatoremail = { workspace = true }
+cowbird-anonbox = { workspace = true }
+cowbird-tmaillink = { workspace = true }
+cowbird-tenminutemailnet = { workspace = true }
+cowbird-tmailor = { workspace = true }
+cowbird-mailnesia = { workspace = true }
+cowbird-fortyeighthr = { workspace = true }
+cowbird-driftz = { workspace = true }
+cowbird-meowmail = { workspace = true }
+cowbird-tempemailcc = { workspace = true }
+cowbird-tempr = { workspace = true }
+cowbird-anonymmail = { workspace = true }
 
 [project.scripts]
 cowbird = "cowbird_cli:run"
