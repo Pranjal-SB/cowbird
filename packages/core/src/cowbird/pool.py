@@ -6,9 +6,12 @@ from datetime import timedelta
 
 from cowbird.errors import CowbirdError, NoProviderAvailable
 from cowbird.health import ROUTABLE, HealthStore
-from cowbird.models import Address, Kind
+from cowbird.models import Address, InboxPrivacy, Kind
 from cowbird.provider import GenerateOptions, Provider
 from cowbird.registry import Registry
+
+# Lower is more private. A caller asking for privacy outranks raw latency.
+_PRIVACY_RANK = {InboxPrivacy.PRIVATE: 0, InboxPrivacy.PUBLIC: 1, InboxPrivacy.SHARED: 2}
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +26,7 @@ class Request:
     push: bool | None = None
     delete: bool | None = None
     self_hosted: bool | None = None
+    inbox_privacy: InboxPrivacy | None = None
 
     def __post_init__(self) -> None:
         # GenerateOptions checks the local part and domain; building one here
@@ -61,6 +65,10 @@ class Pool:
             return False
         if req.self_hosted is not None and caps.self_hosted != req.self_hosted:
             return False
+        if req.inbox_privacy is not None and _PRIVACY_RANK[caps.inbox_privacy] > _PRIVACY_RANK[
+            req.inbox_privacy
+        ]:
+            return False
         if req.local is not None and not caps.custom_local:
             return False
         if req.domain is not None and caps.domains and req.domain not in caps.domains:
@@ -77,10 +85,11 @@ class Pool:
             return True
         return have is None or have >= need
 
-    def _rank(self, provider: Provider) -> tuple[int, float, int, str]:
+    def _rank(self, provider: Provider) -> tuple[int, int, float, int, str]:
         status = self.health.status(provider.name)
         return (
             ROUTABLE.index(status),
+            _PRIVACY_RANK[provider.caps.inbox_privacy],
             self.health.p50(provider.name) or 0.0,
             -provider.caps.domain_count,
             provider.name,
