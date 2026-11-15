@@ -1,0 +1,8 @@
+{
+ "data": {
+  "domain": "meowmail.in",
+  "address": "cowbird482913@meowmail.in",
+  "local_part": "cowbird482913",
+  "email_ttl_seconds": 3600
+ }
+}

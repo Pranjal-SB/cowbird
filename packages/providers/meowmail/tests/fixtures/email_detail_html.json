@@ -1,0 +1,15 @@
+{
+ "data": {
+  "id": "01a1df49-33db-4c8e-9f6a-482913482913",
+  "address": "cowbird482913@meowmail.in",
+  "sender": "noreply@example.test",
+  "subject": "Your verification code is 482913",
+  "mailed_by": "example.test",
+  "has_attachments": false,
+  "received_at": "2026-11-15T12:57:59.003856Z",
+  "expires_at": "2026-11-15T13:57:59.003856Z",
+  "text_body": null,
+  "html_body": "<p>Your verification code is <b>482913</b></p>",
+  "attachments": []
+ }
+}
