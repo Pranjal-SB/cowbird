@@ -1,7 +1,8 @@
 # Provider inventory
 
 The backlog. Every known disposable-mail backend, its front doors, and what it
-can do. Source: curated list, 2026-09-05.
+can do. Source: curated list, 2026-09-05; reconciled against the code and a
+live probe of every unshipped host, 2026-11-15.
 
 **A backend is the unit, not a URL.** Several of these serve the same service
 behind different domains and skins; one adapter covers all of them.
@@ -14,7 +15,8 @@ its listed aliases
 
 ## Shipped
 
-Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
+Thirty-two adapters ship. They expose 40 front doors between them, all
+unique. Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
 are additionally proven end to end by `packages/core/tests/test_delivery.py`,
 a `live`-marked suite. Of the eight newer providers, six were proven by hand on
 2026-09-24: a test mail sent from testemailsender.com (JoltMx) arrived in
@@ -39,7 +41,7 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | guerrillamail 🔗 | guerrillamail.com, sharklasers.com, cs.email, dismail.top | own-domain | 1h | 1h | 11 | 0.4s |
 | temp-mail.org 🔗 | temp-mail.org, 10minemail.com | own-domain | forever | 2h | 1 | 0.4s |
 | 22.do | 22.do | gmail-alias, outlook-alias, own-domain | 1d | 1d | 3 | 0.9s |
-| maildrop 🔗 | maildrop.cc, trashmail.ws | own-domain | forever | 1d | 1 | 0.2s |
+| maildrop | maildrop.cc | own-domain | forever | 1d | 1 | 0.2s |
 | inboxkitten | inboxkitten.com | own-domain | forever | 1d | 1 | 0.6s |
 | nicemail 🔗 | nicemail.cc (API: web.mailporary.com) | own-domain | forever | 1d | 6 | 0.9s |
 | mail.cx | mail.cx | own-domain | forever | 1h | 3 | 13.3s |
@@ -129,7 +131,7 @@ Probed, not built. The reason is in the table.
 | backend | why |
 |---|---|
 | tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
-| dropmail | the free API token path closed |
+| dropmail | the free API token path closed; the site itself is still up (2026-11-15) |
 
 dropmail was in the seed set only because it was the one known push
 (WebSocket) backend, so `watch()` could be proven against a real push provider
@@ -153,6 +155,10 @@ Next in line once the interface holds.
 |---|---|---|---|---|---|
 | ⭐ zemail | zemail.me | gmail-alias | forever | 1d | 7 |
 
+zemail is a Laravel Livewire app: a guest `/mailbox` driven by signed
+component snapshots. Buildable, but fiddly. Free tier: 20 creations/day,
+3 active inboxes.
+
 ## Self-hostable
 
 Own the backend, and it cannot rot. These are the floor under the pool.
@@ -160,71 +166,111 @@ Own the backend, and it cannot rot. These are the floor under the pool.
 | backend | sites | source | domains |
 |---|---|---|---|
 | 🔓 sunls-tmail | mail.sunls.de | `sunls24/tmail` | 3 |
+| 🔓 cloudflare_temp_email | mail.awsl.uk (ships as cftempmail 🧩) | `dreamhunter2333/cloudflare_temp_email` | 3 |
+
+The public sunls-tmail instance is walled — Turnstile, 6h cookie per solve —
+so it is one for self-hosting, not for tracing. mail.awsl.uk is the public
+instance of cloudflare_temp_email and already ships as cftempmail.
 
 ## Gmail / Outlook alias backends
 
 Distinct because they produce addresses at a real, non-disposable domain, which
 is what defeats domain blocklists.
 
-| backend | sites | addr | msg | domains |
-|---|---|---|---|---|
-| tmail.io | tmail.io | forever | 1d | 4 |
-| temptom | temptom.com | forever | 1d | 15 |
-| ghostinbox | ghostinbox.net, temp-gmail.ghostinbox.net | 1d | 1d | 10 |
+| backend | sites | addr | msg | domains | verdict (2026-11-15) |
+|---|---|---|---|---|---|
+| tmail.io | tmail.io | forever | 1d | 4 | walled: Livewire + reCAPTCHA; the solver is Turnstile-only |
+| temptom | temptom.com | forever | 1d | 15 | walled: Turnstile; solver candidate |
+| ghostinbox | ghostinbox.net, temp-gmail.ghostinbox.net | 1d | 1d | 10 | untraced: temp-gmail.ghostinbox.net answers 404 (dead front door; ghostinbox.net itself alive) — Playwright trace needed |
 
 ## Own-domain backends
 
-| backend | sites | addr | msg | domains |
-|---|---|---|---|---|
-| yopmail | yopmail.com | forever | 8d | 100+ |
-| mailnesia | mailnesia.com | forever | 2d | 1 |
-| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ |
-| mintemail 🔗 | mintemail.com, tempail.com | 1h | 1h | 1 |
-| anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 |
-| emailondeck | emailondeck.com | ? | ? | 1 |
-| haribu | haribu.net | ? | ? | 1 |
-| altaddress | altaddress.org | forever | 3d | 14 |
-| driftz | driftz.net | ? | ? | 23 |
-| moakt | moakt.com | 1h | 1h | 13 |
-| temporary-mail | temporary-mail.net | forever | ? | 11 |
-| 48hr.email | 48hr.email | forever | 2d | 7 |
-| tempboxpro | tempboxpro.com | session | ? | 6 |
-| mails.org | mails.org | ? | 30m | 5 |
-| spambox | spambox.xyz | forever | 1d | 4 |
-| urtempmail | urtempmail.com | 1d | 1d | 4 |
-| vmail.dev | vmail.dev | 1d | 1d | 2 |
-| duckspam | duckspam.com | forever | forever | 1 |
-| tempemail.cc | tempemail.cc | forever | forever | 1 |
-| mohmal | mohmal.com | 45m | 45m | 1 |
-| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 |
-| tmail.link | tmail.link | ? | ? | ? |
+| backend | sites | addr | msg | domains | verdict (2026-11-15) |
+|---|---|---|---|---|---|
+| yopmail | yopmail.com | forever | 8d | 100+ | alive, untraced (public inbox, provable without a sender) |
+| mailnesia | mailnesia.com | forever | 2d | 1 | alive, untraced (server-rendered HTML) |
+| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ | alive, untraced (PoW interstitial on the API) |
+| trashmail.ws | trashmail.ws | ? | ? | 1 | untraced (own MX `mail.trashmail.ws`; not a maildrop front door) |
+| anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 | untraced (trace `/messages`, `/messages/<id>/source`) |
+| haribu | haribu.net | ? | ? | 1 | alive, untraced (medium) |
+| driftz | driftz.net | ? | ? | 23 | alive, untraced |
+| moakt | moakt.com | 1h | 1h | 13 | alive, untraced (public, provable today) |
+| 48hr.email | 48hr.email | forever | 2d | 7 | alive, untraced |
+| spambox | spambox.xyz | forever | 1d | 4 | walled: reCAPTCHA |
+| vmail.dev | vmail.dev | 1d | 1d | 2 | untraced (no longer walled; ships `/api-docs` and `/mailboxes`) |
+| tempemail.cc | tempemail.cc | forever | forever | 1 | alive, untraced |
+| mohmal | mohmal.com | 45m | 45m | 1 | alive, untraced (HTML, 45 min) |
+| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | untraced (never probed; not in the 2026-11-15 sweep) |
+| tmail.link | tmail.link | ? | ? | ? | alive, untraced |
+
+Two rows removed 2026-11-15 as duplicates of shipped adapters:
+temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin.
 
 ## Ten-minute tier
 
 Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 
-| backend | sites |
-|---|---|
-| muellmail | muellmail.com |
-| linshi | linshi-email.com |
+| backend | sites | verdict (2026-11-15) |
+|---|---|---|
+| muellmail | muellmail.com | untraced: GraphQL answers `UNAUTHENTICATED`; web client untraced |
+| linshi | linshi-email.com | walled: CF challenge even via impersonation; IUAM candidate |
 
 ## .edu tier
 
-Separate capability kind. Unverified, several likely paid or dead. Lowest
-priority; investigate before committing to any.
+Separate capability kind. Lowest priority; investigate before committing to
+any. Verdicts from the 2026-11-15 probe:
 
-edumailfree.com · tempsmail.org · edumail.su · run2mail.com · getedumail.com ·
-freetempmail.com · imail.edu.vn
+- edumailfree.com — untraced-medium: create+list ran through Transport on
+  2026-09-24 (captcha off); plain curl drew a Cloudflare challenge on
+  2026-11-15, curl_cffi may still pass.
+- tempsmail.org — walled: reCAPTCHA v2 server-side.
+- edumail.su — walled: IUAM; redirects to edumail.bz.
+- run2mail.com — walled: IUAM.
+- getedumail.com — walled: login.
+- imail.edu.vn — dead: NXDOMAIN.
+
+(freetempmail.com removed 2026-11-15: it is a DuckMail front door and already
+sits in the shipped table.)
 
 ## From the secondary list
 
-Not yet classified. Source: `rentry.org/i3ozxg6f`.
+Not yet classified. Source: `rentry.org/i3ozxg6f`. cryptogmail.com and
+internxt.com/temporary-email removed 2026-11-15: both are mail.tm duplicates,
+covered by the shipped mail.tm adapter.
 
-m.kuku.lu ·
-anonbox.net · luxusmail.org · tempmail.net · mailtemp.dev ·
-tempmailb.com · tempmail4u.com · fake.legal · emailme.at · minmail.app ·
-internxt.com/temporary-email · fakemailgenerator.com ·
-tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
+Untraced: anonbox.net (easy: private mbox link, decoy spans, 1-day validity) ·
+tempmail4u.com · tempinbox.xyz · tmailor.com (Datastar SSE) ·
+minmail.app (redirects to temp-mail.app — alive again 2026-11-15; the earlier
+"502 dead" verdict is superseded) ·
+10minutemail.net (alive; no doc equates it with the shipped 10minutemail.com —
+kept distinct) · email-fake.com (TLS reset on every impersonation; possibly the
+generator-email family, unresolved).
+
+Walled: emailme.at (reCAPTCHA) · m.kuku.lu · tempmail.net (all CF-challenged;
+IUAM candidates).
+
+Dead: see Dead below.
+
+## Dead
+
+Probed 2026-11-15 and not serving mail. Nine dead, four dead-or-slow —
+re-probe before writing any of these off, but do not build against them.
+
+| backend | evidence |
+|---|---|
+| mintemail 🔗 (mintemail.com, tempail.com) | MX is NXDOMAIN — cannot receive mail at all |
+| luxusmail.org | NXDOMAIN |
+| tempmailb.com | NXDOMAIN |
+| mailtemp.dev | maintenance page |
+| fake.legal | maintenance, public API paused |
+| fakemailgenerator.com | origin 502 |
+| tempmaili | list 404s |
+| imail.edu.vn | NXDOMAIN |
+| urtempmail.com | serving an unconfigured "Install Page" |
+| emailondeck.com | timed out (dead-or-slow) |
+| altaddress.org | timed out; TTLs unverified (dead-or-slow) |
+| duckspam.com | TLS handshake fails, http 404 (dead-or-slow) |
+| mails.org | 503 "Coming Soon" (dead-or-slow) |
 
 ## Out of scope
 
@@ -235,7 +281,9 @@ tempinbox.xyz · tmailor.com · cryptogmail.com · 10minutemail.net
 
 ## Counts
 
-Roughly 90 front doors. A probe of every host
-folded four rows into backends already listed: cs.email and dismail.top are
-guerrillamail, 10minemail is temp-mail.org, and emailfake is generator-email.
-That leaves roughly 55 distinct backends, of which 32 ship.
+84 distinct known backends (names folded by MX/API evidence; liveness probed
+2026-11-15): 32 shipped, 2 parked, 50 unbuilt — of the unbuilt, 9 dead,
+4 dead-or-slow, 12 walled, 25 untraced. The 32 shipped adapters expose 40
+front doors between them, all unique. Two entry-point names differ from their
+directory: `tenminutemail/` registers as `10minutemail`, `twentytwodo/` as
+`22do`.

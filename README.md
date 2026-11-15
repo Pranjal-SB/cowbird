@@ -218,7 +218,8 @@ to `Address` / `MessageRow` / `Message`. Target size is around 40 lines of
 actual protocol knowledge. If an adapter is doing session handling, backoff,
 or its own HTTP client, that belongs in core instead.
 
-`docs/PROVIDERS.md` has the backlog of ~55 known backends: which ship, which
+`docs/PROVIDERS.md` has the backlog of 84 known backends (audited 2026-11-15:
+32 ship, 2 parked, 50 unbuilt): which ship, which
 are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
