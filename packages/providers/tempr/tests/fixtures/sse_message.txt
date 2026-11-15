@@ -1,0 +1,29 @@
+
+===== mail@tempr.email #1 @1.14s =====
+event:datastar-patch-elements
+data:elements <div id="inbox-messages-list" data-show="!$_empty" data-init="@get('https://mta.trashmailr.com:81/app/message/watch/mail@tempr.email?page=1')">
+data:elements 	<div data-message="01M6NWK36XH4J39X87V8955Q6Z" data-read="false">
+data:elements 		<div class="selection">
+data:elements 			<input type="checkbox" name="messageIds[]" value="01M6NWK36XH4J39X87V8955Q6Z">
+data:elements 		</div>
+data:elements 		<div class="status"
+data:elements 			data-on:click="@patch('https://mta.trashmailr.com:81/app/message/mail@tempr.email?show=01M6NWK36XH4J39X87V8955Q6Z')">
+data:elements 			 <img src="/gfx/icon_mailUnread.svg" alt="unread"> 
+data:elements 			
+data:elements 		</div>
+data:elements 		<div class="about"
+data:elements 			data-on:click="@patch('https://mta.trashmailr.com:81/app/message/mail@tempr.email?show=01M6NWK36XH4J39X87V8955Q6Z')">
+data:elements 			<span>newsletter@bullyworld.de</span> <span>PEANUTS - JETZT erhältlich!🧡</span>
+data:elements 		</div>
+data:elements 		<div class="datetime"
+data:elements 			data-on:click="@patch('https://mta.trashmailr.com:81/app/message/mail@tempr.email?show=01M6NWK36XH4J39X87V8955Q6Z')">
+data:elements 			<span>05.11.2026</span>
+data:elements 			<span>13:57:55</span>
+data:elements 		</div>
+data:elements 		<div class="option"
+data:elements 			data-on:click="@delete('https://mta.trashmailr.com:81/app/message/mail@tempr.email/01M6NWK36XH4J39X87V8955Q6Z');window.location.reload()">
+data:elements 			<img src="/gfx/icon_mailRemove.svg" alt="">
+data:elements 		</div>
+data:elements 	</div>
+data:elements </div>
+

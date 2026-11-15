@@ -1,0 +1,4 @@
+event:datastar-patch-elements
+data:elements <div id="inbox-messages-list" data-show="!$_empty" data-init="@get('https://mta.trashmailr.com:81/app/message/watch/cowbirdt7x1@tempr.email?page=1')">
+data:elements </div>
+
