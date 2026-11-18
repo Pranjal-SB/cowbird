@@ -84,3 +84,16 @@ async def test_a_bare_array_where_the_envelope_belongs_is_schema_drift():
 def _address():
     state = json.dumps({"address": "a@niceground.shop", "password": "x", "token": "t"})
     return Address(value="a@niceground.shop", provider="duckmail", state=state)
+
+
+async def test_an_expired_token_is_reminted_through_the_mailtm_adapter():
+    from cowbird.testing import Reply, Responses
+
+    http = fake({
+        **DEFAULT_ROUTES,
+        "/token": Responses(load("token.json"), {"token": "fresh-token"}),
+        "/messages": Responses(Reply(401, {"code": 401}), load("messages_full.json")),
+    })
+    provider = DuckMail(http)
+    address = await provider.generate(GenerateOptions())
+    assert await provider.list(address)
