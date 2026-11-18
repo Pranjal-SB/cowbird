@@ -169,6 +169,9 @@ class TMailLink(Provider):
         )
         if resp.status_code == 404:
             raise MessageGone(f"tmaillink: message {id} is gone")
+        if resp.status_code >= 400:
+            # A refusal page, not a message page with a moved layout.
+            raise ProviderDown(f"tmaillink: message page answered HTTP {resp.status_code}")
         iframe = _IFRAME_SRC.search(resp.text)
         headers = {
             label: _unescape(value.strip()) for label, value in _TABLE_ROW.findall(resp.text)
