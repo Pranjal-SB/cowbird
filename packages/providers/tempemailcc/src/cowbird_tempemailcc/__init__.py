@@ -178,12 +178,12 @@ class TempEmailCc(Provider):
             seen_cursors.add(cursor)
 
     async def get(self, address: Address, id: str) -> Message:
-        data = _envelope(
-            await self.http.json(
-                "GET", f"{self.api}/api/messages/{id}", headers=_auth(address)
-            ),
-            f"GET /api/messages/{id}",
+        detail = await self.http.json(
+            "GET", f"{self.api}/api/messages/{id}", headers=_auth(address)
         )
+        if isinstance(detail, dict) and detail.get("code") == 404:
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        data = _envelope(detail, f"GET /api/messages/{id}")
         # The body is a separate endpoint, served as gzip-compressed HTML no
         # matter what the client offers (observed 2026-11-15: application/gzip
         # with Accept-Encoding: gzip already sent — curl_cffi leaves it alone

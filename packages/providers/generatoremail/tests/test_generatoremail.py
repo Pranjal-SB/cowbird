@@ -297,3 +297,12 @@ def test_caps_declare_the_family():
     assert not caps.push
     assert not caps.delete
     assert Kind.OWN_DOMAIN in caps.kind
+
+
+
+async def test_a_page_for_another_message_is_gone_not_drift():
+    # An expired mid on a busy mailbox answers the page of the message now
+    # shown there. The one asked for is gone; the adapter is fine.
+    http = StubTransport(FakeResponse(200, load("message.html"), {}, {}))
+    with pytest.raises(MessageGone):
+        await GeneratorEmail(http).get(ADDRESS, OLD_MID)

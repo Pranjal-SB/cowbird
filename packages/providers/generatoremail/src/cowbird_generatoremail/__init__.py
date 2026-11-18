@@ -285,9 +285,9 @@ class GeneratorEmail(Provider):
             # An unknown mid answers the mailbox page: no data-mid, no body.
             raise MessageGone(f"generatoremail: message {id} is gone")
         if page_mid.group(1) != id:
-            raise SchemaDrift(
-                self.name, expected=f"message {id}", got=f"a page for {page_mid.group(1)}"
-            )
+            # An expired mid on a busy mailbox answers the message shown there
+            # now. The one asked for is gone; the page itself is fine.
+            raise MessageGone(f"generatoremail: message {id} is gone")
         head = _SUMMARY_ROW.search(_inner(resp.text, 'id="email-table"'))
         if not head:
             raise SchemaDrift(
