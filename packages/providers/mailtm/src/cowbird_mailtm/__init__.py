@@ -106,9 +106,13 @@ class MailTm(Provider):
         created = await self.http.send(
             "POST", f"{self.api}/accounts", json={"address": value, "password": password}
         )
-        if created.status_code == 422:
-            # The name is taken or refused: an answer to this caller's request.
+        if created.status_code == 422 and opts.local:
+            # The caller's chosen name is taken or refused: an answer to them.
             raise NotSupported(f"{self.name} refused the address {value}")
+        if created.status_code == 422:
+            # Our own random name refused means mail.tm changed its rules.
+            raise SchemaDrift(self.name, expected="/accounts to accept a random name",
+                              got=created.text[:200])
         if created.status_code >= 400:
             raise ProviderDown(f"{self.name}: account creation failed, HTTP {created.status_code}")
         auth = await self.http.json(

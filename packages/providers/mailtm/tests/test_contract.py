@@ -203,3 +203,13 @@ async def test_a_malformed_list_is_still_drift():
     address = await provider.generate(GenerateOptions())
     with pytest.raises(SchemaDrift):
         await provider.list(address)
+
+
+async def test_a_422_for_a_name_we_picked_ourselves_is_drift():
+    # Only a caller-chosen name can be "taken". For our own random name a 422
+    # means mail.tm changed its rules, and NotSupported would stop the pool
+    # from trying any other provider.
+    refused = Reply(422, {"hydra:description": "password: too short"})
+    http = fake({**DEFAULT_ROUTES, "/accounts": refused})
+    with pytest.raises(SchemaDrift):
+        await MailTm(http).generate(GenerateOptions())

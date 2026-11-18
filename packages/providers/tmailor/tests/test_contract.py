@@ -202,3 +202,11 @@ async def test_a_domain_outside_the_scraped_options_is_refused():
     http = fake(default_routes())
     with pytest.raises(NotSupported):
         await Tmailor(http).generate(GenerateOptions(domain="tinpho.com"))
+
+
+async def test_errortoken_from_generate_is_drift():
+    # generate() sends no token, so errortoken there cannot mean a dead
+    # mailbox. As AddressExpired it would stop the pool from trying anyone else.
+    http = fake({**default_routes(), "webapp-newemail": {"msg": "errortoken"}})
+    with pytest.raises(SchemaDrift, match="errortoken"):
+        await Tmailor(http).generate(GenerateOptions())
