@@ -34,6 +34,17 @@ def _at(row: dict) -> datetime | None:
         return None
 
 
+# GraphQL's own wording for a query that does not fit the schema.
+_VALIDATION_PREFIXES = ("Cannot query field", "Unknown argument", "Unknown type")
+
+
+def _is_validation_error(error: dict) -> bool:
+    message = str(error.get("message", ""))
+    extensions = error.get("extensions")
+    code = extensions.get("code") if isinstance(extensions, dict) else None
+    return message.startswith(_VALIDATION_PREFIXES) or code == "GRAPHQL_VALIDATION_FAILED"
+
+
 class Maildrop(Provider):
     name = "maildrop"
     caps = Capabilities(
@@ -70,6 +81,11 @@ class Maildrop(Provider):
                 first_error = errors[0]
                 if isinstance(first_error, dict):
                     error_msg = first_error.get("message", "Unknown error")
+                    if _is_validation_error(first_error):
+                        # The query no longer fits the backend's schema: drift.
+                        raise SchemaDrift(
+                            "maildrop", expected="a query the schema accepts", got=error_msg
+                        )
                 else:
                     error_msg = f"malformed error: {repr(first_error)}"
             else:

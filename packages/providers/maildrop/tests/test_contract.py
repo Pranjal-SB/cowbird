@@ -42,11 +42,30 @@ async def test_a_null_message_is_gone():
         await Maildrop(http).get(ADDRESS, "gYz1WaK7aq")
 
 
-async def test_graphql_errors_are_provider_down():
+async def test_a_schema_validation_error_is_drift():
+    # "Cannot query field" is the backend saying the query this adapter sends
+    # no longer fits its schema: exactly the change quarantine exists for.
     http = FakeTransport("maildrop", routes(**{"inbox(": load("errors.json")}))
-    with pytest.raises(ProviderDown) as exc_info:
+    with pytest.raises(SchemaDrift) as exc_info:
         await Maildrop(http).list(ADDRESS)
     assert "Cannot query field" in str(exc_info.value)
+
+
+async def test_a_validation_code_is_drift():
+    answer = {
+        "errors": [{"message": "bad", "extensions": {"code": "GRAPHQL_VALIDATION_FAILED"}}],
+        "data": None,
+    }
+    http = FakeTransport("maildrop", routes(**{"inbox(": answer}))
+    with pytest.raises(SchemaDrift):
+        await Maildrop(http).list(ADDRESS)
+
+
+async def test_a_runtime_error_is_still_down():
+    answer = {"errors": [{"message": "Internal server error"}], "data": None}
+    http = FakeTransport("maildrop", routes(**{"inbox(": answer}))
+    with pytest.raises(ProviderDown):
+        await Maildrop(http).list(ADDRESS)
 
 
 async def test_malformed_error_element_string_raises_provider_down():
