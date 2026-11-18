@@ -146,3 +146,37 @@ async def test_aclose_default_pool_resets_the_global():
     await aclose_default_pool()
     pool2 = default_pool()
     assert pool1 is not pool2
+
+
+class _Mailbox(FakeProvider):
+    """A live inbox whose contents the test changes between calls."""
+
+    caps = replace(CAPS, poll_interval=0.01)
+
+    def __init__(self, http=None):
+        super().__init__(http)
+        self.box: list[tuple[str, str]] = []
+
+    async def list(self, address):
+        return [MessageRow(i, "s@x.test", "code", None) for i, _ in self.box]
+
+    async def get(self, address, id):
+        return Message(id, "s@x.test", "code", None, "", dict(self.box)[id])
+
+
+async def test_a_second_otp_returns_the_newer_code():
+    # Signup code, then a login code: the second otp() must not hand back the
+    # first code again just because that message is still in the inbox.
+    provider = _Mailbox()
+    box = Inbox(provider, await provider.generate())
+    provider.box.append(("m1", "signup code 111111"))
+    assert await box.otp(timeout=2) == "111111"
+    provider.box.append(("m2", "login code 222222"))
+    assert await box.otp(timeout=2) == "222222"
+
+
+async def test_seen_ids_are_skipped():
+    provider = _Mailbox()
+    provider.box += [("m1", "code 111111"), ("m2", "code 222222")]
+    box = Inbox(provider, await provider.generate(), seen=["m1"])
+    assert await box.otp(timeout=2) == "222222"

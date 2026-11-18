@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
 
@@ -42,10 +42,14 @@ class Inbox:
     would otherwise become the most-copied snippet in the project.
     """
 
-    def __init__(self, provider: Provider, address: Address) -> None:
+    def __init__(self, provider: Provider, address: Address, seen: Iterable[str] = ()) -> None:
         self.provider = provider
         self.address = address
         self._issued: list[str] = []
+        # Ids already handed out, by this Inbox or (through `seen`) an earlier
+        # one. A message stays in the inbox after it is read, so without this a
+        # second otp() returns the first code again.
+        self._seen: set[str] = set(seen)
 
     async def messages(self) -> list[MessageRow]:
         return await self.provider.list(self.address)
@@ -58,6 +62,9 @@ class Inbox:
 
     async def watch(self, poll: float | None = None) -> AsyncIterator[Message]:
         async for message in self.provider.watch(self.address, poll=poll):
+            if message.id in self._seen:
+                continue
+            self._seen.add(message.id)
             self._issued.append(message.id)
             yield message
 

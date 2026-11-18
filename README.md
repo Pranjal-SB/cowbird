@@ -167,7 +167,7 @@ carries a `HEALTHCHECK` against `/health`.
 POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
 GET    /v1/inboxes/{addr}/messages
 GET    /v1/inboxes/{addr}/messages/{id}
-GET    /v1/inboxes/{addr}/wait?otp=1   long-poll, server-capped
+GET    /v1/inboxes/{addr}/wait?otp=1   long-poll, server-capped; &skip=id1,id2
 DELETE /v1/inboxes/{addr}/messages/{id}
 POST   /v1/webhooks                    one-shot, SSRF-guarded
 GET    /v1/webhooks
@@ -188,7 +188,9 @@ $ curl -s -H "x-api-key: local-dev" localhost:8000/v1/providers
 Every route except `/health` requires an `x-api-key` header; valid keys come
 from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
 seconds (25 by default) regardless of the `timeout` a client asks for; a
-client that needs to keep waiting just re-issues the request. Issued addresses
+client that needs to keep waiting just re-issues the request. A message stays
+in the inbox after it is read, so a client waiting for a second message (a login
+code after a signup code) passes the ids it already has as `skip`. Issued addresses
 live in Postgres when `DATABASE_URL` is set, which is what lets several
 instances serve each other's addresses; without it they live in process
 memory and a restart drops them. Webhook registrations always live in process

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
 from contextlib import aclosing
 
 from cowbird.inbox import Inbox
@@ -31,7 +32,7 @@ class InboxService:
         await self._store.put(address)
         return address
 
-    async def inbox(self, value: str) -> Inbox:
+    async def inbox(self, value: str, seen: Iterable[str] = ()) -> Inbox:
         """Rebuild a live Inbox from a stored address.
 
         The provider is looked up by name from the registry, so the object that
@@ -42,7 +43,7 @@ class InboxService:
         address = await self._store.get(value)
         if address is None:
             raise UnknownAddress(value)
-        return Inbox(self._pool.registry.get(address.provider), address)
+        return Inbox(self._pool.registry.get(address.provider), address, seen=seen)
 
     async def get_message(self, value: str, message_id: str) -> tuple[Message, str | None]:
         """A message plus its OTP, computed here rather than in the route --
@@ -57,6 +58,7 @@ class InboxService:
         value: str,
         timeout: float,
         want_otp: bool = False,
+        skip: Iterable[str] = (),
     ) -> tuple[Message | None, str | None]:
         """Hold until mail arrives or the timeout expires.
 
@@ -65,7 +67,7 @@ class InboxService:
         no code are skipped rather than returned, because a caller waiting for
         an OTP does not want the newsletter that arrived first.
         """
-        box = await self.inbox(value)
+        box = await self.inbox(value, seen=skip)
 
         async def first() -> tuple[Message, str | None]:
             # aclosing matters: without it the polling generator is left to the
