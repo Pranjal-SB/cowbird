@@ -3,7 +3,7 @@
 The fixtures in fixtures/ are raw captures: sse_idle.txt is the literal first
 frame the live SSE watch sends on connect (2026-11-15), sse_message.txt the
 literal frame a delivered mail produced. Both were recorded through the same
-curl_cffi h2 client the adapter runs (see docs/recon/tempr-followup.md).
+curl_cffi h2 client the adapter runs.
 """
 
 from __future__ import annotations

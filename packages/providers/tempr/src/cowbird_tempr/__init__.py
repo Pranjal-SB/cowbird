@@ -10,8 +10,7 @@ frame re-patches the list div with the same `data-init="@get('...watch...')"`
 attribute, which is what makes a real browser reconnect. This adapter does the
 same thing explicitly: read the stream with an idle bound, reconnect on
 silence. Every fixture under tests/fixtures is a raw 2026-11-15 capture made
-through the same curl_cffi h2 client this adapter runs
-(docs/recon/tempr-followup.md).
+through the same curl_cffi h2 client this adapter runs.
 """
 
 from __future__ import annotations
