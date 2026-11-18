@@ -202,7 +202,18 @@ def _resolving_to(ip):
     return lambda host, port, proto=None: [(0, 0, 0, "", (ip, port or 80))]
 
 
-@pytest.mark.parametrize("ip", ["100.64.0.1", "192.0.0.8", "198.18.0.1", "fc00::1"])
+@pytest.mark.parametrize(
+    "ip",
+    [
+        "100.64.0.1",
+        "192.0.0.8",
+        "198.18.0.1",
+        "fc00::1",
+        "64:ff9b::a00:1",  # NAT64 to 10.0.0.1
+        "::a00:1",  # IPv4-compatible 10.0.0.1
+        "::127.0.0.1",
+    ],
+)
 def test_a_non_global_target_is_refused(ip):
     # Carrier-grade NAT, IETF protocol and benchmarking ranges are not private
     # by Python's is_private, but they are not the public internet either.
