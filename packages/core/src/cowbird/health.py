@@ -120,6 +120,15 @@ class HealthStore:
         # always stamps one, so wait for it rather than guess.
         return entry.last_checked is not None and _now() - entry.last_checked >= DOWN_COOLDOWN
 
+    def claim_retry(self, provider: str) -> bool:
+        """Take the one retry a due DOWN provider gets this window. True for
+        exactly one caller: the claim moves last_checked, so every concurrent
+        caller after it sees the window already used."""
+        if not self.retry_due(provider):
+            return False
+        self._entry(provider).last_checked = _now()
+        return True
+
     def p50(self, provider: str) -> float | None:
         latencies = self._entry(provider).latencies
         return statistics.median(latencies) if latencies else None

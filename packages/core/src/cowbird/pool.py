@@ -102,6 +102,12 @@ class Pool:
         tried: list[str] = []
         last: Exception | None = None
         for provider in self.candidates(req):
+            if (
+                req.provider is None
+                and self.health.status(provider.name) not in ROUTABLE
+                and not self.health.claim_retry(provider.name)
+            ):
+                continue  # another caller already took this window's retry
             tried.append(provider.name)
             try:
                 address = await provider.generate(req.to_options())

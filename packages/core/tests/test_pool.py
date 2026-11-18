@@ -337,3 +337,45 @@ async def test_a_failed_retry_restarts_the_cooldown(monkeypatch):
     with pytest.raises(NoProviderAvailable) as caught:
         await pool.acquire(Request())
     assert caught.value.tried == []
+
+
+def _dead(name, calls):
+    class Dead(FakeProvider):
+        async def generate(self, opts=None):
+            import asyncio
+
+            calls.append(self.name)
+            await asyncio.sleep(0)  # in flight, as a real request would be
+            raise ProviderDown(f"{self.name}: still down")
+
+    Dead.name = name
+    Dead.caps = CAPS
+    return Dead
+
+
+async def test_concurrent_acquires_try_a_due_provider_only_once(monkeypatch):
+    import asyncio
+
+    clock = _Clock(monkeypatch)
+    calls = []
+    pool = build(_dead("dead", calls))
+    pool.health.record_failure("dead", ProviderDown("dead: boom"))
+    clock.advance(61)
+    results = await asyncio.gather(
+        *(pool.acquire(Request()) for _ in range(3)), return_exceptions=True
+    )
+    assert all(isinstance(r, NoProviderAvailable) for r in results)
+    assert calls == ["dead"]
+
+
+async def test_open_inboxes_spreads_only_over_healthy_providers(monkeypatch):
+    from cowbird.inbox import open_inboxes
+
+    clock = _Clock(monkeypatch)
+    calls = []
+    pool = build(provider_class("good"), _dead("dead", calls))
+    pool.health.record_failure("dead", ProviderDown("dead: boom"))
+    clock.advance(61)
+    async with open_inboxes(4, pool=pool) as boxes:
+        assert [b.provider.name for b in boxes] == ["good"] * 4
+    assert calls == []
