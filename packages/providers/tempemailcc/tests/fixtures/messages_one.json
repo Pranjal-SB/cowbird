@@ -1,0 +1,27 @@
+{
+ "code": 200,
+ "message": "success",
+ "data": {
+  "items": [
+   {
+    "id": "247827277901992001",
+    "from": {
+     "name": "Example Store",
+     "address": "noreply@example.test"
+    },
+    "to": [
+     "cbprobe@icmans.com"
+    ],
+    "subject": "Your verification code is 482913.",
+    "summary": "[SHOP](https://www.example.test/) [BECOME A DEALER](https://www.example.test/pages/become-a-dealer) [INSTAGRAM](https://www.instagram.com/examplemusic/)  [Use promo code Welcome for your first order](https://www.example.test/discount/W",
+    "size": 54,
+    "isRead": false,
+    "createdAt": 1794748058
+   }
+  ],
+  "pagination": {
+   "nextCursor": null,
+   "limit": 10
+  }
+ }
+}

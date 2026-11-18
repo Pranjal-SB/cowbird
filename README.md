@@ -88,9 +88,10 @@ until someone clears it.
 ## Push
 
 `watch()` is part of the provider protocol and providers declare `push` in
-their capabilities, but every provider shipped so far polls. Nothing exercises
-the push path yet. The intended first push backend was dropmail over
-WebSocket, and its free API token path has since closed.
+their capabilities. Every provider polls except tempr, whose `watch()` follows
+the inbox over Datastar SSE and reconnects when the stream goes quiet. Its
+delivery proof is still pending a working sender. The original candidate,
+dropmail over WebSocket, stays parked: its free API token path closed.
 
 ## Testing
 
@@ -218,22 +219,27 @@ to `Address` / `MessageRow` / `Message`. Target size is around 40 lines of
 actual protocol knowledge. If an adapter is doing session handling, backoff,
 or its own HTTP client, that belongs in core instead.
 
-`docs/PROVIDERS.md` has the backlog of 86 known backends (audited 2026-11-15:
-32 ship, 2 parked, 52 unbuilt): which ship, which
-are parked and why, and which are seeded, starred, or self-hostable.
+`docs/PROVIDERS.md` has the inventory of 85 known backends (audited
+2026-11-15, updated 2026-11-18: 44 ship, 2 parked, 39 unbuilt): which ship,
+which are parked and why, and which are seeded, starred, or self-hostable.
 
 ## Status
 
-Thirty-two providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
+Forty-four providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
 guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
 backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
 temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
 reusable.email, disposablemail (three hosts), DuckMail, eyepaste, receivemail,
-emailtemp (two hosts), mtempmail, tempmailo and instantedumail. Six more need the
+emailtemp (two hosts), mtempmail, tempmailo, instantedumail, generatoremail
+(the generator.email family behind one proof-of-work gate), tempr.email —
+the first provider whose `watch()` is a real push transport (its inbox streams
+over Datastar SSE) rather than the polling default — tmailor, driftz,
+mailnesia, tmail.link, 10minutemail.net, anonbox, meowmail, tempemail.cc,
+48hr.email and anonymmail. Six more need the
 Cloudflare solver: smailpro (Gmail and Outlook), cftempmail, xeramail,
-vanishinbox, zenvex and etempmail. Two from the seed set are parked,
-with the reasons in `docs/PROVIDERS.md`: tempr.email streams its inbox over
-Datastar SSE and needs its own client, and dropmail's free API token path
+vanishinbox, zenvex and etempmail. Two backends are parked,
+with the reasons in `docs/PROVIDERS.md`: yopmail fronts Turnstile whose
+solver clearances are rejected on replay, and dropmail's free API token path
 closed.
 
 The deliverable is an HTTP API, and it ships: `cowbird-server` in

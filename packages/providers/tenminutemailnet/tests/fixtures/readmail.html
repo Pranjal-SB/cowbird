@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" dir="ltr">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-D1S6FHTY5M"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', "G-D1S6FHTY5M");
+</script>
+<style>
+
+.tenmm-ad-header-wide{display:none}
+@media(min-width:728px){.tenmm-ad-header-wide{display:block}.tenmm-ad-header-narrow{display:none}}
+
+</style>
+<script>
+
+/* 共用54語系；只在可見且已有寬度時請求，不改原單頁控制器。 */
+(function () {
+  "use strict";
+  if (window.TenmmAds) return;
+  var slot = null, pendingMail = null, servedMail = null, lastMailRequest = 0;
+  var loading = {}, queued = false;
+  function visible(element) {
+    if (!element || !element.isConnected) return false;
+    var page = element.closest('[data-role="page"]');
+    if (page && !page.classList.contains("ui-page-active")) return false;
+    var rect = element.getBoundingClientRect();
+    return rect.width > 0 && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden";
+  }
+  function load(name, url) {
+    if (loading[name]) return;
+    loading[name] = true;
+    var script = document.createElement("script");
+    script.async = true; script.src = url; script.crossOrigin = "anonymous";
+    script.addEventListener("load", tick);
+    document.head.appendChild(script);
+  }
+  function adsense() {
+    var units = document.querySelectorAll('ins[data-tenmm-ad="true"]');
+    for (var i = 0; i < units.length; i++) {
+      var unit = units[i];
+      if (!visible(unit) || unit.hasAttribute("data-tenmm-requested") || unit.hasAttribute("data-adsbygoogle-status")) continue;
+      load("adsense", "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4868759087006546");
+      unit.classList.add("adsbygoogle");
+      unit.setAttribute("data-tenmm-requested", "true");
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); }
+      catch (error) { unit.removeAttribute("data-tenmm-requested"); console.warn("廣告單元尚未就緒", error); }
+    }
+  }
+  function mail() {
+    var element = document.getElementById("tenmm-gam-mail-mobile");
+    if (pendingMail === null || pendingMail === servedMail || !visible(element) || queued) return;
+    // 沿用使用者讀信觸發，不設自動刷新；既有slot最少間隔30秒。
+    if (slot && Date.now() - lastMailRequest < 30000) return;
+    window.googletag = window.googletag || { cmd: [] };
+    load("gpt", "https://securepubads.g.doubleclick.net/tag/js/gpt.js");
+    queued = true;
+    window.googletag.cmd.push(function () {
+      queued = false;
+      if (!visible(element) || pendingMail === servedMail) return;
+      if (slot && Date.now() - lastMailRequest < 30000) return;
+      var width = Math.floor(element.getBoundingClientRect().width);
+      var sizes = [[970,250],[970,200],[970,90],[728,188],[728,90],[468,60],[400,250],[400,188],[400,125],[360,225],[360,169],[360,113],[336,280],[320,267],[320,200],[320,150],[320,100],[320,50],[300,250],[250,250],[234,60],[200,200]].filter(function (size) { return size[0] <= width; });
+      if (!sizes.length) return;
+      sizes.push("fluid");
+      if (!slot) {
+        slot = googletag.defineSlot("/6388188/10min_mail_Mobile_Adsense", sizes, element.id);
+        if (!slot) return;
+        slot.addService(googletag.pubads());
+        googletag.pubads().collapseEmptyDivs();
+        googletag.enableServices();
+        googletag.display(element.id);
+      } else {
+        slot.defineSizeMapping(googletag.sizeMapping().addSize([0,0], sizes).build());
+        googletag.pubads().refresh([slot]);
+      }
+      // 信箱／郵件識別只在此文件內去重，不作廣告targeting或傳送。
+      servedMail = pendingMail; lastMailRequest = Date.now();
+    });
+  }
+  function tick() {
+    if (document.visibilityState === "hidden") return;
+    adsense(); mail();
+  }
+  window.TenmmAds = {
+    mailRequested: function (id) { pendingMail = String(id); tick(); },
+    refreshVisible: tick,
+    status: function () { return { allowed: true, mailSlotDefined: !!slot, mailPending: pendingMail !== servedMail, lastMailRequest: lastMailRequest }; }
+  };
+  document.addEventListener("DOMContentLoaded", tick);
+  document.addEventListener("visibilitychange", tick);
+  window.addEventListener("resize", tick);
+  // 等候jQuery Mobile過場完成；此計時器不會刷新已請求的廣告。
+  window.setInterval(tick, 500);
+}());
+
+</script>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="servertag" content="nli1" />
+<!-- TradeDoubler site verification 3143473 -->
+<title>10 Minute Mail
+&nbsp;-&nbsp;Read Mail
+</title>
+
+<meta name="keywords" content="10 Minute Mail: A Temporary, disposable, free, and secure e-mail address for spam prevention" />
+<meta name="description" content="Use it to communicate with any website you want to. You have 10 minutes to use this mailbox, If the time is not enough, by click &quot;Give me more 10 minutes&quot; or &quot;Refill&quot; to extend it." />
+<meta name="verify-v1" content="eLkNWfxaPjUWixfxsVnojHWZTzzEpjOrwR0VgSd2Vtc=" />
+<link rel="alternate" media="only screen and (max-device-width: 768px)" href="https://10minutemail.net/m/" />
+<link rel="alternate" hreflang="x-default" href="https://10minutemail.net/readmail.html" />
+<link rel="alternate" hreflang="en" href="https://10minutemail.net/readmail.html?mid=welcome&lang=en" />
+<link rel="alternate" hreflang="af" href="https://10minutemail.net/readmail.html?mid=welcome&lang=af" />
+<link rel="alternate" hreflang="sq" href="https://10minutemail.net/readmail.html?mid=welcome&lang=sq" />
+<link rel="alternate" hreflang="ar" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ar" />
+<link rel="alternate" hreflang="eu" href="https://10minutemail.net/readmail.html?mid=welcome&lang=eu" />
+<link rel="alternate" hreflang="be" href="https://10minutemail.net/readmail.html?mid=welcome&lang=be" />
+<link rel="alternate" hreflang="bg" href="https://10minutemail.net/readmail.html?mid=welcome&lang=bg" />
+<link rel="alternate" hreflang="ca" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ca" />
+<link rel="alternate" hreflang="zh" href="https://10minutemail.net/readmail.html?mid=welcome&lang=zh" />
+<link rel="alternate" hreflang="zh-tw" href="https://10minutemail.net/readmail.html?mid=welcome&lang=zh-tw" />
+<link rel="alternate" hreflang="zh-cn" href="https://10minutemail.net/readmail.html?mid=welcome&lang=zh-cn" />
+<link rel="alternate" hreflang="hr" href="https://10minutemail.net/readmail.html?mid=welcome&lang=hr" />
+<link rel="alternate" hreflang="cs" href="https://10minutemail.net/readmail.html?mid=welcome&lang=cs" />
+<link rel="alternate" hreflang="da" href="https://10minutemail.net/readmail.html?mid=welcome&lang=da" />
+<link rel="alternate" hreflang="nl" href="https://10minutemail.net/readmail.html?mid=welcome&lang=nl" />
+<link rel="alternate" hreflang="et" href="https://10minutemail.net/readmail.html?mid=welcome&lang=et" />
+<link rel="alternate" hreflang="fa" href="https://10minutemail.net/readmail.html?mid=welcome&lang=fa" />
+<link rel="alternate" hreflang="fi" href="https://10minutemail.net/readmail.html?mid=welcome&lang=fi" />
+<link rel="alternate" hreflang="fr" href="https://10minutemail.net/readmail.html?mid=welcome&lang=fr" />
+<link rel="alternate" hreflang="de" href="https://10minutemail.net/readmail.html?mid=welcome&lang=de" />
+<link rel="alternate" hreflang="ka" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ka" />
+<link rel="alternate" hreflang="el" href="https://10minutemail.net/readmail.html?mid=welcome&lang=el" />
+<link rel="alternate" hreflang="he" href="https://10minutemail.net/readmail.html?mid=welcome&lang=he" />
+<link rel="alternate" hreflang="hi" href="https://10minutemail.net/readmail.html?mid=welcome&lang=hi" />
+<link rel="alternate" hreflang="hu" href="https://10minutemail.net/readmail.html?mid=welcome&lang=hu" />
+<link rel="alternate" hreflang="lt" href="https://10minutemail.net/readmail.html?mid=welcome&lang=lt" />
+<link rel="alternate" hreflang="id" href="https://10minutemail.net/readmail.html?mid=welcome&lang=id" />
+<link rel="alternate" hreflang="ga" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ga" />
+<link rel="alternate" hreflang="it" href="https://10minutemail.net/readmail.html?mid=welcome&lang=it" />
+<link rel="alternate" hreflang="ja" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ja" />
+<link rel="alternate" hreflang="ko" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ko" />
+<link rel="alternate" hreflang="lv" href="https://10minutemail.net/readmail.html?mid=welcome&lang=lv" />
+<link rel="alternate" hreflang="mi" href="https://10minutemail.net/readmail.html?mid=welcome&lang=mi" />
+<link rel="alternate" hreflang="mk" href="https://10minutemail.net/readmail.html?mid=welcome&lang=mk" />
+<link rel="alternate" hreflang="ms" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ms" />
+<link rel="alternate" hreflang="mt" href="https://10minutemail.net/readmail.html?mid=welcome&lang=mt" />
+<link rel="alternate" hreflang="no" href="https://10minutemail.net/readmail.html?mid=welcome&lang=no" />
+<link rel="alternate" hreflang="pl" href="https://10minutemail.net/readmail.html?mid=welcome&lang=pl" />
+<link rel="alternate" hreflang="pt" href="https://10minutemail.net/readmail.html?mid=welcome&lang=pt" />
+<link rel="alternate" hreflang="pt-br" href="https://10minutemail.net/readmail.html?mid=welcome&lang=pt-br" />
+<link rel="alternate" hreflang="ro" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ro" />
+<link rel="alternate" hreflang="ru" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ru" />
+<link rel="alternate" hreflang="sr" href="https://10minutemail.net/readmail.html?mid=welcome&lang=sr" />
+<link rel="alternate" hreflang="sk" href="https://10minutemail.net/readmail.html?mid=welcome&lang=sk" />
+<link rel="alternate" hreflang="sl" href="https://10minutemail.net/readmail.html?mid=welcome&lang=sl" />
+<link rel="alternate" hreflang="sv" href="https://10minutemail.net/readmail.html?mid=welcome&lang=sv" />
+<link rel="alternate" hreflang="es" href="https://10minutemail.net/readmail.html?mid=welcome&lang=es" />
+<link rel="alternate" hreflang="th" href="https://10minutemail.net/readmail.html?mid=welcome&lang=th" />
+<link rel="alternate" hreflang="tr" href="https://10minutemail.net/readmail.html?mid=welcome&lang=tr" />
+<link rel="alternate" hreflang="uk" href="https://10minutemail.net/readmail.html?mid=welcome&lang=uk" />
+<link rel="alternate" hreflang="ur" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ur" />
+<link rel="alternate" hreflang="vi" href="https://10minutemail.net/readmail.html?mid=welcome&lang=vi" />
+<link rel="alternate" hreflang="ji" href="https://10minutemail.net/readmail.html?mid=welcome&lang=ji" />
+<link rel="alternate" hreflang="zu" href="https://10minutemail.net/readmail.html?mid=welcome&lang=zu" />
+    <meta name="og:site_name" content="10 Minute Mail"/>
+<meta property="og:url" content="https://10minutemail.net/"/>
+<meta property="og:image" content="/g1-static/0323af18d31c/cdn/images/Icon-72@2x.png"/>
+<meta property="og:description" content="Temporary disposable email service to beat spam. Avoid spam with a free, secure 10 minutes email address. Use our service as often as you like."/>
+<meta property="fb:page_id" content="208786719145657" />
+<meta property="og:type" content="website"/>
+<link rel="apple-touch-icon" href="/g1-static/0323af18d31c/cdn/images/Icon-72@2x.png" />
+
+
+<link rel="stylesheet" href="/g1-static/0323af18d31c/cdn/vendor/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="/g1-static/0323af18d31c/cdn/css/style2024073101.css?v=17598052e565" />
+<link rel="stylesheet" href="/g1-static/0323af18d31c/cdn/css/buttons2024073101.css?v=c14cbe44f273" />
+<script src="/g1-static/0323af18d31c/cdn/vendor/jquery-4.0.0.min.js"></script>
+<script src="/g1-static/0323af18d31c/cdn/vendor/jquery-ui-1.14.2.min.js"></script>
+<script id="i18n-messages" type="application/json">{"UI_CONNECTION_FAILED":"Connection failed. Please try again.","UI_COPY_FAILED":"Could not copy to the clipboard.","UI_CAPTCHA_INCORRECT":"Incorrect verification code.","MAIL_HTML":"HTML","LBL_MAILBOX":"InBox","MAIL_DATE":"Date","MAIL_FROM":"From","PERMALINK_ERROR":"Checksum error, make sure the URL or Access Key are correct.","PERMALINK_URL_ERROR":"Your URL is wrong, please check again.","PERMALINK_DOMAIN_ERROR":"This domain is expired, go to https:\/\/10minutemail.net\/history.html to recover your mailbox.","HISTORY_INVALID_DATA":"The saved history has an invalid format.","HISTORY_IMPORT_ARRAY":"Import a JSON array.","HISTORY_IMPORT_INVALID":"History contains invalid fields or external URLs.","HISTORY_IMPORT_DONE":"Import completed.","HISTORY_RECOVER":"Recover","HISTORY_IMPORT":"Import","UI_STORAGE_FAILED":"History could not be saved in this browser.","LBL_SELECT_ALL":"Select all","LBL_DELETE":"Delete","LBL_CANCEL":"Cancel","LBL_OK":"OK","HISTORY_MAIL":"Mail","HISTORY_URL":"URL","HISTORY_KEY":"Access key","HISTORY_DATETIME":"Datetime","HISTORY_CONFIRM_DELETE_ALL_TEXT":"Are you sure you want to delete all addresses?","HISTORY_CONFIRM_DELETE_TEXT":"Are you sure you want to delete the following address?","HISTORY_CONFIRM_DELETE_ES_TEXT":"Are you sure you want to delete the following addresses?","DATATABLES_EMPTYTABLE":"No data available in table.","DATATABLES_INFO":"Showing _START_ to _END_ of _TOTAL_ entries","DATATABLES_INFOEMPTY":"Showing 0 to 0 of 0 entries","DATATABLES_INFOFILTERED":" (filtered from _MAX_ total entries)","DATATABLES_INFOPOSTFIX":".","DATATABLES_THOUSANDS":",","DATATABLES_LENGTHMENU":"Show _MENU_ entries","DATATABLES_LOADINGRECORDS":"Loading...","DATATABLES_PROCESSING":"Processing...","DATATABLES_SEARCH":"Search:","DATATABLES_ZERORECODERS":"No matching records found.","DATATABLES_PAGINATE_FIRST":"First","DATATABLES_PAGINATE_LAST":"Last","DATATABLES_PAGINATE_NEXT":"Next","DATATABLES_PAGINATE_PREVIOUS":"Previous","DATATABLES_ARIA_SORTASCENDING":": activate to sort column ascending","DATATABLES_ARIA_DESCENDING":": activate to sort column descending"}</script>
+<script src="/g1-static/0323af18d31c/cdn/js/script2024073101.js?v=12b92cf70fd0"></script>
+
+
+</head>
+<body>
+<div id="wrapper" style="min-height:1000px">
+	<div id="header" class="div-w div-m-0">
+		<div id="language_new">
+			<form id="lang_select_form" name="language" method="get" action="">
+									<input type="hidden" name="mid" value="welcome" />
+								<select aria-label="Choose language:" id="lang_select" name="lang" size="1">
+					<option value="en" selected="selected">English</option>
+					<option value="af">Afrikaans</option>
+					<option value="sq">Shqip</option>
+					<option value="ar">العربية</option>
+					<option value="eu">Euskara</option>
+					<option value="be">беларускі</option>
+					<option value="bg">български език</option>
+					<option value="ca">Català(Valencià)</option>
+					<option value="zh">中文</option>
+					<option value="zh-tw">正體中文(台灣)</option>
+					<option value="zh-cn">简体中文(中国)</option>
+					<option value="hr">Hrvatski</option>
+					<option value="cs">Čeština</option>
+					<option value="da">Dansk</option>
+					<option value="nl">Nederlands</option>
+					<option value="et">Eesti</option>
+					<option value="fa">فارسی</option>
+					<option value="fi">Suomi</option>
+					<option value="fr">Français</option>
+					<option value="de">Deutsch</option>
+					<option value="ka">ქართული</option>
+					<option value="el">Ελληνική γλώσσα</option>
+					<option value="he">עִבְרִית</option>
+					<option value="hi">हिंदी(Hindī)</option>
+					<option value="hu">Magyar</option>
+					<option value="lt">Lietuvių kalba</option>
+					<option value="id">Bahasa Indonesia</option>
+					<option value="ga">Gaeilge</option>
+					<option value="it">Italiano</option>
+					<option value="ja">日本語</option>
+					<option value="ko">한국어</option>
+					<option value="lv">Latviešu</option>
+					<option value="mi">Māori</option>
+					<option value="mk">Македонски</option>
+					<option value="ms">Bahasa Melayu</option>
+					<option value="mt">Lingwa Maltija</option>
+					<option value="no">Norsk</option>
+					<option value="pl">Polski</option>
+					<option value="pt">Português(Portugal)</option>
+					<option value="pt-br">Português(Brazil)</option>
+					<option value="ro">Română</option>
+					<option value="ru">Русский язык</option>
+					<option value="sr">српски</option>
+					<option value="sk">Slovenský jazyk</option>
+					<option value="sl">Slovenščina</option>
+					<option value="sv">Svenska</option>
+					<option value="es">Español</option>
+					<option value="th">ไทย</option>
+					<option value="tr">Türkçe</option>
+					<option value="uk">Українська</option>
+					<option value="ur">اُردُو</option>
+					<option value="vi">Tiếng Việt</option>
+					<option value="ji">יידיש</option>
+					<option value="zu">isiZulu</option>
+				</select>
+			</form>
+		</div>
+		<h1><a href="/?lang=en">10 Minute Mail</a></h1>
+	</div>
+	<div id="menu" class="div-w div-m-0">
+		<ul>
+			<li><a href="about.html">About</a></li>
+			<li id="li-history"><a href="history.html" style="color:red;">History</a><li>
+			<li><a href="https://blog.10minutemail.net" target="_blank">Blog</a></li>
+		</ul>
+	</div>
+		<div class="div-w div-m-0">
+		<div style="margin: 30px 10%; text-align: center;">
+		<h2>What is 10 Minute Mail?</h2>
+				<p>10minutemail.net is a free, disposable e-mail service. Your temporary e-mail address will expire after 10 minutes, after which you cannot access it. You can extend the time by 10 minutes. <br />The website you are registering with could be selling your personal information; you never know where your e-mail will be published. An email address with a 10 minute lifespan is the best solution to prevent this.</p>
+		</div>
+	</div>
+
+<link rel="stylesheet" href="/g1-static/0323af18d31c/cdn/css/welcome-layout.css?v=4e38c0477263">
+
+<div id="content" class="div-w div-m-0">
+<div class="div-w div-m-10-auto ads-lh text-c"><ins class="tenmm-ad-unit" data-tenmm-ad="true" style="display:block;max-width:100%;min-height:90px" data-ad-client="ca-pub-4868759087006546" data-ad-slot="6207856258" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+
+<script>
+
+adsizeSelect();
+
+</script>
+
+<div id="right">
+  <div id="GoogleADRight" class="ads-lh"><ins class="tenmm-ad-unit" data-tenmm-ad="true" style="display:block;max-width:100%;min-height:250px" data-ad-client="ca-pub-4868759087006546" data-ad-slot="2329155142" data-ad-format="auto" data-full-width-responsive="true"></ins></div>
+</div>    
+<div id="noadright" class="none">
+  <h3>10 Minute Mail needs your support</h3><br />
+  Make a donation to us<br /><br />
+    
+<a class="kofi-button" href="https://ko-fi.com/10minutemail" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:.5em;padding:.6em 1em;background:#29abe0;color:#fff;border-radius:6px;text-decoration:none">
+<img src="https://storage.ko-fi.com/cdn/logomarkLogo.png" width="28" height="22" alt="Ko-fi" style="object-fit:contain"> Support 10 Minute Mail</a>
+  </div>
+
+<div id="left">
+	<h2 class="h-line"><i class="fa fa-child fa-fw"></i>Welcome to 10 Minute Mail</h2>
+	<p id="duetime"><i class="fa fa-clock-o fa-fw fa-lg "></i> Your e-mail address will expire in  <span id="time"></span> </p>
+	<div class="div-m-0 text-c"><input type="text" id="fe_text" class="mailtext" value="user01@zefvo.com" /></div><br />
+	<div id="d_clip_button"><button id="copy-button" data-clipboard-text="user01@zefvo.com" class="button button-3d button-primary button-rounded button-height-auto"><i id="copy-icon" class="fa fa-copy fa-fw fa-lg m-r-8"></i>Copy to clipboard</button>
+	</div>
+	<ul>
+	<li><a href="/?lang=en"><i class="fa fa-refresh fa-fw fa-lg "></i> Refresh this page.</a></li>
+	<li><a href="more.html"><i class="fa fa-history fa-fw fa-lg "></i> Give me 10 more minutes!</a></li>
+	<li><a href="new.html"><i class="fa fa-user-secret fa-fw fa-lg "></i> Get another e-mail address.(Current E-mail will expire.)</a></li>
+		</ul>
+</div>
+
+
+<div id="mail-state" data-history="eyJob3N0IjoiemVmdm8uY29tIiwibWFpbCI6Im96dTA1MzA4QHplZnZvLmNvbSIsInVybCI6IlwvcGVybWFsaW5rXC9venUwNTMwOEB6ZWZ2by5jb21cL1JmZkhEXC81R29UbFZxcWtPVE9Ka2dnVThMaTlUXC8iLCJrZXkiOiJyS2dpVGpQTTE3IiwidGltZSI6MTc5NDc0NzE5MX0=" data-deadline="1794747791"></div>
+<script src="/g1-static/0323af18d31c/cdn/js/desktop.js?v=fa18996853ff" defer></script>
+</div>
+
+
+<div id="readmail" class="div-w div-m-t-20">
+  <script>
+	$(function() {
+		$( "#tabs" ).tabs({
+			active:1
+		});
+	});
+</script>
+
+<h2 class="h-line"><i class="fa fa-envelope-open fa-fw"></i>Read Mail</h2>
+<script type="text/javascript">
+	$(function(){
+		var _showTab = window.location.hash === '#tab0' ? 0 : 1;
+		$('.abgne_tab').each(function(){
+			var $tab = $(this);
+			var $defaultLi = $('ul.tabs li', $tab).eq(_showTab).addClass('active');
+			$($defaultLi.find('a').attr('href')).show().siblings().not('.tab_ads, .mail_header').hide();
+			$('ul.tabs li', $tab).click(function() {
+				var $this = $(this),
+					_clickTab = $this.find('a').attr('href');
+				$this.addClass('active').siblings('.active').removeClass('active');
+				if ( _clickTab == "#tab0" ) {
+					$(_clickTab).stop(false, true).fadeIn().siblings().not('.tab_ads').hide();
+				} else {
+					$(_clickTab).stop(false, true).fadeIn().siblings().not('.tab_ads').hide();
+					$('.mail_header').show();
+				}
+				return false;
+			}).find('a').focus(function(){
+				this.blur();
+			});
+		});
+	});
+</script>
+
+<div class="abgne_tab">
+	<ul class="tabs">
+		<li><a href="#tab0" style="color:red">Report</a></li>
+		<li><a href="#tab1">HTML</a></li>									</ul>
+	
+	<div class="tab_container">
+		<div class="mail_header">
+			<h2 class="emoji_parse">Your verification code is 482913.</h2>
+			<div class="div-m-t-10">
+				<img src="https://www.gravatar.com/avatar/97958fe54c471613dd31badadfae2ce1?s=80&d=mm&r=g" class="mail_gravatar" />
+				<div class="mail_headerinfo">
+					<span class="mail_from">noreply@example.test</span>
+					 <span title="2026-11-15 12:53:11"> just now</span>
+					<p>To: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b5dacfc0858086858df5cfd0d3c3da9bd6dad8">[email&#160;protected]</a></p>
+				</div>
+			</div>
+		</div>
+
+		<div class="div-w div-p-t-10 ads-lh text-c tab_ads"><div style="height:10px"></div><ins class="tenmm-ad-unit" data-tenmm-ad="true" style="display:block;max-width:100%;min-height:90px" data-ad-client="ca-pub-4868759087006546" data-ad-slot="3796125961" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+
+
+		<div id="tab0" class="tab_content" style="display: none;">
+			<form name="report" method="POST" action="report.html" onSubmit="return FormCheck();">
+				<input type="hidden" name="aid" value="yqVQge" />
+				<input type="hidden" name="mid" value="welcome" />
+				<table>
+					<tr>
+						<td style="width:100px; text-align:right;"><label for="yourname">Name:</label></td>
+						<td style="width:400px;"><input type="text" id="yourname" name="yourname" />*</td>
+					</tr>
+					<tr>
+						<td style="text-align:right;"><label for="email">Mail:</label></td>
+						<td><input type="text" id="email" name="email" /></td>
+					</tr>
+					<tr>
+						<td></td>
+						<td>
+							<select id="issue" name="issue" aria-label="Please select one issue from the options.">
+								<option value="select">Please select one issue from the options.</option>
+								<option value="receive">Cannot receive the mail from a website.</option>
+								<option value="read">Cannot read email.</option>
+								<option value="attachments">Cannot download attachments.</option>
+								<option value="links">URL links in the e-mail have problems.</option>
+								<option value="else">Or, please describe the problem.</option>        
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td style="text-align:right;"><label for="comments">Comments:</label></td>
+						<td>
+							<textarea id="comments" style="width: 100%;" name="comments" rows="4"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<td></td>
+						<td>
+							<input class="button button-3d button-primary button-rounded" type="submit" value="Submit"/>
+						</td>
+					</tr>
+				</table>
+			</form>
+		</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+function FormCheck() {
+    if(document.getElementById("yourname").value == "") {
+        alert("Please leave a name at least.");
+        return false;
+    }
+    if(document.getElementById("issue").value == "select") {
+        alert("Please select one issue from the options.");
+        return false;
+    }
+    return confirm("Are you sure you want to submit this form?");
+}
+</script>
+		<div id="tab1" class="tab_content">
+<div class="welcome-layout">
+  <div class="welcome-illustration"><img src="/g1-static/0323af18d31c/cdn/images/welcome.png" width="200" alt="10 Minute Mail"></div>
+  <div class="welcome-copy">
+			<div class="mailinhtml">
+				<h2>Your verification code is 482913.</h2>
+<p>Dear Anonymous,<br />
+<br />
+Thank you for using 10 Minute Mail to fight spam, your temporary disposable email is :</p>
+<h2><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c1aebbb4f1f4f2f1f981bba4a7b7aeefa2aeac">[email&#160;protected]</a></h2>
+<p>Use it to communicate with any website you want to. You have 10 minutes to use this mailbox, If the time is not enough, by click "Give me more 10 minutes" or "Refill" to extend it.</p>
+<p>This service requires cookies and JavaScript. Cookies keep your session and language preference. We use Google AdSense for advertising and Google Analytics for usage measurement.</p>
+<p>10 Minute Mail</p>
+<h3>Follow us</h3>
+<p><a href="https://www.facebook.com/10minutemail">Facebook</a></p>
+
+			</div>
+</div></div>		</div>
+
+
+
+
+
+		<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/javascript">
+			$(".mailinhtml a").attr('target', '_blank');
+		</script>
+	
+	</div>
+</div>
+
+
+</div>
+
+
+
+
+<div id="mailbox" class="div-w div-m-0">
+<h2 class="h-line"><i class="fa fa-inbox fa-fw "></i>InBox</h2>
+<div id="mailbox-table"><table id="maillist"><tr><th>From</th><th>Subject</th><th>Date</th></tr><tr><td><a class="row-link" href="readmail.html?mid=welcome"><span class="__cf_email__" data-cfemail="9df3f2b0eff8edf1e4ddacadf0f4f3e8e9f8f0fcf4f1b3f3f8e9">[email&#160;protected]</span></a></td><td><a class="row-link" href="readmail.html?mid=welcome">Your verification code is 482913.</a></td><td><a class="row-link" href="readmail.html?mid=welcome">just now</a></td></tr></table></div>
+</div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/javascript">
+$(document).ready(function(){
+  setTimeout(updatemailbox,60000); 
+});
+function updatemailbox(){ 
+  $.ajax({
+    type: "get",
+    cache:false,
+    url: "mailbox.ajax.php",
+    success: function(data){
+        $("#mailbox-table").html(data);
+		if (typeof window.ga === 'function') window.ga('send', 'event', 'ajax', 'mailbox-desktop');
+		if (typeof window.gtag === 'function') window.gtag('event', 'ajax', {
+		'event_category': 'ajax',
+		'event_label': 'mailbox-desktop'
+		});
+    }
+  });
+  setTimeout(updatemailbox,20000);
+}
+</script>
+
+
+<div class="div-w div-m-0">
+
+		<div role="main" class="ui-content">
+			<h2 class="h-line"><i class="fa fa-newspaper-o fa-fw"></i>Popular articles</h2>
+			<div class="articles">
+				<div class="row"><a href="https://blog.10minutemail.net/10-minute-mail-instant-registration-solution/">
+					<img src="https://blog.10minutemail.net/wp-content/uploads/2024/07/solen-feyissa-TaOGbz_S-Qw-unsplash-768x622.jpg" class="thumb">
+					<div class="content">
+					<h3>10 Minute Mail: Instant Registration Solution</h3>
+					<p>In today&#039;s digital age, online privacy and convenience often seem at odds. Enter 10 Minute Mail, a service that offers a quick and efficient solution to one of the internet&#039;s most common annoyances: mandatory email registration.</p>
+					</div>
+					</a>
+				</div>
+				<div class="row"><a href="https://blog.10minutemail.net/how-to-protect-your-inbox-with-temporary-email/">
+					<img src="https://blog.10minutemail.net/wp-content/uploads/2024/07/e-mail-4487083_1920-768x528.jpg" class="thumb">
+					<div class="content">
+					<h3>How to Protect Your Inbox with Temporary Email</h3>
+					<p>Accessing online content often requires your email address, leading to unwanted emails or security risks. Temporary email services provide a safe solution, allowing you to register without exposing your primary email to these issues.</p>
+					</div>
+					</a>
+				</div>
+				<div class="row"><a href="https://blog.10minutemail.net/never-lose-access-the-semi-permanent-link-feature-of-our-temporary-email-service/">
+					<img src="https://blog.10minutemail.net/wp-content/uploads/2024/07/4284157-768x519.jpg" class="thumb">
+					<div class="content">
+					<h3>Never Lose Access: The Semi-Permanent Link Feature of Our Temporary Email Service</h3>
+					<p>In the world of disposable email addresses, our service stands out with a unique feature that gives you extended control over your temporary inbox. Let&#039;s dive into how this innovative functionality works and why it&#039;s a game-changer for users who need a bit more flexibility with their temporary email addresses.</p>
+					</div>
+					</a>
+				</div>
+				<div class="row"><a href="https://blog.10minutemail.net/unlock-the-power-of-temporary-emails-your-secret-marketing-weapon/">
+					<img src="https://blog.10minutemail.net/wp-content/uploads/2024/07/tlzhfrlj6ny-768x512.jpg" class="thumb">
+					<div class="content">
+					<h3>Unlock the Power of Temporary Emails: Your Secret Marketing Weapon</h3>
+					<p>With privacy concerns and inbox clutter on the rise, temporary email services have become a powerful tool. These disposable addresses do more than shield against spam; they can be a secret weapon in digital marketing. Discover how our 10 Minute Email service can help you navigate the online world effectively.</p>
+					</div>
+					</a>
+				</div>
+			</div>
+		</div>
+</div>
+<div id="featured" class="div-w div-m-t-20">
+<!-- featured -->
+<div>
+<div class="layout-featured no1">
+<i class="fa fa-trash-o fa-2x fa-fw featured-image"></i>
+<h3>Disposable</h3>
+<p>All mailboxes are disposed, once your mailbox has been deleted no one will ever be able to access it again.</p>
+</div>
+<div class="layout-featured">
+<i class="fa fa-inbox fa-2x fa-fw featured-image"></i>
+<h3>Private inbox</h3>
+<p>We do not provide custom mailboxes. mailboxes are randomly generated. once your mailbox name has been used it will not be used again. Others are not able to read your mail.</p>
+</div>
+<div class="layout-featured no3">
+<i class="fa fa-history fa-2x fa-fw featured-image"></i>
+<h3>Refill in time</h3>
+<p>You can extend the time within mailbox effective time. You can set up to 100 minutes.</p>
+</div>
+</div>
+<div>
+<div class="layout-featured no1">
+<i class="fa fa-undo fa-2x fa-fw featured-image"></i>
+<h3>Recovery</h3>
+<p>Your just-expired mailbox can be recovered before it is removed from the system.</p>
+</div>
+<div class="layout-featured" style="position: relative;">
+<i class="fa fa-tablet fa-2x fa-fw featured-image"></i>
+<h3>Mobile support</h3>
+<p>We have a dedicated website for mobile devices, you can easily use our service on your mobile device.</p>
+</div>
+<div class="layout-featured no3">
+<i class="fa fa-random fa-2x fa-fw featured-image"></i>
+<h3>Domain changed</h3>
+<p>We replace the domain name every 45 days, to avoid some admins blocking our domain.</p>
+</div>
+<div style="clear:both;"></div>
+</div>
+</div>
+
+<div id="facebook-box" class="div-w div-m-20-auto" style="text-align: center;">
+ 
+<a href="https://www.facebook.com/10minutemail" target="_blank"><button class="button button-facebook button-box button-giant button-longshadow-right" style="margin: 10px;"><i class="fa fa-facebook"></i>
+</button></a>
+
+</div>
+
+<div id="support-table" class="div-w div-m-0">
+<p><a class="kofi-button" href="https://ko-fi.com/10minutemail" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:.5em;padding:.6em 1em;background:#29abe0;color:#fff;border-radius:6px;text-decoration:none">
+<img src="https://storage.ko-fi.com/cdn/logomarkLogo.png" width="28" height="22" alt="Ko-fi" style="object-fit:contain"> Support 10 Minute Mail</a>
+</p>
+</div>
+<div id="lang-table" class="div-w div-m-0">
+<p><i class="fa fa-language fa-lg"></i> Choose language:<br />
+		<strong><a href="?mid=welcome&lang=en" class="lang-selected">English</a></strong> |&nbsp;	
+		<a href="?mid=welcome&lang=af">Afrikaans</a> |&nbsp;	
+		<a href="?mid=welcome&lang=sq">Shqip</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ar">العربية</a> |&nbsp;	
+		<a href="?mid=welcome&lang=eu">Euskara</a> |&nbsp;	
+		<a href="?mid=welcome&lang=be">беларускі</a> |&nbsp;	
+		<a href="?mid=welcome&lang=bg">български език</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ca">Català(Valencià)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=zh">中文</a> |&nbsp;	
+		<a href="?mid=welcome&lang=zh-tw">正體中文(台灣)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=zh-cn">简体中文(中国)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=hr">Hrvatski</a> |&nbsp;	
+		<a href="?mid=welcome&lang=cs">Čeština</a> |&nbsp;	
+		<a href="?mid=welcome&lang=da">Dansk</a> |&nbsp;	
+		<a href="?mid=welcome&lang=nl">Nederlands</a> |&nbsp;	
+		<a href="?mid=welcome&lang=et">Eesti</a> |&nbsp;	
+		<a href="?mid=welcome&lang=fa">فارسی</a> |&nbsp;	
+		<a href="?mid=welcome&lang=fi">Suomi</a> |&nbsp;	
+		<a href="?mid=welcome&lang=fr">Français</a> |&nbsp;	
+		<a href="?mid=welcome&lang=de">Deutsch</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ka">ქართული</a> |&nbsp;	
+		<a href="?mid=welcome&lang=el">Ελληνική γλώσσα</a> |&nbsp;	
+		<a href="?mid=welcome&lang=he">עִבְרִית</a> |&nbsp;	
+		<a href="?mid=welcome&lang=hi">हिंदी(Hindī)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=hu">Magyar</a> |&nbsp;	
+		<a href="?mid=welcome&lang=lt">Lietuvių kalba</a> |&nbsp;	
+		<a href="?mid=welcome&lang=id">Bahasa Indonesia</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ga">Gaeilge</a> |&nbsp;	
+		<a href="?mid=welcome&lang=it">Italiano</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ja">日本語</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ko">한국어</a> |&nbsp;	
+		<a href="?mid=welcome&lang=lv">Latviešu</a> |&nbsp;	
+		<a href="?mid=welcome&lang=mi">Māori</a> |&nbsp;	
+		<a href="?mid=welcome&lang=mk">Македонски</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ms">Bahasa Melayu</a> |&nbsp;	
+		<a href="?mid=welcome&lang=mt">Lingwa Maltija</a> |&nbsp;	
+		<a href="?mid=welcome&lang=no">Norsk</a> |&nbsp;	
+		<a href="?mid=welcome&lang=pl">Polski</a> |&nbsp;	
+		<a href="?mid=welcome&lang=pt">Português(Portugal)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=pt-br">Português(Brazil)</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ro">Română</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ru">Русский язык</a> |&nbsp;	
+		<a href="?mid=welcome&lang=sr">српски</a> |&nbsp;	
+		<a href="?mid=welcome&lang=sk">Slovenský jazyk</a> |&nbsp;	
+		<a href="?mid=welcome&lang=sl">Slovenščina</a> |&nbsp;	
+		<a href="?mid=welcome&lang=sv">Svenska</a> |&nbsp;	
+		<a href="?mid=welcome&lang=es">Español</a> |&nbsp;	
+		<a href="?mid=welcome&lang=th">ไทย</a> |&nbsp;	
+		<a href="?mid=welcome&lang=tr">Türkçe</a> |&nbsp;	
+		<a href="?mid=welcome&lang=uk">Українська</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ur">اُردُو</a> |&nbsp;	
+		<a href="?mid=welcome&lang=vi">Tiếng Việt</a> |&nbsp;	
+		<a href="?mid=welcome&lang=ji">יידיש</a> |&nbsp;	
+		<a href="?mid=welcome&lang=zu">isiZulu</a>	
+</p>
+</div>
+  <div id="footer" class="div-w div-m-0">
+		<p class="copyright">Copyright &copy; 2009-2026 <a href="https://10minutemail.net">10minutemail.net</a>&nbsp;|&nbsp;
+<a href="more100.html">Give me 100 more minutes!</a>&nbsp;|&nbsp;<a href="/m/">Mobile version</a>&nbsp;|&nbsp; 
+<a href="privacy.html">Privacy</a>
+</p>
+	</div>
+</div>
+
+<script>
+document.getElementById('lang_select')?.addEventListener('change', function () { this.form.requestSubmit(); });
+$(document).ready(function () {
+
+	
+	if(!localStorgeSupportCheck()){
+		$("#li-history").css("display","none");
+	}	
+});
+</script>
+
+
+
+
+
+<link rel="stylesheet" href="/g1-static/0323af18d31c/cdn/vendor/jquery-ui-1.14.2.min.css">
+
+
+</body>
+</html>

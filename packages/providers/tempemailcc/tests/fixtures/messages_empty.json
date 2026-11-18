@@ -1,0 +1,11 @@
+{
+ "code": 200,
+ "message": "success",
+ "data": {
+  "items": [],
+  "pagination": {
+   "nextCursor": null,
+   "limit": 10
+  }
+ }
+}

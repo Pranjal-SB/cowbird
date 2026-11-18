@@ -1,0 +1,17 @@
+{
+ "code": 200,
+ "message": "success",
+ "data": {
+  "id": "247827277901991936",
+  "ownerId": "247827277901991936",
+  "status": 1,
+  "type": 0,
+  "pageId": null,
+  "name": "cbprobe@icmans.com",
+  "count": 0,
+  "quota": 102400,
+  "used": 0,
+  "expiresAt": 0,
+  "mailboxType": 0
+ }
+}

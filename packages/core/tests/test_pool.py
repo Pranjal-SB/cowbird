@@ -5,7 +5,7 @@ from datetime import timedelta
 import pytest
 from cowbird.errors import MessageLocked, NoProviderAvailable, ProviderDown
 from cowbird.health import HealthStore, Status
-from cowbird.models import Address, Kind
+from cowbird.models import Address, InboxPrivacy, Kind
 from cowbird.pool import Pool, Request
 from cowbird.registry import Registry
 from cowbird.testing import CAPS, FakeProvider, FakeSolver
@@ -227,3 +227,34 @@ def test_a_request_with_an_unusable_local_part_is_refused_before_routing():
 
     with pytest.raises(NotSupported):
         Request(local="x/../admin")
+
+
+def test_private_request_skips_public_provider():
+    private = provider_class("priv")
+    public = provider_class("pub", replace(CAPS, inbox_privacy=InboxPrivacy.PUBLIC))
+    pool = build(private, public)
+    assert [p.name for p in pool.candidates(Request(inbox_privacy=InboxPrivacy.PRIVATE))] == [
+        "priv"
+    ]
+
+
+def test_shared_ranks_below_slower_private():
+    health = HealthStore()
+    for _ in range(5):
+        health.record_success("priv", "list", 2.0)
+        health.record_success("shared", "list", 0.1)
+    pool = build(
+        provider_class("priv"),
+        provider_class("shared", replace(CAPS, inbox_privacy=InboxPrivacy.SHARED)),
+        health=health,
+    )
+    assert [p.name for p in pool.candidates(Request())] == ["priv", "shared"]
+
+
+def test_unset_privacy_keeps_latency_order():
+    health = HealthStore()
+    for _ in range(5):
+        health.record_success("quick", "list", 0.2)
+        health.record_success("slow", "list", 4.0)
+    pool = build(provider_class("quick"), provider_class("slow"), health=health)
+    assert [p.name for p in pool.candidates(Request())] == ["quick", "slow"]

@@ -87,6 +87,43 @@ async def test_5xx_past_the_retry_budget_raises_provider_down():
         await t.json("GET", "https://x.test")
 
 
+async def test_allow_status_returns_503_without_retrying():
+    # The anti-bot 503 body is data the adapter needs, so the caller opts the
+    # status in and the transport hands it back instead of retrying.
+    t = transport_with(
+        FakeResponse(status_code=503, text="temporarily unavailable"),
+        FakeResponse(status_code=503, text="temporarily unavailable"),
+    )
+    resp = await t.send("GET", "https://x.test", allow_status=(503,))
+    assert resp.status_code == 503
+    assert resp.text == "temporarily unavailable"
+    assert t._session.calls == 1
+
+
+async def test_allow_status_hands_back_a_mimicked_challenge_body():
+    # generator-email's PoW interstitial imitates Cloudflare's "Just a
+    # moment" title. A caller that opted the status in asked for the raw
+    # body and takes responsibility for telling the mimic from the real
+    # thing; the challenge check must not eat it first.
+    t = transport_with(FakeResponse(status_code=503, text="<title>Just a moment...</title>"))
+    resp = await t.send("GET", "https://x.test", allow_status=(503,))
+    assert resp.status_code == 503
+    assert "Just a moment" in resp.text
+
+
+async def test_default_503_still_raises():
+    # Without allow_status a 5xx is retried then raised, as before.
+    t = transport_with(
+        FakeResponse(status_code=503, text="down"),
+        FakeResponse(status_code=503, text="down"),
+        FakeResponse(status_code=503, text="down"),
+        retries=2,
+    )
+    with pytest.raises(ProviderDown):
+        await t.send("GET", "https://x.test")
+    assert t._session.calls == 3
+
+
 async def test_send_returns_the_raw_response():
     t = transport_with(FakeResponse(status_code=404, text="{}"))
     resp = await t.send("DELETE", "https://x.test")

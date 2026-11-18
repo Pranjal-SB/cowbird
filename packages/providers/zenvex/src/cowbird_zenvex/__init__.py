@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from urllib.parse import quote
 
 from cowbird.errors import MessageGone, NotSupported, SchemaDrift, SolverUnavailable
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -53,6 +53,7 @@ def _refused(status: int, body: dict) -> bool:
 class Zenvex(Provider):
     name = "zenvex"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN, Kind.EDU}),
         sites=("zenvex.dev",),
         domains=DOMAINS,

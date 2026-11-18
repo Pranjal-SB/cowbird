@@ -1,0 +1,12 @@
+{
+ "code": 200,
+ "message": "success",
+ "data": {
+  "id": "247827277901991936",
+  "name": "cbprobe@icmans.com",
+  "quota": 102400,
+  "used": 0,
+  "token": "eyJhbGciOiJFZERTQSJ9.eyJpYXQiOjE3OTQ3NDc0MjcsImlkIjoiMjQ3ODI3Mjc3OTAxOTkxOTM2Iiwib3duZXJJZCI6IjI0NzgyNzI3NzkwMTk5MTkzNiIsIm1haWxib3hUeXBlIjowLCJtZXJjdXJlIjp7InN1YnNjcmliZSI6WyIvdS8yNDc4MjcyNzc5MDE5OTE5MzYiXX19.GO0Z1doMP7ziV-6CJ21xPlFsWOIYfRtqVwDk4GLPu2z315SybYszohsCYfP8mYfc8PmLTwa98ZUKkXhEA81eDw",
+  "createdAt": 1794747427
+ }
+}

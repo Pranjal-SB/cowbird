@@ -1,0 +1,36 @@
+From noreply@example.test Sun Nov 15 12:57:08 2026
+Return-Path: <noreply@example.test>
+Delivered-To: 5at52-bpk5qp744i@5at52.anonbox.net
+Received: (qmail 82672 invoked by uid 0); 15 Nov 2026 12:57:08 -0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+From: noreply@example.test
+To: bpk5qp744i@5at52.anonbox.net
+Subject: Your verification code is 482913.
+Message-ID: <mailman.0.1794747420.10317.emacs-devel@example.test>
+Date: Sun, 15 Nov 2026 07:57:00 -0500
+Precedence: bulk
+
+Your verification code is 482913.
+
+Visit https://example.test/confirm?token=abc123 to finish.
+>From the list server: do not reply.
+From noreply@example.test Sun Nov 15 12:57:29 2026
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary=49a3b48ccb2dfd402b0638ec6fb720ceb63f37eb6baf91c29891f8b62015
+From: noreply@example.test
+To: bpk5qp744i@5at52.anonbox.net
+Message-ID: <HUB-jG49QMuIqCYjYdtJmA@example.test>
+Subject: Your verification code is 482913.
+
+--49a3b48ccb2dfd402b0638ec6fb720ceb63f37eb6baf91c29891f8b62015
+Content-Type: text/plain; charset=utf-8
+
+Your verification code is 482913.
+
+--49a3b48ccb2dfd402b0638ec6fb720ceb63f37eb6baf91c29891f8b62015
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Your verification code is <b>482913</b>.</p></body></html>
+
+--49a3b48ccb2dfd402b0638ec6fb720ceb63f37eb6baf91c29891f8b62015--

@@ -1,0 +1,311 @@
+event:datastar-patch-elements
+data:elements <div id="message-header">
+data:elements 	<div>
+data:elements 		<div>
+data:elements 			<label>Receiver:</label>
+data:elements 			<div>register@tempr.email</div>
+data:elements 		</div>
+data:elements 		<div>
+data:elements 			<label>Sender:</label>
+data:elements 			<div>sender.one@example.test</div>
+data:elements 		</div>
+data:elements 		<div>
+data:elements 			<label>Date:</label>
+data:elements 			<div><time>10 Nov. 2026 14:47</time></div>
+data:elements 		</div>
+data:elements 		<div>
+data:elements 			<label>Subject:</label>
+data:elements 			<div>Your Payment Information</div>
+data:elements 		</div>
+data:elements 	</div>
+data:elements </div>
+data:elements <div id="message-info">
+data:elements 	<div>
+data:elements 		<pre style="width: 60em; text-wrap-mode: wrap">X-Original-To: register@tempr.email
+data:elements Return-Path: &lt;bounces+SRS=ut+4n=I7@groups.outlook.com&gt;
+data:elements Received: from MW6PR02CU001.outbound.protection.outlook.com (unknown [2a01:111:f403:d002:0:0:0:0])
+data:elements 	by mx.trashmailr.com (Postfix) with ESMTPS
+data:elements 	for &lt;register@tempr.email&gt;; Tue, 10 Nov 2026 14:47:31 +0100 (CET)
+data:elements ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+data:elements  b=Rc2nCAr9pNq9YOx8hd0yunGOX/ISno2A3+FHCogluFder/VHJcF0aSAJYgpxcOLvDQiKtMl1w266515bp6nsbuaBqEEEceCgJZBSi27y/j8dLSGb+7Hgf2j1fPnT1u9Z72UdKV7P1ZDCEnJwNV0YZKVaL2DwA6t2aclxln/QvCDTRMOlW8G11/xPmXBXwJY2Hqn7W+5xJx0cmQNY3imLBzOF0OrAREaX84Eqoud6hpEcAf3gT0YDh5EQlx09yJwJf0wJAtYLyDaGDtf4Uy1gxdB5jHre+wu0dPXcrQgNeMM3VFW8/oyomPFELjFW93y2tfjp8wrCZ31oTnatcP09hA==
+data:elements ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+data:elements  s=arcselector10001;
+data:elements  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+data:elements  bh=9MCLyA/G+2hXXj3Gn832jxJkgi5F83n7xllY1NDWJVg=;
+data:elements  b=wBMKfkoHXpH9qa2mbn3bQIJPmRF+qh5qfuygm1PVDNKMCQuyeBEDjrR+/6ipE6JsbDH8PCUScDZ2/IejMW8+pdhQMoiam1LrJgZpHXzz0ZqVvzf/kguN5zQgQELbIm7cy2G4nT2V0YxxYFkSo2I6aF+8FFxlMCGRoy5JXetBLPiycIbAUGATnjW4UcBl40EXVGoTJb6QIWfdy9evh+f9tJkF/68bCBtvEXmXVnHM0URbu1spMOy7B29fEY9aoPenJ9iFqthQwcvdAIACy9s12G6AlM9TBTIkBqYHS+dk40Pn2Hh6WG7I9M+2ilg9guqWmi9UBV/SXDpgxQhhkSvSgg==
+data:elements ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+data:elements  dkim=none; arc=none
+data:elements Received: from SJ1PR20MB4811.namprd20.prod.outlook.com (2603:10b6:a03:45a::14)
+data:elements  by BY3PR20MB4555.namprd20.prod.outlook.com (2603:10b6:a03:3b2::11) with
+data:elements  Microsoft SMTP Server (version=TLS1_2,
+data:elements  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.615.8; Tue, 10 Nov
+data:elements  2026 13:47:19 +0000
+data:elements Received: from SJ1PR20MB4811.namprd20.prod.outlook.com
+data:elements  ([fe80::6291:b447:987c:b9d9]) by SJ1PR20MB4811.namprd20.prod.outlook.com
+data:elements  ([fe80::6291:b447:987c:b9d9%6]) with mapi id 15.21.0569.011; Tue, 10 Nov 2026
+data:elements  13:47:18 +0000
+data:elements From: Sample Sender &lt;sender.one@example.test&gt;
+data:elements To: Sample Group &lt;group.one@example.test&gt;
+data:elements Subject: Your Payment Information
+data:elements Thread-Topic: Your Payment Information
+data:elements Thread-Index: AQHdcRoA6wlGgdFNUUKxrRX1Zbfe4g==
+data:elements Sender: Sample Sender
+data:elements 	&lt;IMCEAEX-_O=FIRST+20ORGANIZATION_OU=EXCHANGE+20ADMINISTRATIVE+20GROUP+28FYDIBOHF23SPDLT+29_CN=RECIPIENTS_CN=00034002A2AC13DF@namprd20.prod.outlook.com&gt;
+data:elements Date: Tue, 10 Nov 2026 13:47:18 +0000
+data:elements Message-ID:
+data:elements  &lt;SJ1PR20MB4811AB58AED0403139C8F00B88722@SJ1PR20MB4811.namprd20.prod.outlook.com&gt;
+data:elements Accept-Language: en-US
+data:elements Content-Language: en-US
+data:elements X-MS-Has-Attach:
+data:elements X-MS-TNEF-Correlator:
+data:elements x-ms-exchange-messagesentrepresentingtype: 2
+data:elements x-ms-publictraffictype: Email
+data:elements x-ms-traffictypediagnostic: SJ1PR20MB4811:EE_|BY3PR20MB4555:EE_
+data:elements x-ms-office365-filtering-correlation-id: d26597cd-8f11-45ce-1623-08df3f312354
+data:elements x-ms-consumer-group-expansion-loop: group.one@example.test
+data:elements x-ms-exchange-group-expansion-loop: group.one@example.test
+data:elements x-microsoft-antispam:
+data:elements  BCL:0;ARA:14566002|45011099003|25010399006|31061999003|37102599003|8022599003|8062599012|8060799015|260826193500599007|19110799012|15080799012|15030799006|21061999006|41001999006|11091999009|12091999003|3071699003|102099032|26104999009|3412199025|440099028|1710799026;
+data:elements x-microsoft-antispam-message-info:
+data:elements  =?iso-8859-1?Q?5jlbwNMaXdoU3HCQrLNBe9749CnSfOrE1N0v6Dy7SqzspEItQYlf/yQeJZ?=
+data:elements  =?iso-8859-1?Q?x+kRxQp5rb5GNORml4wWm2T1BUPLSp80tpxhyUWMBZqUeLy4Gk4PpEmjyi?=
+data:elements  =?iso-8859-1?Q?gfQLFn7OXfLLTXenqm3iOy8+Te1truVgGlmLVHsHEASVtdguu92U647F0w?=
+data:elements  =?iso-8859-1?Q?SVPAVyy3Vui3mhxKzYFqqnIvUjo9MIJ06U9qFVjMf+lWOd6m6YY1+GoZ4G?=
+data:elements  =?iso-8859-1?Q?LDMHQTc8UrRseKBFznEQvYC/P2gvcgtSX0N9UZ7PrXBntlpTF1t3YEy620?=
+data:elements  =?iso-8859-1?Q?8A1Xu47jKsGV9dW83nVZ46gx6WYU5BJMhnULjOzL0XXgoQCeWK8PznSMxl?=
+data:elements  =?iso-8859-1?Q?RXfaVgm4lAF/DuhDSjVQAjKrVLPjE19qGJIhH94pP1Hm9xmGlT3GYwOhOL?=
+data:elements  =?iso-8859-1?Q?CJK9Vkj4qjYMnWTBO/UjJH4tiRIsHF3B+RXqSo4ifFeBDjnvLOhRjkzseD?=
+data:elements  =?iso-8859-1?Q?4tdA+PUZevXRCLZbw3SPfG4yPpZPBuRotKPBEpfn3ETXtIFT4iyA1oCkgE?=
+data:elements  =?iso-8859-1?Q?VhmgyJmh094qRbJQ9+LjhEtA4mDOtAe8Ml0sXv974d6DTL3gWI1QDLRtfO?=
+data:elements  =?iso-8859-1?Q?MJlr2l4iOS6TCwX00HEcghaw7THU7MhnLlsUONXdouFLbxTm1cRtdBpE3n?=
+data:elements  =?iso-8859-1?Q?WrnLOxJIHboTQSTsxyu1ojxnU/6yhtjpivm2NcuCj4xJ/X5rwRqawrRkfH?=
+data:elements  =?iso-8859-1?Q?SpN8y2J5XtQqJBye7NBUNMXk4rzwwMwaLv6uSj1XhacRLyKJ+mnLpbRNFn?=
+data:elements  =?iso-8859-1?Q?fsfIkry3UIbvTIYy/xKBTRXJJmWhFEejr08v1AmulBZq8j3ReI3UtE8sXs?=
+data:elements  =?iso-8859-1?Q?q3WOWBn9LdFOwGoJipvIfE6JUcRhBLEmZuH/MjEQCdATE3JUMQi0xgeJFh?=
+data:elements  =?iso-8859-1?Q?+UC982A5TSnOKaa3VVYALsPsJxm0oxY4T2RFOuLcrQQxR+OPpflL9obJNB?=
+data:elements  =?iso-8859-1?Q?5csShN8FoK2K5PCrRfVho7fsHt5ZAAvbL9UefWfWG4ikIpS0ZNnf15C7Hk?=
+data:elements  =?iso-8859-1?Q?HXT9NY+rTW7OzMYycvSE8AzVw0KEBrITaFKHdVMpkN0YJSv2933gKRSS1f?=
+data:elements  =?iso-8859-1?Q?FVVFnAWrzU6PSuV6ORAiYGngLrWIL1F5p0oFBeCN0Gdpsp3gqwB7um92YG?=
+data:elements  =?iso-8859-1?Q?KDdezL2lF7M+n9aZA5SQI8KkMTcQuSG4HBHyRCuxzu0iHfQ4GkHipJk7YV?=
+data:elements  =?iso-8859-1?Q?yw30fUyBjBZs7QFDLk0Ed338EbsZIAkho3tyIORfjuhX5X5eST8RthsPNl?=
+data:elements  =?iso-8859-1?Q?E9BQMdVzZ4MrL4oSSHww=3D=3D?=
+data:elements x-ms-exchange-antispam-messagedata-chunkcount: 1
+data:elements x-ms-exchange-antispam-messagedata-0:
+data:elements  =?iso-8859-1?Q?Akd9EtHdD+7UwN5iX1vz5NrSZHBRqkmYSfcynLCKnuYD6ZNKOhlEH6Me3m?=
+data:elements  =?iso-8859-1?Q?yRZHs71NiUbhcYEh0aXd7Hes5CQYbFu1ocH7HDoMmrDm98J8g5JfRcB9nM?=
+data:elements  =?iso-8859-1?Q?7wiFfUCbSM3tQQNyNM8U8aM3ET8hSLfgSgRogUO0G3ED+tOvtgI8oU7oW1?=
+data:elements  =?iso-8859-1?Q?gLZBGaEIQU1r0dYvWrhBZzRPmPNyhEGEIugAoSDtOa/j7Blvfi9efc+B60?=
+data:elements  =?iso-8859-1?Q?XNbITFkuorBgZJBF5s9eUp5vRcd8yGqjwY8JKNqHGWBBpS9yY5E4PXjHDt?=
+data:elements  =?iso-8859-1?Q?tOKJnumkZTXm5pjNfNU0Vz5BKnfOg5J+uaBSFjYlLgs3UL3cGTg8ZH9Wg3?=
+data:elements  =?iso-8859-1?Q?ixA7+2lF7JzViHL/C136JXTwcQRlgGqkk/7idKLvzsMwLJGok0LdhyKkSz?=
+data:elements  =?iso-8859-1?Q?UD+8ZD+RBwpKc2nAt07GgsvM7JV/gYakJVdhvAFyhoK5g2pfzwhym9dxAm?=
+data:elements  =?iso-8859-1?Q?K9ba6vDHZdvX+hF/DT8BFehYOpSE1Rml4sM8xyWLsW+B0NNhM39YNCh5FX?=
+data:elements  =?iso-8859-1?Q?IInMsr7N2b6u4ILHiRPmeXf2BDudPlM3jAzfwuZk9/12NPINuXHVlbieda?=
+data:elements  =?iso-8859-1?Q?vg2C3PVLblZ+OgYjRQqBzD7qPw9+pXg4pz/lqvTqQmrT+U31P1m3lGZUkK?=
+data:elements  =?iso-8859-1?Q?82U5Fvue80XdRei0hbCQR9B4dPC3fAmHHCEotkF2fOiyHVSC7MEqc8K5Kc?=
+data:elements  =?iso-8859-1?Q?dIGtMnxekfUvdAMogKIn4mvxopvUEo778AT7V9exYzh9oscJKcUuxioxl2?=
+data:elements  =?iso-8859-1?Q?C30VcmkZHCXclAg1zmesVF4VqcfyXMr/tO6ReLHKjJm85yRPiE3WEG7h87?=
+data:elements  =?iso-8859-1?Q?QnPBXCE93Wf+SUy9JLvuV78YoX4sKqpXxl2SW43SDL5DfVvqT6APdjCBkq?=
+data:elements  =?iso-8859-1?Q?MfaNw3Aec7VX2Ejkl7/snyiNDhVwEwVcYN5PdU07VA/bvnhT/h3wB/dBZm?=
+data:elements  =?iso-8859-1?Q?wvHhDsq8tgWkEV5riyjxpy99938V+gB9wAX+IACssQPq9Vl/2zldhZsAxV?=
+data:elements  =?iso-8859-1?Q?vkhrTWKBW6wwaEyBw8S9Z1a3G3X/tI16qydHE5g0RBMIsleSUyN/ztLjhT?=
+data:elements  =?iso-8859-1?Q?4txtshP1S3rOeFsfxbRSpUeeep0esMlb26UQK79YNdCpH5fx7RlABI9bp+?=
+data:elements  =?iso-8859-1?Q?GetKdOGaswdE0vq94OS2j6qc8ZG902S4ut6kCovLu+gcihL0VydaCv2v1t?=
+data:elements  =?iso-8859-1?Q?RDsJxTavAuHvsok9da0+2x5ctgeERhzMAzv8wRB1ZKYtjwFp2R3UmMfPWD?=
+data:elements  =?iso-8859-1?Q?pWJnmtq33GvoZt7tqiTw6Q3MkD0YCKHV80cmV++cfF2LSU9c9T2+9tVPHj?=
+data:elements  =?iso-8859-1?Q?ZtJy?=
+data:elements Content-Type: multipart/alternative;
+data:elements 	boundary=&quot;_000_SJ1PR20MB4811AB58AED0403139C8F00B88722SJ1PR20MB4811namp_&quot;
+data:elements MIME-Version: 1.0
+data:elements X-Auto-Response-Suppress: DR, OOF, AutoReply
+data:elements X-OriginatorOrg: sct-15-20-9412-4-msonline-outlook-6d936.templateTenant
+data:elements X-MS-Exchange-CrossTenant-AuthAs: Internal
+data:elements X-MS-Exchange-CrossTenant-AuthSource: SJ1PR20MB4811.namprd20.prod.outlook.com
+data:elements X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+data:elements X-MS-Exchange-CrossTenant-Network-Message-Id: d26597cd-8f11-45ce-1623-08df3f312354
+data:elements X-MS-Exchange-CrossTenant-originalarrivaltime: 10 Nov 2026 13:47:18.7590
+data:elements  (UTC)
+data:elements X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+data:elements X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+data:elements X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+data:elements X-MS-Exchange-Transport-CrossTenantHeadersStamped: BY3PR20MB4555
+data:elements </pre>
+data:elements 	</div>
+data:elements </div>
+data:elements <div id="message-content">
+data:elements 	<iframe sandbox="allow-same-origin" data-ignore srcdoc="&lt;html&gt;
+data:elements &lt;head&gt;
+data:elements &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=iso-8859-1&quot;&gt;
+data:elements &lt;/head&gt;
+data:elements &lt;body&gt;
+data:elements &lt;!DOCTYPE html&gt;
+data:elements &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+data:elements &lt;title&gt;Amazon Order Confirmation&lt;/title&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; bgcolor=&quot;#eaeded&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td align=&quot;center&quot; style=&quot;padding:20px 10px;&quot;&gt;&lt;!-- Main Container --&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; style=&quot;max-width:640px; background-color:#ffffff; border:1px solid #d5d9d9;&quot;&gt;
+data:elements &lt;!-- Header Bar --&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td bgcolor=&quot;#232f3e&quot; style=&quot;padding:14px 24px;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;font-size:24px; font-weight:bold; color:#ffffff; letter-spacing:-1px;&quot;&gt;
+data:elements amazon&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;font-size:12px; color:#ffffff;&quot;&gt;Order Confirmation&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Greeting --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:24px 24px 10px 24px; font-size:15px; color:#0f1111; line-height:1.5;&quot;&gt;
+data:elements &lt;p style=&quot;margin:0 0 12px 0;&quot;&gt;Hello,&lt;/p&gt;
+data:elements &lt;p style=&quot;margin:0 0 16px 0;&quot;&gt;Thank you for shopping with us. Your order has been confirmed and is being prepared for shipment. Below are your order details.&lt;/p&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Order Meta --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:0 24px 16px 24px;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); width: 100%;&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td valign=&quot;top&quot; style=&quot;width: 50%;&quot;&gt;&lt;strong&gt;Order Placed:&lt;/strong&gt; November 10, 2026&lt;br&gt;
+data:elements &lt;strong&gt;Order Number:&lt;/strong&gt; 113-7749201-5583921&lt;br&gt;
+data:elements &lt;strong&gt;Order Total:&lt;/strong&gt;&amp;nbsp;$248.97&lt;/td&gt;
+data:elements &lt;td valign=&quot;top&quot; align=&quot;right&quot; style=&quot;width: 50%;&quot;&gt;&lt;strong&gt;Ship To:&lt;/strong&gt;&lt;br&gt;
+data:elements Dear Customer&amp;nbsp;&lt;br&gt;
+data:elements 123 Main Street&lt;br&gt;
+data:elements Anytown, ST 12345&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Items Header --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:0 24px;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; style=&quot;border-top: 2px solid rgb(231, 231, 231); border-bottom: 1px solid rgb(231, 231, 231); width: 100%;&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:10px 0; font-size:13px; font-weight:bold; color:#0f1111;&quot;&gt;Items Ordered&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;padding:10px 0; font-size:13px; font-weight:bold; color:#0f1111;&quot;&gt;
+data:elements Price&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Item 1: Apple EarPods --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:16px 24px; border-bottom:1px solid #e7e7e7;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); line-height: 1.5; width: 70%;&quot;&gt;
+data:elements &lt;strong&gt;Apple EarPods Headphones with USB-C Plug&lt;/strong&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;Wired Ear Buds with Built-in Remote to Control Music, Phone Calls, and Volume&lt;/span&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;Qty: 1&lt;/span&gt;&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); width: 30%;&quot;&gt;
+data:elements $19.00&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Item 2: AirPods Pro 3 --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:16px 24px; border-bottom:1px solid #e7e7e7;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); line-height: 1.5; width: 70%;&quot;&gt;
+data:elements &lt;strong&gt;Apple AirPods Pro 3 Wireless Earbuds&lt;/strong&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;Active Noise Cancellation | Live Translation, Heart Rate Sensing, Hearing Aid Feature, Bluetooth Headphones, Spatial Audio, USB-C Charging&lt;/span&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;Qty: 1&lt;/span&gt;&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); width: 30%;&quot;&gt;
+data:elements $199.00&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Item 3: Fire TV Stick 4K Plus --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:16px 24px; border-bottom:1px solid #e7e7e7;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); line-height: 1.5; width: 70%;&quot;&gt;
+data:elements &lt;strong&gt;Amazon Fire TV Stick 4K Plus&lt;/strong&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;AI-powered Fire TV Search, Wi-Fi 6, stream hundreds of thousands of movies and shows, free &amp;amp; live TV, find shows faster with Alexa+&lt;/span&gt;&lt;br&gt;
+data:elements &lt;span style=&quot;color:#565959; font-size:12px;&quot;&gt;Qty: 1&lt;/span&gt;&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; valign=&quot;top&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); width: 30%;&quot;&gt;
+data:elements $29.99&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Totals --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td style=&quot;padding:16px 24px 24px 24px;&quot;&gt;
+data:elements &lt;table width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot; cellpadding=&quot;4&quot; style=&quot;font-size: 13px; color: rgb(15, 17, 17); width: 100%;&quot;&gt;
+data:elements &lt;tbody&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;width: 75%;&quot;&gt;Item Subtotal:&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;width: 25%;&quot;&gt;$247.99&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td align=&quot;right&quot;&gt;Shipping &amp;amp; Handling:&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot;&gt;$0.00&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td align=&quot;right&quot;&gt;Estimated Tax:&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot;&gt;$0.98&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;font-size:15px; font-weight:bold; padding-top:8px; border-top:1px solid #e7e7e7;&quot;&gt;
+data:elements Order Total:&lt;/td&gt;
+data:elements &lt;td align=&quot;right&quot; style=&quot;font-size:15px; font-weight:bold; padding-top:8px; border-top:1px solid #e7e7e7;&quot;&gt;
+data:elements $248.97&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;!-- Footer --&gt;
+data:elements &lt;tr&gt;
+data:elements &lt;td bgcolor=&quot;#f7f7f7&quot; style=&quot;padding:20px 24px; border-top:1px solid #e7e7e7; text-align:center; font-size:11px; color:#565959; line-height:1.6;&quot;&gt;
+data:elements &lt;strong&gt;
+data:elements &lt;p style=&quot;text-align: center;color: rgb(17, 17, 17);background-color: rgb(255, 255, 255);font-size: 13px;font-family: Arial, Helvetica, sans-serif;&quot;&gt;
+data:elements &lt;span style=&quot;font-size: 16px;&quot;&gt;We appreciate you using Amazon for your purchases.&lt;/span&gt;&lt;/p&gt;
+data:elements &lt;/strong&gt;
+data:elements &lt;p style=&quot;text-align: center;color: rgb(17, 17, 17);background-color: rgb(255, 255, 255);font-size: 13px;font-family: Arial, Helvetica, sans-serif;&quot;&gt;
+data:elements &lt;span style=&quot;font-size: 14px;&quot;&gt;If you have any issues or need to cancel your order, please contact us.&lt;/span&gt;&lt;/p&gt;
+data:elements &lt;p style=&quot;text-align: center;color: rgb(17, 17, 17);background-color: rgb(255, 255, 255);font-size: 13px;font-family: Arial, Helvetica, sans-serif;&quot;&gt;
+data:elements &lt;strong&gt;&lt;span style=&quot;font-size: 15px;&quot;&gt;Do you need assistance? Go to Customer Service or Your Orders&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+data:elements &lt;p style=&quot;text-align: center;color: rgb(17, 17, 17);background-color: rgb(255, 255, 255);font-size: 13px;font-family: Arial, Helvetica, sans-serif;&quot;&gt;
+data:elements &lt;strong&gt;&lt;span style=&quot;font-size: 24px; color: rgb(226, 80, 65);&quot;&gt;1 (820) 758 - 9105&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;
+data:elements &lt;p style=&quot;text-align: center;color: rgb(17, 17, 17);background-color: rgb(255, 255, 255);font-size: 13px;font-family: Arial, Helvetica, sans-serif;&quot;&gt;
+data:elements &lt;br&gt;
+data:elements &lt;/p&gt;
+data:elements &lt;p style=&quot;margin:0 0 8px 0;&quot;&gt;This email was sent from a notification-only address that cannot accept incoming email. Please do not reply to this message.&lt;/p&gt;
+data:elements &lt;p style=&quot;margin:0;&quot;&gt;© 2026 Amazon.com, Inc. or its affiliates. All rights reserved.&lt;/p&gt;
+data:elements &lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;!-- End Main Container --&gt;&lt;/td&gt;
+data:elements &lt;/tr&gt;
+data:elements &lt;/tbody&gt;
+data:elements &lt;/table&gt;
+data:elements &lt;/body&gt;
+data:elements &lt;/html&gt;
+data:elements " frameborder="0"></iframe>
+data:elements </div>
+

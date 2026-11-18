@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -40,6 +40,7 @@ def _at(row: dict) -> datetime | None:
 class NiceMail(Provider):
     name = "nicemail"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=("nicemail.cc",),
         domains=DOMAINS,

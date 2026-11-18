@@ -64,6 +64,47 @@ def test_a_capability_request_is_passed_through_to_routing(client, auth):
     assert response.status_code == 503
 
 
+def test_inbox_create_forwards_push_delete_self_hosted(client, auth):
+    captured = []
+    inner = client.app.state.pool.acquire
+
+    async def spy(req):
+        captured.append(req)
+        return await inner(req)
+
+    client.app.state.pool.acquire = spy
+    client.post(
+        "/v1/inboxes",
+        headers=auth,
+        json={"push": True, "delete": False, "self_hosted": True},
+    )
+    assert len(captured) == 1
+    assert captured[0].push is True
+    assert captured[0].delete is False
+    assert captured[0].self_hosted is True
+
+
+def test_inbox_create_forwards_inbox_privacy(client, auth):
+    from cowbird.models import InboxPrivacy
+
+    captured = []
+    inner = client.app.state.pool.acquire
+
+    async def spy(req):
+        captured.append(req)
+        return await inner(req)
+
+    client.app.state.pool.acquire = spy
+    response = client.post("/v1/inboxes", headers=auth, json={"inbox_privacy": "private"})
+    assert response.status_code == 200
+    assert captured[0].inbox_privacy is InboxPrivacy.PRIVATE
+
+
+def test_inbox_create_rejects_unknown_privacy(client, auth):
+    response = client.post("/v1/inboxes", headers=auth, json={"inbox_privacy": "bogus"})
+    assert response.status_code == 422
+
+
 def test_a_local_part_that_could_reshape_an_upstream_request_is_a_422(client, auth):
     response = client.post("/v1/inboxes", headers=auth, json={"local": "x/../admin?y=1"})
     assert response.status_code == 422

@@ -1,0 +1,15 @@
+{
+ "success": true,
+ "result": {
+  "id": "ol8qb66hifmj3nm61sp73rni",
+  "fromAddress": "noreply@example.test",
+  "toAddress": "probe@manornewtech.org",
+  "subject": "Your verification code is 482913.",
+  "receivedAt": 1794747768,
+  "expiresAt": 1794750869,
+  "htmlContent": "<div><p>Your verification code is 482913.</p><a href=\"https://example.test/verify?t=482913\">Verify</a></div>",
+  "textContent": "Your verification code is 482913.",
+  "hasAttachments": false,
+  "attachmentCount": 0
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "success": true,
+ "result": {
+  "items": [],
+  "nextCursor": null,
+  "locked": false,
+  "isPrivate": false
+ }
+}

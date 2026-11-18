@@ -12,7 +12,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -30,6 +30,7 @@ def _at(row: dict) -> datetime | None:
 class InboxKitten(Provider):
     name = "inboxkitten"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset({Kind.OWN_DOMAIN}),
         sites=("inboxkitten.com",),
         domains=(DOMAIN,),

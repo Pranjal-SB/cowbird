@@ -5,6 +5,12 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 
+class InboxPrivacy(StrEnum):
+    PRIVATE = "private"
+    PUBLIC = "public"
+    SHARED = "shared"
+
+
 class Kind(StrEnum):
     GMAIL_ALIAS = "gmail-alias"
     OUTLOOK_ALIAS = "outlook-alias"
@@ -17,6 +23,8 @@ class Capabilities:
     kind: frozenset[Kind]
     sites: tuple[str, ...]
     domains: tuple[str, ...]
+    # number of domains the backend may issue; for dynamic discovery, the last
+    # observed count; 0 = unknown
     domain_count: int
     address_ttl: timedelta | None
     message_ttl: timedelta | None
@@ -45,6 +53,10 @@ class Capabilities:
     # True for a backend that cannot be used at all without a Cloudflare
     # solver. The pool skips it when none is configured.
     needs_solver: bool = False
+    # How exposed the inbox is: PRIVATE (single caller, credentials-only),
+    # PUBLIC (anyone with the address can read it), or SHARED (a pool of
+    # addresses multiple callers rotate through).
+    inbox_privacy: InboxPrivacy = InboxPrivacy.PRIVATE
 
     def serves(self, kind: Kind) -> bool:
         return kind in self.kind

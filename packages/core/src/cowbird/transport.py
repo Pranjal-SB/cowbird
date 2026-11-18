@@ -94,19 +94,25 @@ class Transport:
         finally:
             await session.close()
 
-    async def _request(self, method: str, url: str, **kw: Any) -> Any:
+    async def _request(
+        self, method: str, url: str, *, allow_status: tuple[int, ...] = (), **kw: Any
+    ) -> Any:
         async with self._gate:
             parts = urlsplit(url)
             host = (parts.hostname or "").lower()
             used = self._clearances.get(host)
             try:
-                return await self._request_unthrottled(method, url, **_cleared(kw, used))
+                return await self._request_unthrottled(
+                    method, url, allow_status=allow_status, **_cleared(kw, used)
+                )
             except CloudflareChallenge as challenge:
                 if self.solver is None:
                     raise
                 fresh = await self._refresh_clearance(parts.scheme, host, used, challenge)
             try:
-                return await self._request_unthrottled(method, url, **_cleared(kw, fresh))
+                return await self._request_unthrottled(
+                    method, url, allow_status=allow_status, **_cleared(kw, fresh)
+                )
             except CloudflareChallenge:
                 # Solved and still challenged: the clearance does not work from
                 # here. At most one solve per request; no loop.
@@ -132,7 +138,9 @@ class Transport:
             self._clearances[host] = fresh
             return fresh
 
-    async def _request_unthrottled(self, method: str, url: str, **kw: Any) -> Any:
+    async def _request_unthrottled(
+        self, method: str, url: str, *, allow_status: tuple[int, ...] = (), **kw: Any
+    ) -> Any:
         last: Exception | None = None
         for attempt in range(self.retries + 1):
             try:
@@ -140,6 +148,13 @@ class Transport:
             except Exception as exc:  # curl_cffi raises its own transport errors
                 last = ProviderDown(f"{self.provider}: {exc}")
             else:
+                # An explicit allow_status means the caller takes the raw
+                # response and interprets it: generator-email's PoW
+                # interstitial imitates Cloudflare's title, so this check
+                # must precede the challenge detection or the opted-in
+                # body could never reach the adapter.
+                if resp.status_code in allow_status:
+                    return resp
                 if self._is_challenge(resp):
                     raise CloudflareChallenge(
                         f"{self.provider}: anti-bot challenge (HTTP {resp.status_code})"
@@ -163,7 +178,9 @@ class Transport:
         body = resp.text[:2000].lower()
         return any(marker in body for marker in _CHALLENGE_MARKERS)
 
-    async def json(self, method: str, url: str, **kw: Any) -> Any:
+    async def json(
+        self, method: str, url: str, *, allow_status: tuple[int, ...] = (), **kw: Any
+    ) -> Any:
         # Browser impersonation makes every request look like a browser, and a
         # browser's default Accept header content-negotiates: some APIs will
         # hand back HTML or XML instead of JSON to a client that looks like a
@@ -171,17 +188,21 @@ class Transport:
         # response shape deterministic regardless of impersonation. An
         # explicit caller-supplied Accept still wins (merged in second).
         headers = {"Accept": "application/json", **kw.pop("headers", {})}
-        resp = await self._request(method, url, headers=headers, **kw)
+        resp = await self._request(method, url, headers=headers, allow_status=allow_status, **kw)
         try:
             return jsonlib.loads(resp.text)
         except ValueError as exc:
             raise SchemaDrift(self.provider, expected="a JSON body", got=resp.text[:200]) from exc
 
-    async def text(self, method: str, url: str, **kw: Any) -> str:
-        resp = await self._request(method, url, **kw)
+    async def text(
+        self, method: str, url: str, *, allow_status: tuple[int, ...] = (), **kw: Any
+    ) -> str:
+        resp = await self._request(method, url, allow_status=allow_status, **kw)
         return resp.text
 
-    async def send(self, method: str, url: str, **kw: Any) -> Any:
+    async def send(
+        self, method: str, url: str, *, allow_status: tuple[int, ...] = (), **kw: Any
+    ) -> Any:
         """Like json()/text(), but hands back the raw response instead of a
         parsed body, so an adapter can branch on `resp.status_code`.
 
@@ -194,7 +215,7 @@ class Transport:
         4xx status; json()/text() remain the normal path for everything else.
         """
         headers = {"Accept": "application/json", **kw.pop("headers", {})}
-        return await self._request(method, url, headers=headers, **kw)
+        return await self._request(method, url, headers=headers, allow_status=allow_status, **kw)
 
     async def aclose(self) -> None:
         if self._session is not None:

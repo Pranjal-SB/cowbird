@@ -1,0 +1,19 @@
+{
+ "success": true,
+ "result": {
+  "items": [
+   {
+    "id": "ol8qb66hifmj3nm61sp73rni",
+    "fromAddress": "noreply@example.test",
+    "toAddress": "probe@manornewtech.org",
+    "subject": "Your verification code is 482913.",
+    "receivedAt": 1794747768,
+    "expiresAt": 1794750869,
+    "hasAttachments": false,
+    "attachmentCount": 0
+   }
+  ],
+  "nextCursor": null,
+  "expiresAt": 1794750869
+ }
+}

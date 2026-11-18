@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 from urllib.parse import quote
 
 from cowbird.errors import MessageGone, NotSupported, SchemaDrift, SolverUnavailable
-from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
+from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
@@ -89,6 +89,7 @@ def _address(opts: GenerateOptions) -> str:
 class VanishInbox(Provider):
     name = "vanishinbox"
     caps = Capabilities(
+        inbox_privacy=InboxPrivacy.PUBLIC,
         kind=frozenset(KINDS),
         sites=("vanishinbox.com",),
         domains=OWN_DOMAINS + EDU_DOMAINS,

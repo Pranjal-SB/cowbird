@@ -15,8 +15,10 @@ its listed aliases
 
 ## Shipped
 
-Thirty-two adapters ship. They expose 40 front doors between them, all
-unique. Live and contract-tested. The original three (mail.tm, emailnator, inboxes)
+Forty-four adapters ship. They expose 53 front doors between them, all
+unique. Live and contract-tested. tempr.email is the first adapter whose
+`watch()` is a real push transport (Datastar SSE) rather than the polling
+default. The original three (mail.tm, emailnator, inboxes)
 are additionally proven end to end by `packages/core/tests/test_delivery.py`,
 a `live`-marked suite. Of the eight newer providers, six were proven by hand on
 2026-09-24: a test mail sent from testemailsender.com (JoltMx) arrived in
@@ -67,6 +69,36 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 | mtempmail | mtempmail.com | own-domain, edu | 1d | 1d | 3 | — |
 | tempmailo | tempmailo.com | own-domain | ? | 2d | 4 | — |
 | instantedumail | instantedumail.com | own-domain, edu | 1h | ? | 4 | — |
+| generatoremail 🔗 | emailfake.com (family: generator.email, tempm.com, mail-temp.com, email-fake.com) | own-domain | ? | ? | 52 | — |
+| tempr | tempr.email | own-domain | ? | 30d | 60 | — |
+| tmailor | tmailor.com | own-domain | forever | forever | ? | — |
+| driftz | driftz.net | own-domain | 1h | 1h | 37 | — |
+| mailnesia | mailnesia.com | own-domain | forever | 2d | 6 | — |
+| tmail.link | tmail.link | own-domain | forever | 1d | 1 | — |
+| 10minutemail.net | 10minutemail.net | own-domain | 10m | 10m | 1 | — |
+| anonbox | anonbox.net | own-domain | 1d | 1d | ? | — |
+| meowmail | meowmail.in | own-domain | 1h | 1h | 4 | — |
+| tempemail.cc | tempemail.cc | own-domain | forever | forever | 1 | — |
+| 48hr.email | 48hr.email | own-domain | forever | 2d | 15 | — |
+| anonymmail | anonymmail.net | own-domain | forever | forever | 6 | — |
+
+`generatoremail` speaks for the whole generator.email family behind one PoW
+gate; the family row in the backlog tables folds into it. `tempr` is the first
+push adapter: its `watch()` consumes the Datastar SSE stream on
+`mta.trashmailr.com:81` directly instead of polling. Its delivery proof is
+pending a working sender (all three free senders failed during its build
+window); generate, list, get and MessageGone were live-proved against its
+public inboxes, and 123 real row frames were captured.
+
+The last ten rows shipped on 2026-11-15 from the backlog survey. Each was
+live-proven end to end through a real delivery before it shipped (a Mailman,
+Klaviyo or JoltMx message listed and read back, and deleted where the backend
+allows it). anonymmail followed on 2026-11-18, once its adapter carried the
+session cookies the inbox is keyed on, and passed `test_delivery.py`. driftz,
+mailnesia, tmail.link, meowmail and 48hr.email are public by address: use an
+unguessable local part. 10minutemail.net is not related to the shipped
+10minutemail.com. anonbox deletes a mailbox's mail within a minute of a fetch,
+so read promptly.
 
 `temporarymail` addresses persist only if used once every 14 days. re146's
 domains churn, so the adapter fetches them on every `generate()`. temp-mail.io
@@ -78,7 +110,11 @@ part. DuckMail speaks the mail.tm API and reuses that adapter.
 inboxes is a catch-all: `generate()` makes no HTTP call at all, it picks a
 local-part and a domain and returns, which is where the 0.0s comes from. It
 also accepts a custom local-part, as do maildrop, inboxkitten, nicemail and
-mail.cx. emailnator and mail.tm do not.
+mail.cx. emailnator and mail.tm do not. On 2026-11-15 its read path looked
+broken from here — the MX accepted a probe mail but the inbox API stayed
+empty for minutes while the same mail landed on guerrillamail and
+tempmail.plus — so treat its 0.0s p50 with suspicion until the weekly canary
+re-checks it.
 
 10minutemail has no p50. On the 2026-09-24 run it drew a Cloudflare challenge
 from this machine's egress, same as on 2026-09-12, when it answered normally
@@ -130,26 +166,22 @@ Probed, not built. The reason is in the table.
 
 | backend | why |
 |---|---|
-| tempr.email | buildable: the inbox streams over Datastar SSE from `mta.trashmailr.com:81`, which needs its own client |
 | dropmail | the free API token path closed; the site itself is still up (2026-11-15) |
+| yopmail | Turnstile since at least 2026-11-15; the solver's tokens were rejected on replay (same fingerprint wall as 10minutemail) — unreachable from any realistic egress, so its 100+ domains buy nothing |
 
 dropmail was in the seed set only because it was the one known push
 (WebSocket) backend, so `watch()` could be proven against a real push provider
-before polling adapters were built on it. No shipped provider uses push today.
+before polling adapters were built on it. tempr now fills that role.
 
 ## Seed set, remaining
 
-| backend | sites | kind | addr | msg | domains |
-|---|---|---|---|---|---|
-| ⭐ tempr.email | tempr.email | own-domain | ? | 30d | 60 |
-
-Recon corrected the row. tempr.email serves 60 domains, not the "50+" the source list claimed and not
-the "50" its own page says in one place, and its 30 days is message retention,
-with address lifetime still unestablished.
+None. tempr.email — the last seed-set item — shipped on 2026-11-15 as
+`tempr`, with the push `watch()` override the seed set existed to prove.
+dropmail, the other seed option, stays parked (free API token path closed).
 
 ## Starred, not seeded
 
-Next in line once the interface holds.
+No new adapters are planned for now; this stays the strongest candidate.
 
 | backend | sites | kind | addr | msg | domains |
 |---|---|---|---|---|---|
@@ -187,26 +219,20 @@ is what defeats domain blocklists.
 
 | backend | sites | addr | msg | domains | verdict (2026-11-15) |
 |---|---|---|---|---|---|
-| yopmail | yopmail.com | forever | 8d | 100+ | alive, untraced (public inbox, provable without a sender) |
-| mailnesia | mailnesia.com | forever | 2d | 1 | alive, untraced (server-rendered HTML) |
-| generator-email 🔗 | generator.email, emailfake.com, tempm.com, mail-temp.com | ? | ? | 50+ | alive, untraced (PoW interstitial on the API) |
-| trashmail.ws | trashmail.ws | ? | ? | 1 | untraced (own MX `mail.trashmail.ws`; not a maildrop front door) |
-| anonymmail 🔗 | anonymmail.net, mail.td | ? | ? | 5 | untraced (trace `/messages`, `/messages/<id>/source`) |
-| haribu | haribu.net | ? | ? | 1 | alive, untraced (medium) |
-| driftz | driftz.net | ? | ? | 23 | alive, untraced |
-| moakt | moakt.com | 1h | 1h | 13 | alive, untraced (public, provable today) |
-| 48hr.email | 48hr.email | forever | 2d | 7 | alive, untraced |
+| trashmail.ws | trashmail.ws | ? | ? | 1 | walled: hCaptcha + reCAPTCHA v3 enforced server-side (Livewire calls 500 regardless); own MX `mail.trashmail.ws`, not a maildrop front door |
+| haribu | haribu.net | ? | ? | 1 | medium: session-bound, form-encoded POSTs returning HTML fragments |
+| moakt | moakt.com | 1h | 1h | 14 | medium: session-bound (tm_session cookie); create+list proven; public read unproven (busy names reserved, read route unknown) |
 | spambox | spambox.xyz | forever | 1d | 4 | walled: reCAPTCHA |
-| vmail.dev | vmail.dev | 1d | 1d | 2 | untraced (no longer walled; ships `/api-docs` and `/mailboxes`) |
-| tempemail.cc | tempemail.cc | forever | forever | 1 | alive, untraced |
-| mohmal | mohmal.com | 45m | 45m | 1 | alive, untraced (HTML, 45 min) |
-| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | untraced (never probed; not in the 2026-11-15 sweep) |
-| tmail.link | tmail.link | ? | ? | ? | alive, untraced |
-| tempmail.cloud | tempmail.cloud | forever* | forever* | 21 | untraced (added from FMHY 2026-11-15; retention is account-gated) |
-| meowmail.in | meowmail.in | 1h* | 1h* | 4 | untraced (added from FMHY 2026-11-15) |
+| vmail.dev | vmail.dev | 1d | 1d | 2 | walled (2026-11-15 survey: `/api/verify` demands a live Turnstile token; API keys need dashboard login — supersedes "no longer walled") |
+| mohmal | mohmal.com | 45m | 45m | 6 | quick-medium: connect.sid session on create; /en/extend renews the 45m TTL; 6 domains |
+| adguard | adguard.com/adguard-temp-mail | 7d | 1d | 1 | hard: cap.js PoW solvable but /captcha/redeem needs an obfuscated instrumentation blob; not buildable today |
+| tempmail.cloud | tempmail.cloud | forever* | forever* | 21 | skipped: retention is account-gated; account minting is out of scope (decided 2026-11-15) |
 
 Two rows removed 2026-11-15 as duplicates of shipped adapters:
-temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin.
+temporary-mail.net is mailticking, and tempboxpro is a mail.tm skin. A third
+fold from the 2026-11-15 survey: email-fake.com is the same backend as the
+shipped generator-email family (same IP 91.196.52.205, MX mx.add5000.com, same
+api-token schema).
 
 ## Ten-minute tier
 
@@ -222,9 +248,10 @@ Short-lived by design. Low value for slow signup flows, fine for fast OTP.
 Separate capability kind. Lowest priority; investigate before committing to
 any. Verdicts from the 2026-11-15 probe:
 
-- edumailfree.com — untraced-medium: create+list ran through Transport on
-  2026-09-24 (captcha off); plain curl drew a Cloudflare challenge on
-  2026-11-15, curl_cffi may still pass.
+- edumailfree.com — medium: headless WebKit earns a `cf_clearance` that works
+  replayed through `curl_cffi` (`impersonate="safari184"`); Livewire v3 TMail,
+  same shape as ghostinbox; 20 domains (5× `.edu.pl`); a live create was proved
+  on 2026-11-15.
 - tempsmail.org — walled: reCAPTCHA v2 server-side.
 - edumail.su — walled: IUAM; redirects to edumail.bz.
 - run2mail.com — walled: IUAM.
@@ -236,17 +263,16 @@ sits in the shipped table.)
 
 ## From the secondary list
 
-Not yet classified. Source: `rentry.org/i3ozxg6f`. cryptogmail.com and
+Source: `rentry.org/i3ozxg6f`. cryptogmail.com and
 internxt.com/temporary-email removed 2026-11-15: both are mail.tm duplicates,
-covered by the shipped mail.tm adapter.
+covered by the shipped mail.tm adapter. email-fake.com folded 2026-11-15: see
+the duplicates note under Own-domain backends.
 
-Untraced: anonbox.net (easy: private mbox link, decoy spans, 1-day validity) ·
-tempmail4u.com · tempinbox.xyz · tmailor.com (Datastar SSE) ·
-minmail.app (redirects to temp-mail.app — alive again 2026-11-15; the earlier
-"502 dead" verdict is superseded) ·
-10minutemail.net (alive; no doc equates it with the shipped 10minutemail.com —
-kept distinct) · email-fake.com (TLS reset on every impersonation; possibly the
-generator-email family, unresolved).
+Surveyed 2026-11-15:
+
+- tempmail4u.com — quick-medium: one unauthenticated GET (api.tempmail4u.com/api/fakeemails/?email=), catch-all @jsontoexcel.net; ~25s cold latency
+- tempinbox.xyz — parked until a browser trace: replicated Livewire calls 500
+- minmail.app — walled: redirects to temp-mail.app — invite-gated premium product, no anonymous API
 
 Walled: emailme.at (reCAPTCHA) · m.kuku.lu · tempmail.net (all CF-challenged;
 IUAM candidates).
@@ -283,10 +309,13 @@ re-probe before writing any of these off, but do not build against them.
 
 ## Counts
 
-86 distinct known backends (names folded by MX/API evidence; liveness probed
-2026-11-15; two added from the FMHY temp-mail section the same day): 32
-shipped, 2 parked, 52 unbuilt — of the unbuilt, 9 dead, 4 dead-or-slow,
-12 walled, 27 untraced. The 32 shipped adapters expose 40
-front doors between them, all unique. Two entry-point names differ from their
-directory: `tenminutemail/` registers as `10minutemail`, `twentytwodo/` as
-`22do`.
+85 distinct known backends (names folded by MX/API evidence; every unshipped
+backend surveyed and classified 2026-11-15, recounted 2026-11-18): 44 shipped,
+2 parked, 39 unbuilt. Of the unbuilt: 9 dead, 4 dead-or-slow, 16 walled (4
+reCAPTCHA, 2 Turnstile, 1 login, 9 challenge/IUAM), and 10 with a buildable
+verdict: 5 medium, ghostinbox and zemail reconned, tempinbox pending a browser
+trace, adguard hard, and one skipped (tempmail.cloud, account-gated). No new
+adapters are planned for now. The 44 shipped adapters expose 53 front doors
+between them, all unique, and tempr's `watch()` is the first real push
+transport. Two entry-point names differ from their directory:
+`tenminutemail/` registers as `10minutemail`, `twentytwodo/` as `22do`.

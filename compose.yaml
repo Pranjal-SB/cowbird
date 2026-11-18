@@ -1,5 +1,6 @@
-# The servers and the proxy arrive later. Postgres alone is what the store and
-# health tests need, and it is useful on its own for local work.
+# Local stack: Postgres, an optional Cloudflare solver, two servers sharing one
+# address store, and Caddy round-robining between them. `docker compose up
+# postgres` alone is what the store and health tests need.
 services:
   postgres:
     image: postgres:17
