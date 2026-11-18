@@ -56,7 +56,6 @@ class InboxService:
         self,
         value: str,
         timeout: float,
-        pattern: str | None = None,
         want_otp: bool = False,
     ) -> tuple[Message | None, str | None]:
         """Hold until mail arrives or the timeout expires.
@@ -74,7 +73,7 @@ class InboxService:
             # abandoned request.
             async with aclosing(box.watch()) as stream:
                 async for message in stream:
-                    code = extract_otp(message.text, pattern)
+                    code = extract_otp(message.text)
                     if want_otp and not code:
                         continue
                     return message, code

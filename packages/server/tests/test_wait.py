@@ -60,3 +60,30 @@ def test_a_requested_timeout_above_the_cap_is_clamped(client_for, auth):
     assert response.status_code == 200
     assert response.json() == {"success": True, "data": None, "error": None}
     assert 1.5 < elapsed < 10, f"waited {elapsed:.1f}s; the cap was not applied"
+
+
+async def backtracking_body(self, address, id):
+    return Message(id=id, sender="s@x.test", subject="hi", received_at=None, html="",
+                   text="a" * 30 + "!")
+
+
+def test_a_pattern_is_ignored_not_compiled(client_for, auth):
+    # The server used to compile any client regex: "(" was a 500.
+    with client_for(provider_class("fake", list=one_row, get=with_code)) as client:
+        client.post("/v1/inboxes", headers=auth, json={})
+        resp = client.get("/v1/inboxes/a@fake.test/wait?pattern=(&timeout=1", headers=auth)
+    assert resp.status_code == 200
+
+
+def test_a_backtracking_pattern_cannot_stall_the_server(client_for, auth):
+    # (a+)+$ against 30 a's and a "!" blocked the event loop for over a minute.
+    with client_for(provider_class("fake", list=one_row, get=backtracking_body)) as client:
+        client.post("/v1/inboxes", headers=auth, json={})
+        started = time.monotonic()
+        resp = client.get(
+            "/v1/inboxes/a@fake.test/wait",
+            params={"pattern": "(a+)+$", "timeout": 1},
+            headers=auth,
+        )
+    assert resp.status_code == 200
+    assert time.monotonic() - started < 5
