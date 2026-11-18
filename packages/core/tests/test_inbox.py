@@ -180,3 +180,34 @@ async def test_seen_ids_are_skipped():
     provider.box += [("m1", "code 111111"), ("m2", "code 222222")]
     box = Inbox(provider, await provider.generate(), seen=["m1"])
     assert await box.otp(timeout=2) == "222222"
+
+
+async def test_link_after_otp_still_sees_the_messages_otp_walked_past():
+    # "Verify your email" (link only), then a mail with a code: otp() walks
+    # past the first, and a later link() must still find it.
+    provider = _Mailbox()
+    provider.box += [
+        ("m1", 'verify <a href="https://x.test/verify">here</a>'),
+        ("m2", "code 123456"),
+    ]
+    provider.get = _with_links(provider.get)
+    box = Inbox(provider, await provider.generate())
+    assert await box.otp(timeout=2) == "123456"
+    assert await box.link(timeout=2) == "https://x.test/verify"
+
+
+async def test_link_from_the_same_message_as_the_otp():
+    provider = _Mailbox()
+    provider.box += [("m1", 'code 123456 or <a href="https://x.test/go">click</a>')]
+    provider.get = _with_links(provider.get)
+    box = Inbox(provider, await provider.generate())
+    assert await box.otp(timeout=2) == "123456"
+    assert await box.link(timeout=2) == "https://x.test/go"
+
+
+def _with_links(get):
+    async def wrapped(address, id):
+        message = await get(address, id)
+        return replace(message, links=extract_links(message.text))
+
+    return wrapped
