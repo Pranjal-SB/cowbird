@@ -208,7 +208,9 @@ $ curl -H "x-api-key: local-dev" -X POST http://127.0.0.1:8000/v1/inboxes
 
 Caddy round-robins port 8000 across two servers sharing one Postgres. The
 instances are also published individually on 8001 and 8002, which is how the
-cross-instance tests address them.
+cross-instance tests address them. Every port, Postgres's 5432 included, is
+bound to 127.0.0.1: the stack uses a fixed API key and password and turns the
+webhook SSRF guard off, so it must not be reachable from the network.
 
 ## Adding a provider
 
