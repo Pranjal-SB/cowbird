@@ -234,3 +234,33 @@ async def test_missing_or_malformed_state_is_not_supported(state):
         await TenMinuteMailNet(fake(default_routes())).list(
             Address("user01@zefvo.com", "tenminutemailnet", state=state)
         )
+
+
+def _real_maillist() -> str:
+    # The site's own page as recorded, Cloudflare's <span data-cfemail> intact.
+    page = load("home.html")
+    start = page.index('<table id="maillist"')
+    return page[start : page.index("</table>", start) + len("</table>")]
+
+
+async def test_rows_from_the_real_markup_land_in_the_right_columns():
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    provider = TenMinuteMailNet(fake({**default_routes(), "mailbox.ajax.php": _real_maillist()}))
+    [row] = await provider.list(address)
+    assert row.subject == "Hi, Welcome to 10 Minute Mail"
+    assert "@" in row.sender and "protected" not in row.sender
+
+
+async def test_a_nested_body_is_kept_whole():
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    page = load("readmail.html")
+    start = page.index('<div class="mailinhtml">')
+    nested = '<div class="mailinhtml"><div><div>Hello</div></div><p>code 123456</p></div>'
+    end = page.index("</div>", start) + len("</div>")
+    routes = {**default_routes(), "readmail.html?mid=welcome": page[:start] + nested + page[end:]}
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    message = await TenMinuteMailNet(fake(routes)).get(address, "welcome")
+    assert "123456" in message.text
