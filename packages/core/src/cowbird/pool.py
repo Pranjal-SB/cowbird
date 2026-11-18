@@ -53,7 +53,9 @@ class Pool:
 
     def _matches(self, provider: Provider, req: Request) -> bool:
         caps = provider.caps
-        if self.health.status(provider.name) not in ROUTABLE:
+        if self.health.status(provider.name) not in ROUTABLE and not self.health.retry_due(
+            provider.name
+        ):
             return False
         if caps.needs_solver and self.registry.solver is None:
             return False
@@ -88,7 +90,8 @@ class Pool:
     def _rank(self, provider: Provider) -> tuple[int, int, float, int, str]:
         status = self.health.status(provider.name)
         return (
-            ROUTABLE.index(status),
+            # A DOWN provider back on trial goes after every healthy one.
+            ROUTABLE.index(status) if status in ROUTABLE else len(ROUTABLE),
             _PRIVACY_RANK[provider.caps.inbox_privacy],
             self.health.p50(provider.name) or 0.0,
             -provider.caps.domain_count,
