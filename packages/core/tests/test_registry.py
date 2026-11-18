@@ -228,3 +228,45 @@ def test_a_registry_without_a_solver_builds_transports_without_one():
     registry.register(FakeProvider)
     assert registry.solver is None
     assert registry.get(FakeProvider.name).http.solver is None
+
+
+# Adapters build URL paths from the message id, and the server passes the id
+# straight from its route. An id that adds a path segment, a query or a
+# fragment fetches some other URL, whose answer then reads as drift and
+# quarantines the provider for everyone.
+class _Spy(FakeProvider):
+    calls: list[str] = []
+
+    async def get(self, address, id):
+        type(self).calls.append(id)
+        return await super().get(address, id)
+
+    async def delete(self, address, id):
+        type(self).calls.append(id)
+
+
+UNSAFE_IDS = ["../x", "a/b", "a?b=1", "a#b", "%2E%2E", "..", ".", "a b", "a\\b", "a\nb"]
+
+
+@pytest.mark.parametrize("bad", UNSAFE_IDS)
+@pytest.mark.parametrize("op", ["get", "delete"])
+async def test_an_id_that_could_reshape_a_request_is_refused(bad, op):
+    from cowbird.errors import NotSupported
+
+    _Spy.calls = []
+    health = HealthStore()
+    tracked = HealthTracked(_Spy(), health)
+    with pytest.raises(NotSupported):
+        await getattr(tracked, op)(Address("a@fake.test", "fake"), bad)
+    assert _Spy.calls == []
+    assert health.status("fake") is Status.OK
+
+
+@pytest.mark.parametrize(
+    "ok", ["01M6NWK36XH4J39X87V8955Q6Z", "tok1", "a1b2-c3", "Zm9vYmFy==", "12345", "a.b_c:d+e"]
+)
+async def test_ordinary_ids_pass_through(ok):
+    _Spy.calls = []
+    tracked = HealthTracked(_Spy(), HealthStore())
+    await tracked.get(Address("a@fake.test", "fake"), ok)
+    assert _Spy.calls == [ok]
