@@ -230,3 +230,15 @@ async def test_a_refused_message_page_is_down_not_drift(status):
     provider, _ = fake_provider(**{KEY: Reply(status, "<html><h1>Forbidden</h1></html>")})
     with pytest.raises(ProviderDown):
         await provider.get(ADDRESS, KEY)
+
+
+async def test_list_from_another_process_sends_the_csrf_cookie():
+    # `cowbird wait` is a new process with an empty cookie jar. Django checks
+    # the posted token against the csrftoken cookie, so without the cookie the
+    # POST is a 403 page, which read as drift and quarantined the provider.
+    provider, http = fake_provider()
+    address = Address(ADDRESS.value, "tmaillink", state=json.dumps({"csrftoken": TOKEN}))
+    await provider.list(address)
+    method, url, kw = http.seen[-1]
+    assert method == "POST"
+    assert kw["cookies"] == {"csrftoken": TOKEN}

@@ -133,6 +133,9 @@ class TMailLink(Provider):
             f"{self.api}/inbox/{address.value}/",
             data={"format": "json", "csrfmiddlewaretoken": token},
             headers={"Referer": f"{self.api}/inbox/{address.value}/"},
+            # Django checks the posted token against this cookie; a separate
+            # process (`cowbird wait`) starts with an empty jar and gets a 403.
+            cookies={"csrftoken": token},
         )
         if not isinstance(payload, dict) or not isinstance(payload.get("messages"), list):
             raise SchemaDrift(
