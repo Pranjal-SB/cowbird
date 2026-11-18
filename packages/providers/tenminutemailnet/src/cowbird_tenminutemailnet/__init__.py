@@ -41,13 +41,15 @@ _ROW = re.compile(
     # The sender cell holds markup on the real page (Cloudflare's cloaking
     # <span>), so it is matched lazily up to its own closing tags.
     r'(?P<sender>.*?)</a></td><td><a class="row-link" href="readmail\.html\?mid='
-    r'(?P=id)">(?P<subject>[^<]*)</a>'
+    r'(?P=id)">(?P<subject>.*?)</a></td>',
+    re.S,
 )
 _SUBJECT = re.compile(r'<h2 class="emoji_parse">(.*?)</h2>', re.S)
 _SENDER = re.compile(r'<span class="mail_from">(.*?)</span>', re.S)
 _TIMESTAMP = re.compile(r'<span title="(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"')
 _BODY_START = '<div class="mailinhtml">'
 _DIV = re.compile(r"<(/?)div\b", re.I)
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
 _TAG = re.compile(r"<[^>]+>")
 # Cloudflare's email-protection cloaks every address on the page as
 # <a|span data-cfemail="...">[email protected]</a|span>; the hex is XOR-encoded
@@ -78,8 +80,11 @@ def _mail_body(html: str) -> str | None:
     if start < 0:
         return None
     start += len(_BODY_START)
+    # Outlook's conditional comments carry markup, closing divs included;
+    # blank them (same length, so positions hold) before counting.
+    counted = _COMMENT.sub(lambda m: " " * len(m[0]), html)
     depth = 1
-    for tag in _DIV.finditer(html, start):
+    for tag in _DIV.finditer(counted, start):
         depth += -1 if tag[1] else 1
         if depth == 0:
             return html[start : tag.start()]
