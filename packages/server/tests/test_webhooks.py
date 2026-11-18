@@ -196,3 +196,21 @@ def test_a_webhook_timeout_is_still_capped_by_its_own_limit(client_for, auth):
         )
         listed = client.get("/v1/webhooks", headers=auth).json()["data"]
         assert listed[0]["timeout"] == 60
+
+
+def _resolving_to(ip):
+    return lambda host, port, proto=None: [(0, 0, 0, "", (ip, port or 80))]
+
+
+@pytest.mark.parametrize("ip", ["100.64.0.1", "192.0.0.8", "198.18.0.1", "fc00::1"])
+def test_a_non_global_target_is_refused(ip):
+    # Carrier-grade NAT, IETF protocol and benchmarking ranges are not private
+    # by Python's is_private, but they are not the public internet either.
+    with pytest.raises(ValueError):
+        validate_url("http://hook.test/x", allow_private=False, resolve=_resolving_to(ip))
+
+
+@pytest.mark.parametrize("ip", ["8.8.8.8", "2001:4860:4860::8888"])
+def test_a_global_target_still_passes(ip):
+    url = "http://hook.test/x"
+    assert validate_url(url, allow_private=False, resolve=_resolving_to(ip)) == url

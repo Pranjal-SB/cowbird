@@ -27,14 +27,9 @@ _DELIVERY_TIMEOUT = 15
 
 
 def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
-    return (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_reserved
-        or ip.is_multicast
-        or ip.is_unspecified
-    )
+    # Everything outside the public internet, not just what is_private names:
+    # carrier-grade NAT (100.64.0.0/10) is neither private nor global.
+    return not ip.is_global or ip.is_multicast
 
 
 def validate_url(url: str, allow_private: bool, resolve=None) -> str:
