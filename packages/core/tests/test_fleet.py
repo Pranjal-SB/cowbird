@@ -16,7 +16,7 @@ from cowbird.health import HealthStore, Status
 from cowbird.models import Kind
 from cowbird.pool import Pool, Request
 from cowbird.registry import Registry
-from cowbird.testing import FakeSolver
+from cowbird.testing import FakeSolver, FakeTransport
 
 
 def real_pool(solver=None) -> tuple[Pool, HealthStore]:
@@ -120,7 +120,10 @@ async def test_a_declared_domain_provider_refuses_a_domain_it_does_not_serve():
     from cowbird.errors import NotSupported
     from cowbird.provider import GenerateOptions
 
-    declared = [p for p in Registry().all() if p.caps.domains]
+    # An empty route table: any request raises "unexpected request", so a
+    # provider that goes online before refusing fails here, offline or not.
+    offline = Registry(transport_factory=lambda name: FakeTransport(name, {}))
+    declared = [p for p in offline.all() if p.caps.domains]
     assert declared, "no installed provider declares a domain list"
     for provider in declared:
         with pytest.raises(NotSupported) as caught:
