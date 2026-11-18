@@ -246,3 +246,11 @@ async def test_a_body_in_a_charset_python_does_not_know_still_reads():
     provider, _ = cftempmail(**{MAIL: {**load("mail.json"), "raw": raw}})
     message = await provider.get(ADDRESS, MID)
     assert "123456" in message.text
+
+
+async def test_a_refused_jwt_on_delete_is_an_expired_address():
+    from cowbird.errors import AddressExpired
+
+    provider, _ = cftempmail(**{DELETE: Reply(401, "unauthorized")})
+    with pytest.raises(AddressExpired):
+        await provider.delete(ADDRESS, MID)

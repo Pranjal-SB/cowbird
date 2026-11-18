@@ -179,3 +179,15 @@ async def test_corrupt_deflate_stream_is_schema_drift():
         await provider.get(
             Address("cbprobe@icmans.com", "tempemailcc", state=state()), MID
         )
+
+
+
+@pytest.mark.parametrize("state", ["not json", "{}", "[]"])
+async def test_malformed_state_is_not_supported(state):
+    from cowbird.errors import NotSupported
+    from cowbird.models import Address
+
+    with pytest.raises(NotSupported):
+        await TempEmailCc(FakeTransport("tempemailcc", {})).list(
+            Address("cbprobe@icmans.com", "tempemailcc", state=state)
+        )

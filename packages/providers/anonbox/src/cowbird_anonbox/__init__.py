@@ -203,9 +203,11 @@ class Anonbox(Provider):
         )
 
     def _mbox_url(self, address: Address) -> str:
-        if not address.state:
-            raise NotSupported("anonbox needs the state issued by generate()")
-        return f"{SITE}/{json.loads(address.state)['path']}/"
+        try:
+            path = json.loads(address.state or "")["path"]
+        except (ValueError, TypeError, KeyError) as exc:
+            raise NotSupported("anonbox needs the state issued by generate()") from exc
+        return f"{SITE}/{path}/"
 
     async def _fetch(self, address: Address) -> list[RawMail]:
         # send(), not text(): the delete crontab removes fetched mailboxes, and

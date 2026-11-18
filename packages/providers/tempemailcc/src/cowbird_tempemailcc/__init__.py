@@ -82,9 +82,12 @@ def _sender(row: dict) -> str:
 
 
 def _unpack(state: str | None) -> dict:
-    if not state:
-        raise NotSupported("tempemailcc needs the state issued by generate()")
-    return json.loads(state)
+    try:
+        packed = json.loads(state or "")
+        packed["token"]  # noqa: B018 - the one key every call needs
+    except (ValueError, TypeError, KeyError) as exc:
+        raise NotSupported("tempemailcc needs the state issued by generate()") from exc
+    return packed
 
 
 def _auth(address: Address) -> dict[str, str]:

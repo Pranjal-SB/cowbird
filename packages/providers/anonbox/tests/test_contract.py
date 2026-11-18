@@ -42,3 +42,14 @@ async def test_deleted_mailbox_surfaces_as_message_gone_not_schema_drift():
         await provider.get(address, "<x@example.test>")
     with pytest.raises(MessageGone):
         await provider.list(address)
+
+
+
+@pytest.mark.parametrize("state", ["not json", "{}", "[]"])
+async def test_malformed_state_is_not_supported(state):
+    from cowbird.errors import NotSupported
+    from cowbird.models import Address
+    from cowbird_anonbox import Anonbox
+
+    with pytest.raises(NotSupported):
+        await Anonbox(fake(default_routes())).list(Address("x@anonbox.net", "anonbox", state=state))

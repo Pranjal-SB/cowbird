@@ -22,7 +22,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -120,6 +120,9 @@ class MailTicking(Provider):
             params={"lang": ""},
             json={"email": address.value, "code": address.state},
         )
+        if isinstance(data, dict) and data.get("success") is False:
+            # The backend's answer for a mailbox it has dropped; not drift.
+            raise AddressExpired(f"{self.name}: {address.value} is gone ({data.get('error')!r})")
         rows = data.get("emails") if isinstance(data, dict) else None
         if (
             not isinstance(rows, list)

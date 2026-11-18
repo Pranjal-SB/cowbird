@@ -197,6 +197,8 @@ class CfTempMail(Provider):
         )
         if resp.status_code == 403:
             raise NotSupported(f"{self.name}: this instance does not let users delete mail")
+        if resp.status_code == 401:
+            raise AddressExpired(f"{self.name} no longer knows {address.value}")
         data = self._json(resp)
         if not (isinstance(data, dict) and "success" in data):
             raise SchemaDrift(self.name, expected="'success' from delete", got=data)
