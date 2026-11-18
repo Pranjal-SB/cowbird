@@ -73,7 +73,11 @@ def test_inbox_create_forwards_push_delete_self_hosted(client, auth):
         return await inner(req)
 
     client.app.state.pool.acquire = spy
-    client.post("/v1/inboxes", headers=auth, json={"push": True, "delete": False, "self_hosted": True})
+    client.post(
+        "/v1/inboxes",
+        headers=auth,
+        json={"push": True, "delete": False, "self_hosted": True},
+    )
     assert len(captured) == 1
     assert captured[0].push is True
     assert captured[0].delete is False
