@@ -64,3 +64,14 @@ def extract_otp(text: str, pattern: str | None = None) -> str | None:
         if match:
             return match.group(1)
     return None
+
+
+def decode_part(part) -> str:  # noqa: ANN001 - an email.message part
+    """A MIME part's text, even when the sender declared a charset Python does
+    not know or the bytes do not match it. The charset is whoever sent the
+    mail's choice, so failing here would let one message break a provider."""
+    try:
+        return part.get_content()
+    except (LookupError, UnicodeError):
+        payload = part.get_payload(decode=True) or b""
+        return payload.decode("utf-8", "replace")

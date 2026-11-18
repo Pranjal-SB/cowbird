@@ -234,3 +234,15 @@ async def test_a_malformed_answer_is_drift(route, answer):
             await provider.generate()
         else:
             await provider.get(ADDRESS, MID) if route == MAIL else await provider.list(ADDRESS)
+
+
+async def test_a_body_in_a_charset_python_does_not_know_still_reads():
+    # The charset comes from whoever sent the mail; drift here let any sender
+    # quarantine the provider for everyone.
+    raw = (
+        "From: a@b.test\nSubject: x\nContent-Type: text/plain; charset=x-no-such-charset\n\n"
+        "code 123456\n"
+    )
+    provider, _ = cftempmail(**{MAIL: {**load("mail.json"), "raw": raw}})
+    message = await provider.get(ADDRESS, MID)
+    assert "123456" in message.text

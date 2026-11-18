@@ -112,12 +112,14 @@ async def test_a_single_part_html_body_is_kept_as_html():
     assert message.links == ("https://example.test/go",)
 
 
-async def test_a_part_in_a_charset_python_does_not_know_is_drift_not_a_crash():
+async def test_a_part_in_a_charset_python_does_not_know_still_reads():
+    # The charset comes from whoever sent the mail; drift here let any sender
+    # quarantine the provider for everyone.
     unknown = feed("inbox.rss").replace("charset=utf-8", "charset=x-no-such-charset")
     provider = eyepaste(**{"GET https://www.eyepaste.com/inbox/": unknown})
     [row] = await provider.list(ADDRESS)
-    with pytest.raises(SchemaDrift):
-        await provider.get(ADDRESS, row.id)
+    message = await provider.get(ADDRESS, row.id)
+    assert "This is a test email from JoltMx" in message.text
 
 
 async def test_an_id_no_longer_in_the_feed_is_gone():

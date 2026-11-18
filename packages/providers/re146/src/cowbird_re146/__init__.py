@@ -19,7 +19,7 @@ from email.utils import parsedate_to_datetime
 
 from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
-from cowbird.parsing import extract_links, html_to_text
+from cowbird.parsing import decode_part, extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
 SITE = "https://mail.re146.dev"
@@ -40,12 +40,7 @@ def _body(parsed: email.message.EmailMessage, subtype: str) -> str:
     part = parsed.get_body(preferencelist=(subtype,))
     if part is None:
         return ""
-    try:
-        return part.get_content()
-    except LookupError as exc:
-        raise SchemaDrift(
-            "re146", expected="a body in a charset Python knows", got=part.get_content_charset()
-        ) from exc
+    return decode_part(part)
 
 
 class Re146(Provider):

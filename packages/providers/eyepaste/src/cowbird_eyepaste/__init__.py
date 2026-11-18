@@ -25,7 +25,7 @@ from email.utils import parsedate_to_datetime
 
 from cowbird.errors import MessageGone, NotSupported, SchemaDrift
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
-from cowbird.parsing import extract_links, html_to_text
+from cowbird.parsing import decode_part, extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
 SITE = "https://www.eyepaste.com"
@@ -87,10 +87,7 @@ def _split(body: str) -> tuple[str, str]:
         # raw-unicode-escaped ("—") from get_content().
         parsed = email.message_from_bytes(source.encode("utf-8"), policy=email.policy.default)
         parts = [parsed.get_body(preferencelist=(kind,)) for kind in ("html", "plain")]
-        try:
-            html, text = (p.get_content() if p is not None else "" for p in parts)
-        except LookupError as exc:
-            raise SchemaDrift("eyepaste", expected="a charset Python knows", got=str(exc)) from exc
+        html, text = (decode_part(p) if p is not None else "" for p in parts)
         return html, text or html_to_text(html)
     if _HTML.search(body):
         return body, html_to_text(body)

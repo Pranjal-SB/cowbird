@@ -83,3 +83,28 @@ def test_html_to_text_on_non_str_input_returns_empty_instead_of_raising():
 def test_extract_links_on_non_str_input_returns_empty_instead_of_raising():
     assert extract_links(123) == ()
     assert extract_links(None) == ()
+
+
+def test_decode_part_survives_an_unknown_charset():
+    import email
+    import email.policy
+
+    from cowbird.parsing import decode_part
+
+    source = "Content-Type: text/plain; charset=x-no-such-charset\n\nhello 123456\n"
+    part = email.message_from_string(source, policy=email.policy.default)
+    assert "123456" in decode_part(part)
+
+
+def test_decode_part_matches_get_content_for_a_known_charset():
+    import email
+    import email.policy
+
+    from cowbird.parsing import decode_part
+
+    source = (
+        "Content-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\n\n"
+        "café — ok\n"
+    )
+    part = email.message_from_bytes(source.encode("utf-8"), policy=email.policy.default)
+    assert decode_part(part) == part.get_content()
