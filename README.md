@@ -1,256 +1,111 @@
 # cowbird
 
-Cowbird fronts disposable-email backends behind one interface: generate an
-address, wait for a message, extract an OTP or a link, done. It is named for
-the brood parasite. It owns no mail infrastructure of its own and uses
+Disposable inboxes from dozens of free email services, behind one interface.
+Get an address, wait for the message, take the code or the link. Use it as a
+Python library, from the command line, or over HTTP.
+
+Named for the brood parasite: cowbird runs no mail servers of its own and uses
 everyone else's.
+
+## Highlights
+
+- **Made for agents.** JSON output, one call that waits for mail and returns
+  the one-time code, and one response shape for every API call, errors
+  included. An agent needs five calls, listed in
+  [Using cowbird from an agent](docs/guides/use-from-an-agent.md).
+- **44 providers, one interface.** Own-domain addresses plus Gmail and Outlook
+  aliases, which many signup forms accept where a throwaway domain is refused.
+  [The full list](docs/reference/providers.md).
+- **Picks a working provider for you.** cowbird measures every call it makes,
+  skips providers that are down, and retries them after a minute. A provider
+  whose responses change shape is taken out of rotation until someone looks.
+- **Checked every week.** A scheduled canary probes every provider and opens
+  an issue when one breaks.
+- **An HTTP API to run yourself.** API keys, long-poll waits, one-shot
+  webhooks, and shared Postgres state so several instances can sit behind one
+  load balancer.
 
 ## Install
 
 ```bash
+git clone https://github.com/Pranjal-SB/cowbird.git
+cd cowbird
 uv sync --all-packages --all-extras
 ```
 
-Requires Python 3.12+.
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
+[Installation](docs/getting-started/installation.md) has the details.
 
-## Library
+## Quick start
+
+The same job three ways: get an address, then wait for a code.
+
+**Python**
 
 ```python
+import cowbird
+
 async with cowbird.inbox() as box:
-    print(box.address)
+    print(box.address.value)        # sign up with this
     code = await box.otp(timeout=120)
 ```
 
-`inbox()` picks the best healthy provider for you. Pass `provider=`, `kind=`,
-or a capability filter (`address_ttl=`, `domain_not_in=`, ...) to narrow it;
-see `cowbird.pool.Request` for the full set.
+**Command line**
 
-## CLI
-
-```
-$ uv run cowbird new
-cb94091c592b@tupmail.com	inboxes	ttl forever
-
+```bash
 $ uv run cowbird new --json
-{"address": "cbcb4a38cb50@gimpmail.com", "provider": "inboxes", "address_ttl": null, "state": null}
-
-$ uv run cowbird new --gmail
-cb.example.two@gmail.com	emailnator	ttl forever
-
-$ uv run cowbird providers
-PROVIDER        STATUS        P50      KIND                                  SITES
-10minutemail    ok            -        own-domain                            10minutemail.com
-22do            ok            0.9s     gmail-alias,outlook-alias,own-domain  22.do
-emailnator      ok            1.5s     gmail-alias                           emailnator.com
-guerrillamail   ok            0.5s     own-domain                            guerrillamail.com,sharklasers.com,cs.email,dismail.top
-inboxes         slow          0.2s     own-domain                            inboxes.com
-inboxkitten     ok            0.6s     own-domain                            inboxkitten.com
-mailcx          ok            14.4s    own-domain                            mail.cx
-maildrop        ok            0.2s     own-domain                            maildrop.cc
-mailtm          ok            1.0s     own-domain                            mail.tm
-nicemail        ok            1.3s     own-domain                            nicemail.cc
-tempmailorg     ok            0.5s     own-domain                            temp-mail.org,10minemail.com
+{"address": "cb1f0a2e@example.test", "provider": "mailtm", "address_ttl": null, "state": "..."}
+$ uv run cowbird wait cb1f0a2e@example.test --provider mailtm --state '...' --otp
+482913
 ```
 
-`--json` includes `state`: some providers (mail.tm included) bind an inbox to
-a credential issued at generate time, and that has to travel to a separate
-`cowbird wait --state ...` process to read the same inbox back. Treat it as a
-secret.
-
-## Provider health
-
-`cowbird providers` prints a live matrix, not a declared one: STATUS and P50
-come from `HealthStore`, which tracks every call each provider actually makes
-and marks a backend down after it fails, not after someone edits a table by
-hand.
-
-`cowbird canary` probes every installed provider live, generate then list, and
-prints one line each. CI runs it on a schedule every Monday, and a provider
-that quarantines files a GitHub issue with `--json` output in the body so the
-drift detail is in the issue itself. A backend simply being unreachable does
-not fail the build: a datacenter runner IP can draw a Cloudflare challenge that
-a real user never sees, so only a schema drift turns it red.
-
-```
-$ uv run cowbird canary
-10minutemail	down
-22do	ok
-emailnator	ok
-guerrillamail	ok
-...
-```
-
-`down` is the provider being unreachable from here (10minutemail was answering
-with a Cloudflare challenge). `quarantined` means drift: the backend returned
-a shape its adapter does not accept, and the provider stays out of routing
-until someone clears it.
-
-## Push
-
-`watch()` is part of the provider protocol and providers declare `push` in
-their capabilities. Every provider polls except tempr, whose `watch()` follows
-the inbox over Datastar SSE and reconnects when the stream goes quiet. Its
-delivery proof is still pending a working sender. The original candidate,
-dropmail over WebSocket, stays parked: its free API token path closed.
-
-## Testing
+**HTTP**
 
 ```bash
-uv run pytest -m "not live"    # offline, the default gate
-uv run pytest -m live          # hits real backends
+$ curl -s -X POST -H "x-api-key: $KEY" localhost:8000/v1/inboxes
+{"success":true,"data":{"address":"cb1f0a2e@example.test","provider":"mailtm","expires_at":null},"error":null}
+$ curl -s -H "x-api-key: $KEY" "localhost:8000/v1/inboxes/cb1f0a2e@example.test/wait?otp=true"
+{"success":true,"data":{"id":"m1","subject":"Your code","otp":"482913",...},"error":null}
 ```
 
-Adapters inherit a shared contract suite (`cowbird.contract.ProviderContract`)
-that runs unchanged in both modes. Only the transport behind the fixture
-swaps. Fixtures must be recorded through `Transport`, never `curl`: the two
-send different `Accept` headers and mail.tm answers them with different
-shapes, which once produced a fully green suite against a payload the runtime
-never sees.
+## Coming next
 
-`packages/core/tests/test_delivery.py` proves mail actually arrives. Everything
-else stops at `list()`.
+- an MCP server, so agents can use cowbird as a tool directly;
+- an agent skill;
+- packages on PyPI.
 
-It asks testemailsender.com (JoltMx) to deliver a message to every installed
-provider, then reads it back: generate, deliver, poll, body-read, parse,
-extract links. No account and no key, so `uv run pytest -m live` runs it
-as-is. JoltMx allows about a dozen sends per network per day, which is one
-run. Past that, or when a receiving server refuses JoltMx (maildrop does), the
-test skips rather than fails. A skip there means the sender was unavailable,
-not that a provider is broken.
+## Documentation
 
-A second test proves `otp()` returns the code that was actually sent, which
-needs a body under our control and therefore a sender we own. Any credentialed
-sender works (a Gmail app password, a free Brevo or SendGrid key, your own
-postfix). Put it in `.env` at the repo root, which is gitignored:
+The [documentation](docs/README.md) has four parts:
 
-```
-COWBIRD_SMTP_HOST=smtp.gmail.com
-COWBIRD_SMTP_PORT=587
-COWBIRD_SMTP_USER=you@example.com
-COWBIRD_SMTP_PASSWORD=your-app-password
-COWBIRD_SMTP_FROM=you@example.com
-```
+- [Getting started](docs/README.md#getting-started): installation and your
+  first inbox.
+- [Guides](docs/README.md#guides): use cowbird from an agent, run the server,
+  the Cloudflare solver, add a provider, test live delivery.
+- [Concepts](docs/README.md#concepts): providers and routing, health and
+  quarantine, push and polling.
+- [Reference](docs/README.md#reference): [library](docs/reference/library.md),
+  [CLI](docs/reference/cli.md), [HTTP API](docs/reference/http-api.md),
+  [settings](docs/reference/settings.md),
+  [providers](docs/reference/providers.md) and
+  [troubleshooting](docs/reference/troubleshooting.md).
 
-Unset, that second test skips; the first still runs. Both are `live`-marked, so
-the offline suite is unaffected either way.
+## Contributing
 
-## Cloudflare solver
-
-Some backends sit behind Cloudflare Turnstile. Point cowbird at a running
-[cloudflare-solver](https://github.com/B00H0O/cloudflare-solver) and they join
-the pool; leave it unset and they are skipped, with nothing else changing:
-
-```
-COWBIRD_SOLVER_URL=http://localhost:407
-```
-
-`compose.yaml` runs one for the servers, bound to loopback: it opens any URL
-it is handed, so never expose it. Tokens are bound to the IP that earned
-them, so the solver and cowbird must share an egress. Solver-backed tests are
-marked `solver` and skip when the variable is unset.
-
-## HTTP API
-
-`cowbird-server` is a FastAPI app in `packages/server`. Run it locally with:
+New providers are the most useful contribution:
+[Add a provider](docs/guides/add-a-provider.md) walks through one, and the
+[provider inventory](docs/reference/provider-inventory.md) lists the
+candidates. Before sending a change:
 
 ```bash
-API_KEYS=local-dev uv run uvicorn cowbird_server:create_app --factory --host 0.0.0.0 --port 8000
+uv run pytest -m "not live"
+uv run ruff check .
 ```
 
-or build the image at the repo root: `docker build -t cowbird-server .` then
-`docker run --rm -e API_KEYS=local-dev -p 8000:8000 cowbird-server`. The
-container listens on `$PORT` and defaults to 8000, so hosts that assign a port
-(Render, Koyeb, Fly) need no extra configuration. It runs as a non-root user and
-carries a `HEALTHCHECK` against `/health`.
+If you change the CLI, the HTTP API, the server settings or the set of
+providers, run `uv run python scripts/gen_docs.py` to update the reference
+pages.
 
-```
-POST   /v1/inboxes                     {"kind": "gmail-alias"} and other capability filters
-GET    /v1/inboxes/{addr}/messages
-GET    /v1/inboxes/{addr}/messages/{id}
-GET    /v1/inboxes/{addr}/wait?otp=1   long-poll, server-capped; &skip=id1,id2
-DELETE /v1/inboxes/{addr}/messages/{id}
-POST   /v1/webhooks                    one-shot, SSRF-guarded
-GET    /v1/webhooks
-DELETE /v1/webhooks/{id}
-GET    /v1/providers                   health matrix
-DELETE /v1/providers/{name}/quarantine clear a quarantine by hand
-GET    /health                         liveness, unauthenticated
-```
+## Licence
 
-```
-$ curl -s -X POST -H "x-api-key: local-dev" localhost:8000/v1/inboxes
-{"success":true,"data":{"address":"cbdf0cddf3a2@getnada.com","provider":"inboxes","expires_at":null},"error":null}
-
-$ curl -s -H "x-api-key: local-dev" localhost:8000/v1/providers
-{"success":true,"data":[{"provider":"emailnator","status":"ok","p50":1.11,"kind":["gmail-alias"],"sites":["emailnator.com"]},{"provider":"inboxes","status":"ok","p50":0.0,"kind":["own-domain"],"sites":["inboxes.com"]},{"provider":"mailtm","status":"ok","p50":1.36,"kind":["own-domain"],"sites":["mail.tm"]}],"error":null}
-```
-
-Every route except `/health` requires an `x-api-key` header; valid keys come
-from `API_KEYS` (comma-separated). `/wait` is capped server-side at `WAIT_MAX`
-seconds (25 by default) regardless of the `timeout` a client asks for; a
-client that needs to keep waiting just re-issues the request. A message stays
-in the inbox after it is read, so a client waiting for a second message (a login
-code after a signup code) passes the ids it already has as `skip`. Issued addresses
-live in Postgres when `DATABASE_URL` is set, which is what lets several
-instances serve each other's addresses; without it they live in process
-memory and a restart drops them. Webhook registrations always live in process
-memory: they are one-shot and capped at `WEBHOOK_MAX`, so a restart drops
-pending ones. Fine for one-shot automation, not something to rely on across a
-redeploy.
-
-### Running more than one instance
-
-```bash
-$ docker compose up -d --build
-$ curl -H "x-api-key: local-dev" -X POST http://127.0.0.1:8000/v1/inboxes
-{"success":true,"data":{"address":"cb.example.one@gmail.com","provider":"emailnator","expires_at":null},"error":null}
-```
-
-Caddy round-robins port 8000 across two servers sharing one Postgres. The
-instances are also published individually on 8001 and 8002, which is how the
-cross-instance tests address them. Every port, Postgres's 5432 included, is
-bound to 127.0.0.1: the stack uses a fixed API key and password and turns the
-webhook SSRF guard off, so it must not be reachable from the network.
-
-## Adding a provider
-
-Read `packages/core/src/cowbird/contract.py` for the contract
-(`ProviderContract`) every adapter must pass, and
-`packages/providers/mailtm/src/cowbird_mailtm/__init__.py` as the worked
-example. Core owns transport, retries, proxying, health tracking, and HTML
-parsing; an adapter's job is to know one backend's API shape and translate it
-to `Address` / `MessageRow` / `Message`. Target size is around 40 lines of
-actual protocol knowledge. If an adapter is doing session handling, backoff,
-or its own HTTP client, that belongs in core instead.
-
-`docs/PROVIDERS.md` has the inventory of 85 known backends (audited
-2026-11-15, updated 2026-11-18: 44 ship, 2 parked, 39 unbuilt): which ship,
-which are parked and why, and which are seeded, starred, or self-hostable.
-
-## Status
-
-Forty-four providers ship: mail.tm, emailnator (Gmail aliases), inboxes.com,
-guerrillamail, temp-mail.org, 22.do (Gmail, Outlook and own-domain from one
-backend), maildrop, inboxkitten, nicemail, mail.cx, 10minutemail, temp-mail.io,
-temporarymail, re146, tempmail.plus, mailticking and tempmailhub (Gmail),
-reusable.email, disposablemail (three hosts), DuckMail, eyepaste, receivemail,
-emailtemp (two hosts), mtempmail, tempmailo, instantedumail, generatoremail
-(the generator.email family behind one proof-of-work gate), tempr.email —
-the first provider whose `watch()` is a real push transport (its inbox streams
-over Datastar SSE) rather than the polling default — tmailor, driftz,
-mailnesia, tmail.link, 10minutemail.net, anonbox, meowmail, tempemail.cc,
-48hr.email and anonymmail. Six more need the
-Cloudflare solver: smailpro (Gmail and Outlook), cftempmail, xeramail,
-vanishinbox, zenvex and etempmail. Two backends are parked,
-with the reasons in `docs/PROVIDERS.md`: yopmail fronts Turnstile whose
-solver clearances are rejected on replay, and dropmail's free API token path
-closed.
-
-The deliverable is an HTTP API, and it ships: `cowbird-server` in
-`packages/server`, with API-key auth, capped long-poll, one-shot webhooks and
-per-key rate limiting. The CLI is a convenience for working on the library and
-is not the product. Set `DATABASE_URL` and several instances share one address
-store and one quarantine table, which is what lets a load balancer put a read
-on a different instance than the one that issued the address; latency and the
-residential-IP hint stay per-instance on purpose. Webhook registrations are
-still per-process and a restart drops the pending ones.
+[AGPL-3.0](LICENSE).

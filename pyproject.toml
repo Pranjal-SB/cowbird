@@ -23,5 +23,9 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
 ignore = ["B008"]
 
+[tool.ruff.lint.per-file-ignores]
+# Prose and JSON samples for the generated reference pages.
+"scripts/gen_docs.py" = ["E501"]
+
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]
