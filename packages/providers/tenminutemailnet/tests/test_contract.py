@@ -234,3 +234,78 @@ async def test_missing_or_malformed_state_is_not_supported(state):
         await TenMinuteMailNet(fake(default_routes())).list(
             Address("user01@zefvo.com", "tenminutemailnet", state=state)
         )
+
+
+def _real_maillist() -> str:
+    # The site's own page as recorded, Cloudflare's <span data-cfemail> intact.
+    page = load("home.html")
+    start = page.index('<table id="maillist"')
+    return page[start : page.index("</table>", start) + len("</table>")]
+
+
+async def test_rows_from_the_real_markup_land_in_the_right_columns():
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    provider = TenMinuteMailNet(fake({**default_routes(), "mailbox.ajax.php": _real_maillist()}))
+    [row] = await provider.list(address)
+    assert row.subject == "Hi, Welcome to 10 Minute Mail"
+    assert "@" in row.sender and "protected" not in row.sender
+
+
+async def test_a_nested_body_is_kept_whole():
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    page = load("readmail.html")
+    start = page.index('<div class="mailinhtml">')
+    nested = '<div class="mailinhtml"><div><div>Hello</div></div><p>code 123456</p></div>'
+    end = page.index("</div>", start) + len("</div>")
+    routes = {**default_routes(), "readmail.html?mid=welcome": page[:start] + nested + page[end:]}
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    message = await TenMinuteMailNet(fake(routes)).get(address, "welcome")
+    assert "123456" in message.text
+
+
+CLOAKED = (
+    '<span class="__cf_email__" '
+    'data-cfemail="5e3031732c3b2e32271e6f6e3337302b2a3b333f373270303b2a">'
+    "[email&#160;protected]</span>"
+)
+
+
+def _row(mid, sender, subject):
+    link = f'<a class="row-link" href="readmail.html?mid={mid}">'
+    return (f"<tr><td>{link}{sender}</a></td><td>{link}{subject}</a></td>"
+            f"<td>{link}just now</a></td></tr>")
+
+
+@pytest.mark.parametrize(
+    "sender, subject, want_subject",
+    [
+        (CLOAKED, f"Confirm {CLOAKED}", "Confirm no-reply@10minutemail.net"),
+        ("Hi\nthere", "Your code", "Your code"),
+    ],
+)
+async def test_markup_or_newlines_in_a_cell_keep_the_columns(sender, subject, want_subject):
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    table = f'<table id="maillist"><tr><th>From</th></tr>{_row("m1", sender, subject)}</table>'
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    provider = TenMinuteMailNet(fake({**default_routes(), "mailbox.ajax.php": table}))
+    [row] = await provider.list(address)
+    assert row.subject == want_subject
+
+
+async def test_a_closing_div_inside_an_html_comment_does_not_cut_the_body():
+    # Outlook's conditional comments put markup, closing divs included, inside
+    # <!-- ... -->; they must not end the body early.
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    page = load("readmail.html")
+    start = page.index('<div class="mailinhtml">')
+    end = page.index("</div>", start) + len("</div>")
+    body = '<div class="mailinhtml"><!--[if mso]></div><![endif]--><p>code 123456</p></div>'
+    routes = {**default_routes(), "readmail.html?mid=welcome": page[:start] + body + page[end:]}
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    message = await TenMinuteMailNet(fake(routes)).get(address, "welcome")
+    assert "123456" in message.text

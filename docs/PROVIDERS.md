@@ -86,8 +86,9 @@ held mail. P50 is measured, from a real `cowbird providers` run on
 gate; the family row in the backlog tables folds into it. `tempr` is the first
 push adapter: its `watch()` consumes the Datastar SSE stream on
 `mta.trashmailr.com:81` directly instead of polling. Its delivery proof is
-pending a working sender (all three free senders failed during its build
-window); generate, list, get and MessageGone were live-proved against its
+pending a working sender: tempr's MX refuses the free senders outright (on
+2026-11-18 JoltMx got `550 5.1.1 Invalid mailbox` even for `register@tempr.email`,
+a public inbox that does receive mail); generate, list, get and MessageGone were live-proved against its
 public inboxes, and 123 real row frames were captured.
 
 The last ten rows shipped on 2026-11-15 from the backlog survey. Each was

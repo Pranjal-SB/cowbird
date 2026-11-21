@@ -38,18 +38,25 @@ _ADDRESS = re.compile(r'id="fe_text"[^>]*value="([^"]+@[^"]+)"')
 _HISTORY = re.compile(r'data-history="([^"]+)"')
 _ROW = re.compile(
     r'<a class="row-link" href="readmail\.html\?mid=(?P<id>[^"]+)">'
-    r'(?P<sender>[^<]*)</a></td><td><a class="row-link" href="readmail\.html\?mid='
-    r'(?P=id)">(?P<subject>[^<]*)</a>'
+    # The sender cell holds markup on the real page (Cloudflare's cloaking
+    # <span>), so it is matched lazily up to its own closing tags.
+    r'(?P<sender>.*?)</a></td><td><a class="row-link" href="readmail\.html\?mid='
+    r'(?P=id)">(?P<subject>.*?)</a></td>',
+    re.S,
 )
 _SUBJECT = re.compile(r'<h2 class="emoji_parse">(.*?)</h2>', re.S)
 _SENDER = re.compile(r'<span class="mail_from">(.*?)</span>', re.S)
 _TIMESTAMP = re.compile(r'<span title="(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"')
-_BODY = re.compile(r'<div class="mailinhtml">(.*?)</div>\s*</div>', re.S)
+_BODY_START = '<div class="mailinhtml">'
+_DIV = re.compile(r"<(/?)div\b", re.I)
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
 _TAG = re.compile(r"<[^>]+>")
 # Cloudflare's email-protection cloaks every address on the page as
-# <a data-cfemail="...">[email protected]</a>; the hex is XOR-encoded with its
-# own first byte.
-_CFEMAIL = re.compile(r'<a[^>]*data-cfemail="([0-9a-f]+)"[^>]*>[^<]*</a>')
+# <a|span data-cfemail="...">[email protected]</a|span>; the hex is XOR-encoded
+# with its own first byte.
+_CFEMAIL = re.compile(
+    r'<(a|span)\b[^>]*data-cfemail="([0-9a-f]+)"[^>]*>[^<]*</\1>'
+)
 
 
 def _drift(expected: str, got: object) -> SchemaDrift:
@@ -62,7 +69,26 @@ def _decode_cfemail(encoded: str) -> str:
 
 
 def _strip_tags(html: str) -> str:
-    return _TAG.sub("", _CFEMAIL.sub(lambda m: _decode_cfemail(m[1]), html)).strip()
+    return _TAG.sub("", _CFEMAIL.sub(lambda m: _decode_cfemail(m[2]), html)).strip()
+
+
+def _mail_body(html: str) -> str | None:
+    """The inside of the message's <div class="mailinhtml">, found by counting
+    nested divs: mail HTML nests them, and stopping at the first pair of closing
+    tags cut the body (and the code in it) short."""
+    start = html.find(_BODY_START)
+    if start < 0:
+        return None
+    start += len(_BODY_START)
+    # Outlook's conditional comments carry markup, closing divs included;
+    # blank them (same length, so positions hold) before counting.
+    counted = _COMMENT.sub(lambda m: " " * len(m[0]), html)
+    depth = 1
+    for tag in _DIV.finditer(counted, start):
+        depth += -1 if tag[1] else 1
+        if depth == 0:
+            return html[start : tag.start()]
+    return None
 
 
 class TenMinuteMailNet(Provider):
@@ -160,16 +186,15 @@ class TenMinuteMailNet(Provider):
         subject = _SUBJECT.search(html)
         sender = _SENDER.search(html)
         stamp = _TIMESTAMP.search(html)
-        body = _BODY.search(html)
-        if not (subject and sender and body):
-            missing = [
-                n for n, m in (("subject", subject), ("sender", sender), ("body", body)) if not m
-            ]
+        body = _mail_body(html)
+        if not (subject and sender and body is not None):
+            found = (("subject", subject), ("sender", sender), ("body", body))
+            missing = [n for n, m in found if m is None]
             raise _drift(f"{missing} in the readmail page", html[:200])
         received = (
             datetime.strptime(stamp[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC) if stamp else None
         )
-        body_html = body[1]
+        body_html = body
         return Message(
             id=id,
             sender=_strip_tags(sender[1]),
