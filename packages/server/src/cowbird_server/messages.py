@@ -12,8 +12,8 @@ def message_dict(message: Message, otp: str | None) -> dict:
     dropped `html`, the webhook payload dropped `html` and `received_at`).
     `html` is included everywhere on purpose, for one parser to work
     against all three. `otp` is always the caller's already-computed value
-    -- this does not call into cowbird.parsing itself, since wait's pattern
-    and want_otp change what "the code" means.
+    -- this does not call into cowbird.parsing itself, since wait's want_otp
+    changes which message "the code" comes from.
     """
     return {
         "id": message.id,

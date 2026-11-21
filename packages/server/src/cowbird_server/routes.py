@@ -178,11 +178,17 @@ async def wait_for_mail(
     addr: str,
     timeout: int | None = Query(default=None, ge=1),
     otp: bool = Query(default=False),
-    pattern: str | None = Query(default=None),
+    skip: str | None = Query(default=None),
     service: InboxService = Depends(get_service),
 ):
+    # No client-supplied regex: compiling and running one on the event loop let
+    # a single request stall every other one. Clients get `text` and can match
+    # it themselves.
     held = get_settings().clamp_wait(timeout)
-    message, code = await service.wait(addr, held, pattern=pattern, want_otp=otp)
+    # Comma-separated ids the client already has; a message stays in the inbox
+    # after it is read, so a second wait would otherwise return it again.
+    seen = {part.strip() for part in (skip or "").split(",") if part.strip()}
+    message, code = await service.wait(addr, held, want_otp=otp, skip=seen)
     if message is None:
         return envelope(data=None)
     return envelope(data=message_dict(message, code))

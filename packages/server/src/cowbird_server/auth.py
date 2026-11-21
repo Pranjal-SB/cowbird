@@ -9,8 +9,10 @@ from cowbird_server.config import get_settings
 
 def _key_matches(candidate: str, keys: list[str]) -> bool:
     # Constant-time compare against each configured key, so a timing signal
-    # cannot be used to recover one byte at a time.
-    return any(secrets.compare_digest(candidate, k) for k in keys)
+    # cannot be used to recover one byte at a time. On bytes: compare_digest
+    # raises TypeError for a non-ASCII str, and the header is caller input.
+    given = candidate.encode("utf-8", "surrogateescape")
+    return any(secrets.compare_digest(given, k.encode("utf-8", "surrogateescape")) for k in keys)
 
 
 async def require_api_key(x_api_key: str | None = Header(default=None)) -> str:

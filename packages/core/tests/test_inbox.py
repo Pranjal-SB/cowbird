@@ -146,3 +146,68 @@ async def test_aclose_default_pool_resets_the_global():
     await aclose_default_pool()
     pool2 = default_pool()
     assert pool1 is not pool2
+
+
+class _Mailbox(FakeProvider):
+    """A live inbox whose contents the test changes between calls."""
+
+    caps = replace(CAPS, poll_interval=0.01)
+
+    def __init__(self, http=None):
+        super().__init__(http)
+        self.box: list[tuple[str, str]] = []
+
+    async def list(self, address):
+        return [MessageRow(i, "s@x.test", "code", None) for i, _ in self.box]
+
+    async def get(self, address, id):
+        return Message(id, "s@x.test", "code", None, "", dict(self.box)[id])
+
+
+async def test_a_second_otp_returns_the_newer_code():
+    # Signup code, then a login code: the second otp() must not hand back the
+    # first code again just because that message is still in the inbox.
+    provider = _Mailbox()
+    box = Inbox(provider, await provider.generate())
+    provider.box.append(("m1", "signup code 111111"))
+    assert await box.otp(timeout=2) == "111111"
+    provider.box.append(("m2", "login code 222222"))
+    assert await box.otp(timeout=2) == "222222"
+
+
+async def test_seen_ids_are_skipped():
+    provider = _Mailbox()
+    provider.box += [("m1", "code 111111"), ("m2", "code 222222")]
+    box = Inbox(provider, await provider.generate(), seen=["m1"])
+    assert await box.otp(timeout=2) == "222222"
+
+
+async def test_link_after_otp_still_sees_the_messages_otp_walked_past():
+    # "Verify your email" (link only), then a mail with a code: otp() walks
+    # past the first, and a later link() must still find it.
+    provider = _Mailbox()
+    provider.box += [
+        ("m1", 'verify <a href="https://x.test/verify">here</a>'),
+        ("m2", "code 123456"),
+    ]
+    provider.get = _with_links(provider.get)
+    box = Inbox(provider, await provider.generate())
+    assert await box.otp(timeout=2) == "123456"
+    assert await box.link(timeout=2) == "https://x.test/verify"
+
+
+async def test_link_from_the_same_message_as_the_otp():
+    provider = _Mailbox()
+    provider.box += [("m1", 'code 123456 or <a href="https://x.test/go">click</a>')]
+    provider.get = _with_links(provider.get)
+    box = Inbox(provider, await provider.generate())
+    assert await box.otp(timeout=2) == "123456"
+    assert await box.link(timeout=2) == "https://x.test/go"
+
+
+def _with_links(get):
+    async def wrapped(address, id):
+        message = await get(address, id)
+        return replace(message, links=extract_links(message.text))
+
+    return wrapped

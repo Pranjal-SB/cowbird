@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: cowbird
       POSTGRES_DB: cowbird
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       # pg_isready returns before the server accepts connections on first boot,
       # so dependents that wait on this still need to tolerate one refusal.
@@ -54,7 +54,7 @@ services:
       solver:
         condition: service_started
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
 
   server-2:
     <<: *server
@@ -66,7 +66,7 @@ services:
       WEBHOOK_ALLOW_PRIVATE: "1"
       COWBIRD_SOLVER_URL: http://solver:407
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
 
   caddy:
     image: caddy:2-alpine
@@ -76,4 +76,4 @@ services:
       - server-1
       - server-2
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"

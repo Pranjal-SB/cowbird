@@ -27,14 +27,12 @@ _DELIVERY_TIMEOUT = 15
 
 
 def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
-    return (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_reserved
-        or ip.is_multicast
-        or ip.is_unspecified
-    )
+    # Everything outside the public internet, not just what is_private names:
+    # carrier-grade NAT (100.64.0.0/10) is neither private nor global. Reserved
+    # as well: Python counts NAT64 (64:ff9b::/96) as global, yet on a NAT64
+    # network 64:ff9b::a00:1 reaches 10.0.0.1. This also refuses NAT64 paths to
+    # public IPv4, which a webhook can do without.
+    return not ip.is_global or ip.is_multicast or ip.is_reserved
 
 
 def validate_url(url: str, allow_private: bool, resolve=None) -> str:

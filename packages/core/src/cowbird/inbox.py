@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
 
@@ -42,10 +42,18 @@ class Inbox:
     would otherwise become the most-copied snippet in the project.
     """
 
-    def __init__(self, provider: Provider, address: Address) -> None:
+    def __init__(self, provider: Provider, address: Address, seen: Iterable[str] = ()) -> None:
         self.provider = provider
         self.address = address
         self._issued: list[str] = []
+        # Ids a caller already has from somewhere else (the server's `skip`):
+        # never yielded at all.
+        self._seen: set[str] = set(seen)
+        # Ids each kind of extraction has already answered from. A message stays
+        # in the inbox after it is read, so without this a second otp() returns
+        # the first code again; kept per kind, so link() can still use the
+        # message otp() took its code from, or walked past.
+        self._used: dict[object, set[str]] = {}
 
     async def messages(self) -> list[MessageRow]:
         return await self.provider.list(self.address)
@@ -58,7 +66,10 @@ class Inbox:
 
     async def watch(self, poll: float | None = None) -> AsyncIterator[Message]:
         async for message in self.provider.watch(self.address, poll=poll):
-            self._issued.append(message.id)
+            if message.id in self._seen:
+                continue
+            if message.id not in self._issued:
+                self._issued.append(message.id)
             yield message
 
     async def first(
@@ -66,13 +77,24 @@ class Inbox:
         extract: Callable[[Message], str | None],
         timeout: float = 120,
         poll: float | None = None,
+        *,
+        key: object = None,
     ) -> str:
         """The first non-empty `extract(message)` among incoming mail, or
-        TimeoutError after `timeout` seconds."""
+        TimeoutError after `timeout` seconds.
+
+        A message this kind of extraction (`key`, else `extract` itself) has
+        already answered from is skipped, so asking twice gets the next one.
+        """
+        used = self._used.setdefault(extract if key is None else key, set())
+
         async def loop():
             async for message in self.watch(poll=poll):
+                if message.id in used:
+                    continue
                 found = extract(message)
                 if found:
+                    used.add(message.id)
                     return found
             raise TimeoutError(
                 f"mail stream for {self.address.value} ended before a match"
@@ -90,7 +112,9 @@ class Inbox:
     async def otp(
         self, timeout: float = 120, pattern: str | None = None, poll: float | None = None
     ) -> str:
-        return await self.first(lambda m: extract_otp(m.text, pattern), timeout, poll)
+        return await self.first(
+            lambda m: extract_otp(m.text, pattern), timeout, poll, key=("otp", pattern)
+        )
 
     async def link(
         self, timeout: float = 120, match: str | None = None, poll: float | None = None
@@ -101,7 +125,7 @@ class Inbox:
                     return href
             return None
 
-        return await self.first(pick, timeout, poll)
+        return await self.first(pick, timeout, poll, key=("link", match))
 
     async def aclose(self) -> None:
         if not self.provider.caps.delete:

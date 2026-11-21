@@ -34,3 +34,10 @@ def test_the_provider_matrix_never_leaks_address_state(client, auth):
     # Blunt guard. `state` is a provider credential and must not appear in any
     # response body; this is the cheapest place to pin that habit.
     assert "state" not in client.get("/v1/providers", headers=auth).text
+
+
+def test_a_non_ascii_key_is_a_401_not_a_500(client):
+    # compare_digest raises TypeError on non-ASCII str; the header arrives as
+    # latin-1, so any byte above 0x7f used to crash the request.
+    resp = client.get("/v1/providers", headers={"x-api-key": b"\xe9"})
+    assert resp.status_code == 401
