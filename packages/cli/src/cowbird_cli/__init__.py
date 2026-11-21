@@ -20,24 +20,28 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     new = sub.add_parser("new", help="acquire an address")
-    new.add_argument("--provider")
+    new.add_argument("--provider", help="use this provider instead of the best healthy one")
     new.add_argument("--gmail", action="store_true", help="require a Gmail alias")
-    new.add_argument("--json", action="store_true")
+    new.add_argument(
+        "--json", action="store_true", help="print address, provider, TTL and state as JSON"
+    )
 
     wait = sub.add_parser("wait", help="wait for mail at an address")
-    wait.add_argument("address")
-    wait.add_argument("--provider", required=True)
+    wait.add_argument("address", help="the address `new` printed")
+    wait.add_argument("--provider", required=True, help="the provider `new` printed")
     # Some providers (mail.tm) bind an inbox to a credential issued at generate
     # time. `cowbird new` is a separate process from `cowbird wait`, so that
     # credential has to travel between them or the second command cannot read
     # the first one's inbox at all.
     wait.add_argument("--state", default=None, help="opaque provider state from `new`")
-    wait.add_argument("--otp", action="store_true")
-    wait.add_argument("--timeout", type=float, default=120)
+    wait.add_argument("--otp", action="store_true", help="print only the one-time code")
+    wait.add_argument("--timeout", type=float, default=120, help="seconds to wait")
 
     sub.add_parser("providers", help="show the provider health matrix")
     canary = sub.add_parser("canary", help="probe every provider live and show health")
-    canary.add_argument("--json", action="store_true")
+    canary.add_argument(
+        "--json", action="store_true", help="print status and last failure per provider as JSON"
+    )
     return parser
 
 

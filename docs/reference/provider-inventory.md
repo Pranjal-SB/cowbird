@@ -1,5 +1,7 @@
 # Provider inventory
 
+> The shipped list, generated from the code, is [Providers](providers.md). This page is the research behind it: every known backend, shipped or not.
+
 The backlog. Every known disposable-mail backend, its front doors, and what it
 can do. Source: curated list, 2026-09-05; reconciled against the code and a
 live probe of every unshipped host, 2026-11-15.
