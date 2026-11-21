@@ -122,7 +122,6 @@ async def test_list_without_the_code_is_refused():
 @pytest.mark.parametrize(
     "answer",
     [
-        {"success": False, "needNewEmail": True, "error": "expired"},
         {"success": True, "emails": "changed"},
         {"success": True, "emails": [{"Subject": "no code"}]},
     ],
@@ -183,3 +182,14 @@ async def test_a_refused_body_is_drift():
     )
     with pytest.raises(SchemaDrift):
         await MailTicking(http).get(ADDRESS, MESSAGE_ID)
+
+
+async def test_an_expired_mailbox_is_address_expired():
+    # The backend's own answer for a mailbox it dropped. Read as drift, it
+    # quarantined the provider for everyone whenever one address aged out.
+    from cowbird.errors import AddressExpired
+
+    answer = {"success": False, "needNewEmail": True, "error": "expired"}
+    http = FakeTransport("mailticking", routes(**{f"POST {SITE}/get-emails": answer}))
+    with pytest.raises(AddressExpired):
+        await MailTicking(http).list(ADDRESS)

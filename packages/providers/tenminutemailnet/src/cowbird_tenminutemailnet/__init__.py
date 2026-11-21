@@ -26,7 +26,7 @@ from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 from urllib.parse import urljoin
 
-from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -127,6 +127,9 @@ class TenMinuteMailNet(Provider):
         # An empty inbox is the header row only; a non-table response (login
         # page, error text) means the session died or the shape moved.
         if 'id="maillist"' not in html:
+            if address.is_expired():
+                # Past the backend's ten minutes the session is simply gone.
+                raise AddressExpired(f"tenminutemailnet: {address.value} has expired")
             raise _drift('a <table id="maillist"> fragment', html[:200])
         rows = [
             MessageRow(
@@ -179,15 +182,11 @@ class TenMinuteMailNet(Provider):
 
     @staticmethod
     def _headers(address: Address) -> dict[str, str]:
-        state = address.state
-        if not state:
-            raise SchemaDrift(
-                "tenminutemailnet",
-                expected="state issued by generate()",
-                got=None,
-            )
-        packed = json.loads(state)
-        return {"Cookie": f"TENMM_G1_SESSION={packed['cookie']}"}
+        try:
+            cookie = json.loads(address.state or "")["cookie"]
+        except (ValueError, TypeError, KeyError) as exc:
+            raise NotSupported("tenminutemailnet needs the state issued by generate()") from exc
+        return {"Cookie": f"TENMM_G1_SESSION={cookie}"}
 
     @staticmethod
     def _parse_address(html: str) -> str:

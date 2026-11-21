@@ -6,7 +6,7 @@ import statistics
 from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -25,6 +25,15 @@ from cowbird.errors import CloudflareChallenge, SchemaDrift
 # it would permanently mark down a provider whose normal pace is just slow.
 SLOW_FACTOR = 3.0
 _WINDOW = 20
+# How long a DOWN provider sits out before routing tries it once more. Without
+# a way back, one 429 or one timeout removed a provider until the process
+# restarted: DOWN is unroutable, so nothing ever called it to record a success.
+DOWN_COOLDOWN = timedelta(seconds=60)
+
+
+def _now() -> datetime:
+    """The one clock in this module, so tests can move it."""
+    return datetime.now(UTC)
 
 
 def default_health_path() -> Path:
@@ -69,7 +78,7 @@ class HealthStore:
 
     def record_success(self, provider: str, op: str, seconds: float) -> None:
         entry = self._entry(provider)
-        entry.last_checked = datetime.now(UTC)
+        entry.last_checked = _now()
         # Quarantine means an adapter is wrong. One passing call does not make
         # it right, so only a human clears it.
         if entry.status is Status.QUARANTINED:
@@ -86,7 +95,7 @@ class HealthStore:
 
     def record_failure(self, provider: str, exc: Exception) -> None:
         entry = self._entry(provider)
-        entry.last_checked = datetime.now(UTC)
+        entry.last_checked = _now()
         entry.last_failure = repr(exc)
         if isinstance(exc, CloudflareChallenge):
             entry.needs_residential_ip = True
@@ -99,6 +108,26 @@ class HealthStore:
 
     def status(self, provider: str) -> Status:
         return self._entry(provider).status
+
+    def retry_due(self, provider: str) -> bool:
+        """True when a DOWN provider has sat out its cooldown and may be tried
+        again. One try per window: a failed retry moves last_checked, which
+        starts the next window."""
+        entry = self._entry(provider)
+        if entry.status is not Status.DOWN:
+            return False
+        # No timestamp means no failure was ever recorded here; record_failure
+        # always stamps one, so wait for it rather than guess.
+        return entry.last_checked is not None and _now() - entry.last_checked >= DOWN_COOLDOWN
+
+    def claim_retry(self, provider: str) -> bool:
+        """Take the one retry a due DOWN provider gets this window. True for
+        exactly one caller: the claim moves last_checked, so every concurrent
+        caller after it sees the window already used."""
+        if not self.retry_due(provider):
+            return False
+        self._entry(provider).last_checked = _now()
+        return True
 
     def p50(self, provider: str) -> float | None:
         latencies = self._entry(provider).latencies

@@ -17,11 +17,12 @@ measurement.
 
 from __future__ import annotations
 
+import json
 import json as jsonlib
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from cowbird.errors import MessageLocked, ProviderDown, SchemaDrift
+from cowbird.errors import MessageGone, MessageLocked, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -112,7 +113,18 @@ class Emailnator(Provider):
         return out
 
     async def get(self, address: Address, id: str) -> Message:
-        payload = await self.http.json("GET", f"{API}/api/message/{quote(id, safe='')}")
+        resp = await self.http.send("GET", f"{API}/api/message/{quote(id, safe='')}")
+        if resp.status_code == 404:
+            # Another reader of this shared inbox may have deleted it.
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"{self.name}: message read answered HTTP {resp.status_code}")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(
+                self.name, expected="a JSON message document", got=resp.text[:200]
+            ) from exc
         if not isinstance(payload, dict) or "content" not in payload:
             raise SchemaDrift(
                 self.name,

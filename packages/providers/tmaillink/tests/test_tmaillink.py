@@ -221,3 +221,12 @@ def test_caps_declare_the_site():
     assert caps.delete is True
     assert caps.inbox_privacy.value == "public"
     assert Kind.OWN_DOMAIN in caps.kind
+
+
+@pytest.mark.parametrize("status", [400, 403])
+async def test_a_refused_message_page_is_down_not_drift(status):
+    from cowbird.errors import ProviderDown
+
+    provider, _ = fake_provider(**{KEY: Reply(status, "<html><h1>Forbidden</h1></html>")})
+    with pytest.raises(ProviderDown):
+        await provider.get(ADDRESS, KEY)

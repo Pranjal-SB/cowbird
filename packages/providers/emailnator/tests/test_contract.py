@@ -121,3 +121,28 @@ async def test_delete_reports_an_unexpected_status_as_provider_down():
     http = fake(dict(DEFAULT_ROUTES), status=403)
     with pytest.raises(ProviderDown, match="403"):
         await Emailnator(http).delete(ADDRESS, "x")
+
+
+async def test_a_message_the_backend_no_longer_has_is_gone():
+    # A shared inbox: another reader may delete a message between list and
+    # get. That is one message gone, not a changed API.
+    from cowbird.errors import MessageGone
+    from cowbird.testing import Reply
+
+    http = fake({**DEFAULT_ROUTES, "/api/message/": Reply(404, {"message": "Not Found"})})
+    with pytest.raises(MessageGone):
+        await Emailnator(http).get(ADDRESS, "abc123")
+
+
+async def test_a_refused_message_read_is_down():
+    from cowbird.testing import Reply
+
+    http = fake({**DEFAULT_ROUTES, "/api/message/": Reply(403, {"message": "Forbidden"})})
+    with pytest.raises(ProviderDown):
+        await Emailnator(http).get(ADDRESS, "abc123")
+
+
+async def test_a_malformed_message_is_still_drift():
+    http = fake({**DEFAULT_ROUTES, "/api/message/": {"unexpected": True}})
+    with pytest.raises(SchemaDrift):
+        await Emailnator(http).get(ADDRESS, "abc123")

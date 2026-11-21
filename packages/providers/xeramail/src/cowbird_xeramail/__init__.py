@@ -178,5 +178,8 @@ class Xeramail(Provider):
         )
         if resp.status_code == 404:
             raise MessageGone(f"{self.name}: message {id} is gone")
+        if resp.status_code == 403:
+            # The secret in Address.state no longer opens this address.
+            raise AddressExpired(f"{self.name}: {address.value} refused its secret")
         if resp.status_code >= 300:
             raise SchemaDrift(self.name, expected="2xx from delete", got=_body(resp))

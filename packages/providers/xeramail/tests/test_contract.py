@@ -223,3 +223,9 @@ async def test_a_malformed_answer_is_drift(route, answer):
             await provider.delete(ADDRESS, MID)
         else:
             await provider.list(ADDRESS)
+
+
+async def test_a_refused_secret_on_delete_is_an_expired_address():
+    provider, _ = xeramail(**{DELETE: Reply(403, {"error": "forbidden"})})
+    with pytest.raises(AddressExpired):
+        await provider.delete(ADDRESS, MID)

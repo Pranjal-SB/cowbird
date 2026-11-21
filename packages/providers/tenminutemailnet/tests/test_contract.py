@@ -200,3 +200,37 @@ async def test_a_requested_domain_the_provider_does_not_serve_is_refused():
     http = fake(default_routes())
     with pytest.raises(NotSupported):
         await TenMinuteMailNet(http).generate(GenerateOptions(domain="not-a-real-domain.invalid"))
+
+
+async def test_a_dead_session_after_the_ttl_is_address_expired():
+    from datetime import UTC, datetime, timedelta
+
+    from cowbird.errors import AddressExpired
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    provider = TenMinuteMailNet(fake({**default_routes(), "mailbox.ajax.php": "<p>login</p>"}))
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    old = Address(address.value, address.provider, datetime.now(UTC) - timedelta(minutes=1),
+                  address.state)
+    with pytest.raises(AddressExpired):
+        await provider.list(old)
+
+
+async def test_a_non_table_answer_inside_the_ttl_is_still_drift():
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    address = await TenMinuteMailNet(fake(default_routes())).generate()
+    provider = TenMinuteMailNet(fake({**default_routes(), "mailbox.ajax.php": "<p>login</p>"}))
+    with pytest.raises(SchemaDrift):
+        await provider.list(address)
+
+
+@pytest.mark.parametrize("state", [None, "not json", "{}"])
+async def test_missing_or_malformed_state_is_not_supported(state):
+    from cowbird.errors import NotSupported
+    from cowbird_tenminutemailnet import TenMinuteMailNet
+
+    with pytest.raises(NotSupported):
+        await TenMinuteMailNet(fake(default_routes())).list(
+            Address("user01@zefvo.com", "tenminutemailnet", state=state)
+        )

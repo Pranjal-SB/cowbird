@@ -29,7 +29,7 @@ import time
 from datetime import datetime, timedelta
 from urllib.parse import quote
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift, SolverUnavailable
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift, SolverUnavailable
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -152,6 +152,10 @@ class VanishInbox(Provider):
             # Revoked or rejected early: earn a fresh pass once and retry.
             cookie = await self._verify(stale=cookie)
             resp = await self.http.send("GET", url, cookies={COOKIE: cookie})
+            if resp.status_code == 403:
+                # A pass refused right after it was earned: this egress is not
+                # trusted, which is an outage from here, not a changed API.
+                raise ProviderDown(f"{self.name}: a fresh pass was refused")
         try:
             data = json.loads(resp.text)
         except ValueError:

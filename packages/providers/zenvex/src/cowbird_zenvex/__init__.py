@@ -21,7 +21,7 @@ import string
 from datetime import UTC, datetime
 from urllib.parse import quote
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift, SolverUnavailable
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift, SolverUnavailable
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -165,7 +165,9 @@ class Zenvex(Provider):
         await self._verify(seen)
         status, body = await self._call("GET", path, **kw)
         if _refused(status, body):
-            raise SchemaDrift(self.name, expected=f"{path} to answer a verified session", got=body)
+            # Refused right after a fresh verify: this egress is not trusted,
+            # which is an outage from here, not a changed API.
+            raise ProviderDown(f"{self.name}: {path} refused a freshly verified session")
         return status, body
 
     async def list(self, address: Address) -> list[MessageRow]:

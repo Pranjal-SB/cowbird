@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
 
 from cowbird.errors import CowbirdError
-from cowbird.health import HealthStore
+from cowbird.health import ROUTABLE, HealthStore
 from cowbird.models import Address, Message, MessageRow
 from cowbird.parsing import extract_otp
 from cowbird.pool import Pool, Request
@@ -131,7 +131,11 @@ async def open_inboxes(n: int, pool: Pool | None = None, **kw) -> AsyncIterator[
     # first: it is what the API promises, it respects each backend's
     # concurrency budget, and it means one backend dying costs you 1/n of the
     # batch instead of all of it. Wraps around when n exceeds the candidates.
-    names = [p.name for p in pool.candidates(req)] or [None]
+    # Only healthy providers: each slot is pinned, and a pinned acquire never
+    # falls back, so one DOWN provider on trial would fail the whole batch.
+    candidates = pool.candidates(req)
+    healthy = [p.name for p in candidates if pool.health.status(p.name) in ROUTABLE]
+    names = healthy or [p.name for p in candidates] or [None]
     results = await asyncio.gather(
         *(
             pool.acquire(replace(req, provider=names[i % len(names)]))

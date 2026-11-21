@@ -82,9 +82,12 @@ def _sender(row: dict) -> str:
 
 
 def _unpack(state: str | None) -> dict:
-    if not state:
-        raise NotSupported("tempemailcc needs the state issued by generate()")
-    return json.loads(state)
+    try:
+        packed = json.loads(state or "")
+        packed["token"]  # noqa: B018 - the one key every call needs
+    except (ValueError, TypeError, KeyError) as exc:
+        raise NotSupported("tempemailcc needs the state issued by generate()") from exc
+    return packed
 
 
 def _auth(address: Address) -> dict[str, str]:
@@ -175,12 +178,12 @@ class TempEmailCc(Provider):
             seen_cursors.add(cursor)
 
     async def get(self, address: Address, id: str) -> Message:
-        data = _envelope(
-            await self.http.json(
-                "GET", f"{self.api}/api/messages/{id}", headers=_auth(address)
-            ),
-            f"GET /api/messages/{id}",
+        detail = await self.http.json(
+            "GET", f"{self.api}/api/messages/{id}", headers=_auth(address)
         )
+        if isinstance(detail, dict) and detail.get("code") == 404:
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        data = _envelope(detail, f"GET /api/messages/{id}")
         # The body is a separate endpoint, served as gzip-compressed HTML no
         # matter what the client offers (observed 2026-11-15: application/gzip
         # with Accept-Encoding: gzip already sent — curl_cffi leaves it alone

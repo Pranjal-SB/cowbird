@@ -67,9 +67,20 @@ async def test_generate_missing_accesstoken_is_schema_drift():
         await Tmailor(http).generate(GenerateOptions())
 
 
-async def test_generate_non_ok_msg_is_schema_drift():
-    http = fake({**default_routes(), "webapp-newemail": {"msg": "errorcaptcha"}})
-    with pytest.raises(SchemaDrift, match="errorcaptcha"):
+@pytest.mark.parametrize("block", ["errorcaptcha", "client-block", "cfblock"])
+async def test_a_blocked_egress_is_down_not_drift(block):
+    # These answers mean this IP is blocked for now (recon saw one last about
+    # ten minutes); the adapter is fine, so it must not quarantine.
+    from cowbird.errors import ProviderDown
+
+    http = fake({**default_routes(), "webapp-newemail": {"msg": block}})
+    with pytest.raises(ProviderDown, match=block):
+        await Tmailor(http).generate(GenerateOptions())
+
+
+async def test_an_unknown_msg_is_still_drift():
+    http = fake({**default_routes(), "webapp-newemail": {"msg": "somethingnew"}})
+    with pytest.raises(SchemaDrift, match="somethingnew"):
         await Tmailor(http).generate(GenerateOptions())
 
 
@@ -99,13 +110,15 @@ async def test_list_parses_rows_from_the_data_map():
     assert row.received_at is not None
 
 
-async def test_list_errortoken_is_schema_drift():
-    # What the server answers when the listToken map shape is wrong or the JWT
-    # is rejected — a shape/auth problem, not an empty inbox.
+async def test_list_errortoken_is_address_expired():
+    # What the server answers when the mailbox token is rejected: the
+    # mailbox's credential is dead, not the adapter.
+    from cowbird.errors import AddressExpired
+
     http = fake({**default_routes(), "listToken": {"msg": "errortoken"}})
     provider = Tmailor(http)
     address = await provider.generate(GenerateOptions())
-    with pytest.raises(SchemaDrift, match="errortoken"):
+    with pytest.raises(AddressExpired, match="errortoken"):
         await provider.list(address)
 
 
@@ -189,3 +202,11 @@ async def test_a_domain_outside_the_scraped_options_is_refused():
     http = fake(default_routes())
     with pytest.raises(NotSupported):
         await Tmailor(http).generate(GenerateOptions(domain="tinpho.com"))
+
+
+async def test_errortoken_from_generate_is_drift():
+    # generate() sends no token, so errortoken there cannot mean a dead
+    # mailbox. As AddressExpired it would stop the pool from trying anyone else.
+    http = fake({**default_routes(), "webapp-newemail": {"msg": "errortoken"}})
+    with pytest.raises(SchemaDrift, match="errortoken"):
+        await Tmailor(http).generate(GenerateOptions())

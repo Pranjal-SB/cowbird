@@ -31,7 +31,7 @@ import re
 from datetime import UTC, datetime
 from typing import ClassVar
 
-from cowbird.errors import MessageGone, NotSupported, SchemaDrift
+from cowbird.errors import AddressExpired, MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -47,14 +47,24 @@ def _field(row: dict, key: str, where: str) -> str:
     return row[key]
 
 
-def _ok(payload: object, where: str) -> dict:
-    """Every webapp-* answer is `{"msg": ...}`; anything but "ok" here is a
-    shape or auth problem (errortoken, errorcaptcha, cfblock), not an empty
-    inbox, so it quarantines as drift."""
-    if not isinstance(payload, dict) or payload.get("msg") != "ok":
-        got = payload if isinstance(payload, dict) else type(payload).__name__
-        raise SchemaDrift("tmailor", expected=f'msg "ok" from {where}', got=got)
-    return payload
+# Answers that mean this egress is blocked for a while; recon saw one last
+# about ten minutes. The adapter is fine, so they must not quarantine it.
+_BLOCKED = frozenset({"errorcaptcha", "client-block", "cfblock"})
+
+
+def _ok(payload: object, where: str, *, token_sent: bool = True) -> dict:
+    """Every webapp-* answer is `{"msg": ...}`. A block is an outage, a
+    rejected mailbox token is a dead address, and anything else that is not
+    "ok" is a shape this adapter does not know."""
+    msg = payload.get("msg") if isinstance(payload, dict) else None
+    if msg == "ok":
+        return payload
+    if msg in _BLOCKED:
+        raise ProviderDown(f"tmailor: {msg} from {where}")
+    if msg == "errortoken" and token_sent:
+        raise AddressExpired(f"tmailor: errortoken from {where}")
+    got = payload if isinstance(payload, dict) else type(payload).__name__
+    raise SchemaDrift("tmailor", expected=f'msg "ok" from {where}', got=got)
 
 
 def _box(payload: dict, address: str, where: str) -> dict:
@@ -147,6 +157,7 @@ class Tmailor(Provider):
                 json={"action": "newemail", "curentToken": "", "choose_domain": choose_domain},
             ),
             "webapp-newemail",
+            token_sent=False,  # no token was sent, so errortoken here is drift
         )
         value = _field(payload, "email", "webapp-newemail")
         token = _field(payload, "accesstoken", "webapp-newemail")

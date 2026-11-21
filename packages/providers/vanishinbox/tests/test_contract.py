@@ -120,9 +120,13 @@ async def test_a_revoked_pass_is_renewed_once_and_the_read_retried():
     assert len(calls(http, INBOX)) == 2
 
 
-async def test_a_pass_refused_right_after_verifying_is_drift():
+async def test_a_pass_refused_right_after_verifying_is_down_not_drift():
+    # A fresh pass refused at once means this egress is not trusted, not that
+    # the API changed shape.
+    from cowbird.errors import ProviderDown
+
     provider, _ = vanish(**{INBOX: Reply(403, load("inbox_unverified.json"))})
-    with pytest.raises(SchemaDrift):
+    with pytest.raises(ProviderDown):
         await provider.list(ADDRESS)
     assert len(provider.http.solver.calls) == 1
 

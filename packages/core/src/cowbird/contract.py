@@ -125,6 +125,17 @@ class ProviderContract:
         second_ids = {row.id for row in await provider.list(address)}
         assert first_ids <= second_ids, "older message IDs must appear in newer list"
 
+    async def test_listed_ids_pass_the_registry_id_guard(self, provider: Provider) -> None:
+        # The registry refuses ids that could reshape a request (a slash, a
+        # query, an escape). An adapter whose real ids carried one of those
+        # would become unreadable through the registry, so check every id the
+        # adapter lists.
+        from cowbird.registry import _check_id
+
+        address = await provider.generate(GenerateOptions())
+        for row in await provider.list(address):
+            _check_id(row.id)
+
     async def test_get_returns_a_message_with_text(self, provider: Provider) -> None:
         # Mocked fixtures should always supply at least one message so the
         # body-read path is exercised. This skip should only trigger in live mode

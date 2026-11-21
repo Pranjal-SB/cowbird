@@ -1,16 +1,34 @@
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable
 from importlib.metadata import entry_points
 
-from cowbird.errors import CowbirdError, NoProviderAvailable, ProviderDown, SolverUnavailable
+from cowbird.errors import (
+    CowbirdError,
+    NoProviderAvailable,
+    NotSupported,
+    ProviderDown,
+    SolverUnavailable,
+)
 from cowbird.health import HealthStore
 from cowbird.provider import Provider
 from cowbird.solver import Solver
 from cowbird.transport import Transport
 
 ENTRY_POINT_GROUP = "cowbird.providers"
+
+# Adapters put the message id into URL paths, and the server takes it straight
+# from its route. An id that can add a path segment, a query, a fragment or an
+# escape would fetch some other URL, and that answer would read as drift and
+# quarantine a healthy provider. Checked here, once, for every adapter.
+_UNSAFE_ID = re.compile(r"[/?#%\\\s]|^\.{1,2}$")
+
+
+def _check_id(id: str) -> None:
+    if not isinstance(id, str) or not id or _UNSAFE_ID.search(id):
+        raise NotSupported(f"not a usable message id: {id!r}")
 
 
 class HealthTracked(Provider):
@@ -75,9 +93,11 @@ class HealthTracked(Provider):
         return await self._tracked("list", self._inner.list(address))
 
     async def get(self, address, id):
+        _check_id(id)
         return await self._tracked("get", self._inner.get(address, id))
 
     async def delete(self, address, id):
+        _check_id(id)
         return await self._tracked("delete", self._inner.delete(address, id))
 
     async def watch(self, address, poll=None):

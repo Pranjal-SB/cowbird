@@ -135,3 +135,81 @@ async def test_a_message_that_has_expired_is_gone_not_drift():
     http = fake({**DEFAULT_ROUTES, "/messages/6a1f2c9e4b7d": missing})
     with pytest.raises(MessageGone):
         await MailTm(http).get(_address_with_token(), "6a1f2c9e4b7d")
+
+
+# mail.tm's JWT expires. The password travels in Address.state precisely so the
+# token can be re-minted; before, a 401 read as drift and quarantined the
+# provider (and DuckMail through it) for every caller.
+EXPIRED = Reply(401, {"code": 401, "message": "Expired JWT Token"})
+
+
+def _bearer(http, path_suffix):
+    return [
+        kw["headers"]["Authorization"]
+        for method, url, kw in http.seen
+        if method == "GET" and url.endswith(path_suffix)
+    ]
+
+
+async def test_an_expired_token_is_reminted_once_and_reused():
+    from cowbird.testing import Responses
+
+    http = fake({
+        **DEFAULT_ROUTES,
+        "/token": Responses(load("token.json"), {"token": "fresh-token"}),
+        "/messages": Responses(EXPIRED, load("messages_full.json")),
+    })
+    provider = MailTm(http)
+    address = await provider.generate(GenerateOptions())
+    assert await provider.list(address)
+    await provider.list(address)
+    assert _bearer(http, "/messages")[-2:] == ["Bearer fresh-token", "Bearer fresh-token"]
+    assert sum(1 for m, url, _ in http.seen if m == "POST" and url.endswith("/token")) == 2
+
+
+async def test_a_dead_account_is_address_expired():
+    from cowbird.errors import AddressExpired
+    from cowbird.testing import Responses
+
+    http = fake({
+        **DEFAULT_ROUTES,
+        "/token": Responses(load("token.json"), EXPIRED),
+        "/messages": EXPIRED,
+    })
+    provider = MailTm(http)
+    address = await provider.generate(GenerateOptions())
+    with pytest.raises(AddressExpired):
+        await provider.list(address)
+
+
+async def test_a_taken_name_is_not_supported():
+    refused = Reply(422, {"hydra:description": "address: This value is already used."})
+    http = fake({**DEFAULT_ROUTES, "/accounts": refused})
+    with pytest.raises(NotSupported):
+        await MailTm(http).generate(GenerateOptions(local="taken"))
+
+
+@pytest.mark.parametrize("state", ["not json", "{}", "[]", '{"token": "t"}'])
+async def test_malformed_state_is_not_supported(state):
+    from cowbird.models import Address
+
+    with pytest.raises(NotSupported):
+        await MailTm(fake(dict(DEFAULT_ROUTES))).list(Address("a@x.test", "mailtm", state=state))
+
+
+async def test_a_malformed_list_is_still_drift():
+    http = fake({**DEFAULT_ROUTES, "/messages": {"x": 1}})
+    provider = MailTm(http)
+    address = await provider.generate(GenerateOptions())
+    with pytest.raises(SchemaDrift):
+        await provider.list(address)
+
+
+async def test_a_422_for_a_name_we_picked_ourselves_is_drift():
+    # Only a caller-chosen name can be "taken". For our own random name a 422
+    # means mail.tm changed its rules, and NotSupported would stop the pool
+    # from trying any other provider.
+    refused = Reply(422, {"hydra:description": "password: too short"})
+    http = fake({**DEFAULT_ROUTES, "/accounts": refused})
+    with pytest.raises(SchemaDrift):
+        await MailTm(http).generate(GenerateOptions())

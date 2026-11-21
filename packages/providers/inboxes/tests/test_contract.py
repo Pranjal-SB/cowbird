@@ -152,3 +152,27 @@ async def test_delete_sends_the_uid_in_the_body_not_the_url():
     assert method == "DELETE"
     assert url.endswith("/message/")
     assert body == {"ids": ["some-uid"]}
+
+
+async def test_a_message_the_backend_no_longer_has_is_gone():
+    from cowbird.errors import MessageGone
+    from cowbird.testing import Reply
+
+    http = fake({**DEFAULT_ROUTES, "/message/": Reply(404, {"message": "Not Found"})})
+    with pytest.raises(MessageGone):
+        await Inboxes(http).get(ADDRESS, "abc123")
+
+
+async def test_a_refused_message_read_is_down():
+    from cowbird.errors import ProviderDown
+    from cowbird.testing import Reply
+
+    http = fake({**DEFAULT_ROUTES, "/message/": Reply(403, {"message": "Forbidden"})})
+    with pytest.raises(ProviderDown):
+        await Inboxes(http).get(ADDRESS, "abc123")
+
+
+async def test_a_malformed_message_is_still_drift():
+    http = fake({**DEFAULT_ROUTES, "/message/": {"unexpected": True}})
+    with pytest.raises(SchemaDrift):
+        await Inboxes(http).get(ADDRESS, "abc123")

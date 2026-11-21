@@ -179,3 +179,26 @@ async def test_corrupt_deflate_stream_is_schema_drift():
         await provider.get(
             Address("cbprobe@icmans.com", "tempemailcc", state=state()), MID
         )
+
+
+
+@pytest.mark.parametrize("state", ["not json", "{}", "[]"])
+async def test_malformed_state_is_not_supported(state):
+    from cowbird.errors import NotSupported
+    from cowbird.models import Address
+
+    with pytest.raises(NotSupported):
+        await TempEmailCc(FakeTransport("tempemailcc", {})).list(
+            Address("cbprobe@icmans.com", "tempemailcc", state=state)
+        )
+
+
+
+async def test_a_message_the_backend_no_longer_has_is_gone():
+    from cowbird.errors import MessageGone
+    from cowbird.models import Address
+
+    gone = {"code": 404, "message": "message not found", "data": None}
+    provider = make(**{"GET https://www.tempemail.cc/api/messages/" + MID: gone})
+    with pytest.raises(MessageGone):
+        await provider.get(Address("cbprobe@icmans.com", "tempemailcc", state=state()), MID)

@@ -37,7 +37,7 @@ from cowbird.errors import (
     SolverUnavailable,
 )
 from cowbird.models import Address, Capabilities, Kind, Message, MessageRow
-from cowbird.parsing import extract_links, html_to_text
+from cowbird.parsing import decode_part, extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
 
 LANG = {"x-lang": "en"}
@@ -62,14 +62,7 @@ def _body(parsed: email.message.EmailMessage, subtype: str) -> str:
     part = parsed.get_body(preferencelist=(subtype,))
     if part is None:
         return ""
-    try:
-        return part.get_content()
-    except LookupError as exc:
-        raise SchemaDrift(
-            "cftempmail",
-            expected="a body in a charset Python knows",
-            got=part.get_content_charset(),
-        ) from exc
+    return decode_part(part)
 
 
 def _row(row: object) -> dict:
@@ -204,6 +197,8 @@ class CfTempMail(Provider):
         )
         if resp.status_code == 403:
             raise NotSupported(f"{self.name}: this instance does not let users delete mail")
+        if resp.status_code == 401:
+            raise AddressExpired(f"{self.name} no longer knows {address.value}")
         data = self._json(resp)
         if not (isinstance(data, dict) and "success" in data):
             raise SchemaDrift(self.name, expected="'success' from delete", got=data)

@@ -258,3 +258,124 @@ def test_unset_privacy_keeps_latency_order():
         health.record_success("slow", "list", 4.0)
     pool = build(provider_class("quick"), provider_class("slow"), health=health)
     assert [p.name for p in pool.candidates(Request())] == ["quick", "slow"]
+
+
+# A provider that fails once (one 429) and then answers normally. Without a
+# way back from DOWN it would stay out of routing for the life of the process.
+def _flaky(name):
+    from cowbird.errors import RateLimited
+
+    class Flaky(FakeProvider):
+        failures = 1
+
+        async def generate(self, opts=None):
+            if type(self).failures:
+                type(self).failures -= 1
+                raise RateLimited(f"{self.name}: HTTP 429")
+            return await super().generate(opts)
+
+    Flaky.name = name
+    Flaky.caps = CAPS
+    return Flaky
+
+
+class _Clock:
+    def __init__(self, monkeypatch):
+        from datetime import UTC, datetime
+
+        import cowbird.health
+
+        self.at = datetime(2026, 11, 18, 12, 0, tzinfo=UTC)
+        monkeypatch.setattr(cowbird.health, "_now", lambda: self.at)
+
+    def advance(self, seconds):
+        self.at += timedelta(seconds=seconds)
+
+
+async def _fail_once(pool):
+    with pytest.raises(NoProviderAvailable):
+        await pool.acquire(Request())
+
+
+async def test_a_down_provider_is_skipped_inside_the_cooldown(monkeypatch):
+    clock = _Clock(monkeypatch)
+    pool = build(_flaky("a"))
+    await _fail_once(pool)
+    clock.advance(30)
+    with pytest.raises(NoProviderAvailable) as caught:
+        await pool.acquire(Request())
+    assert caught.value.tried == []
+
+
+async def test_a_down_provider_is_tried_again_after_the_cooldown(monkeypatch):
+    clock = _Clock(monkeypatch)
+    pool = build(_flaky("a"))
+    await _fail_once(pool)
+    clock.advance(61)
+    provider, _ = await pool.acquire(Request())
+    assert provider.name == "a"
+    assert pool.health.status("a") is Status.OK
+
+
+async def test_a_down_provider_ranks_after_healthy_ones(monkeypatch):
+    clock = _Clock(monkeypatch)
+    pool = build(_flaky("a"), provider_class("b"))
+    pool.health.record_failure("a", ProviderDown("a: boom"))
+    clock.advance(61)
+    assert [p.name for p in pool.candidates(Request())] == ["b", "a"]
+
+
+async def test_a_failed_retry_restarts_the_cooldown(monkeypatch):
+    clock = _Clock(monkeypatch)
+    flaky = _flaky("a")
+    flaky.failures = 2
+    pool = build(flaky)
+    await _fail_once(pool)
+    clock.advance(61)
+    await _fail_once(pool)  # the retry fails too
+    clock.advance(30)
+    with pytest.raises(NoProviderAvailable) as caught:
+        await pool.acquire(Request())
+    assert caught.value.tried == []
+
+
+def _dead(name, calls):
+    class Dead(FakeProvider):
+        async def generate(self, opts=None):
+            import asyncio
+
+            calls.append(self.name)
+            await asyncio.sleep(0)  # in flight, as a real request would be
+            raise ProviderDown(f"{self.name}: still down")
+
+    Dead.name = name
+    Dead.caps = CAPS
+    return Dead
+
+
+async def test_concurrent_acquires_try_a_due_provider_only_once(monkeypatch):
+    import asyncio
+
+    clock = _Clock(monkeypatch)
+    calls = []
+    pool = build(_dead("dead", calls))
+    pool.health.record_failure("dead", ProviderDown("dead: boom"))
+    clock.advance(61)
+    results = await asyncio.gather(
+        *(pool.acquire(Request()) for _ in range(3)), return_exceptions=True
+    )
+    assert all(isinstance(r, NoProviderAvailable) for r in results)
+    assert calls == ["dead"]
+
+
+async def test_open_inboxes_spreads_only_over_healthy_providers(monkeypatch):
+    from cowbird.inbox import open_inboxes
+
+    clock = _Clock(monkeypatch)
+    calls = []
+    pool = build(provider_class("good"), _dead("dead", calls))
+    pool.health.record_failure("dead", ProviderDown("dead: boom"))
+    clock.advance(61)
+    async with open_inboxes(4, pool=pool) as boxes:
+        assert [b.provider.name for b in boxes] == ["good"] * 4
+    assert calls == []

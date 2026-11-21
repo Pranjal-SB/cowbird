@@ -21,10 +21,11 @@ header, and the free site does not use it.
 
 from __future__ import annotations
 
+import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from cowbird.errors import NotSupported, SchemaDrift
+from cowbird.errors import MessageGone, NotSupported, ProviderDown, SchemaDrift
 from cowbird.models import Address, Capabilities, InboxPrivacy, Kind, Message, MessageRow
 from cowbird.parsing import extract_links, html_to_text
 from cowbird.provider import GenerateOptions, Provider
@@ -136,7 +137,18 @@ class Inboxes(Provider):
         return out
 
     async def get(self, address: Address, id: str) -> Message:
-        payload = await self.http.json("GET", f"{API}/message/{id}")
+        resp = await self.http.send("GET", f"{API}/message/{id}")
+        if resp.status_code == 404:
+            # Another reader of this shared inbox may have deleted it.
+            raise MessageGone(f"{self.name}: message {id} is gone")
+        if resp.status_code >= 400:
+            raise ProviderDown(f"{self.name}: message read answered HTTP {resp.status_code}")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError as exc:
+            raise SchemaDrift(
+                self.name, expected="a JSON message document", got=resp.text[:200]
+            ) from exc
         if not isinstance(payload, dict) or "uid" not in payload:
             raise SchemaDrift(
                 self.name,

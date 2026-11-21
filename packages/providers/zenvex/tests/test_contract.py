@@ -99,9 +99,13 @@ async def test_a_lapsed_verification_is_renewed_once_with_a_fresh_home_visit():
     assert sum(1 for m, u, _ in http.seen if u == PAGE) == 2
 
 
-async def test_a_session_refused_right_after_verifying_is_drift():
+async def test_a_session_refused_right_after_verifying_is_down_not_drift():
+    # A session refused right after a fresh verify means this egress is not
+    # trusted, not that the API changed shape.
+    from cowbird.errors import ProviderDown
+
     provider, _ = zenvex(**{EMAILS: UNVERIFIED})
-    with pytest.raises(SchemaDrift):
+    with pytest.raises(ProviderDown):
         await provider.list(ADDRESS)
     assert len(provider.http.solver.calls) == 1
 
